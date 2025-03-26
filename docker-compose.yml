@@ -16,27 +16,47 @@ services:
       - JWT_SECRET=change_this_to_another_secure_random_string
     volumes:
       - licener-data:/usr/src/app/data
-    networks:
-      - licener-network
     depends_on:
       - mongo
+    networks:
+      - licener-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   mongo:
     image: mongo:6
     container_name: licener-mongodb
     restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=licener
     volumes:
       - mongo-data:/data/db
+      - mongo-config:/data/configdb
     networks:
       - licener-network
     # Comment out the following lines if you want to expose MongoDB to the host
     # ports:
     #   - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   licener-data:
+    name: licener-data
   mongo-data:
+    name: licener-mongodb-data
+  mongo-config:
+    name: licener-mongodb-config
 
 networks:
   licener-network:
+    name: licener-network
     driver: bridge
