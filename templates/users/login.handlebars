@@ -1,0 +1,76 @@
+<div class="login-container">
+  <div class="card">
+    <div class="card-body">
+      <div class="text-center mb-4">
+        <h1 class="h3 mb-3 fw-normal text-primary">
+          <i class="fas fa-key me-2"></i>Licener
+        </h1>
+        <h2 class="h5 fw-normal">Login to your account</h2>
+      </div>
+      
+      {{> _messages}}
+      
+      <form action="/users/login" method="POST">
+        <div class="form-floating mb-3">
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-control"
+            placeholder="name@example.com"
+            required
+          />
+          <label for="email">Email address</label>
+        </div>
+        
+        <div class="form-floating mb-3">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-control"
+            placeholder="Password"
+            required
+          />
+          <label for="password">Password</label>
+        </div>
+        
+        <div class="d-grid mb-4">
+          <button class="btn btn-primary btn-lg" type="submit">
+            <i class="fas fa-sign-in-alt me-2"></i>Login
+          </button>
+        </div>
+        
+        <div class="text-center">
+          <p>Don't have an account? <a href="/users/register">Register</a></p>
+          <p><a href="/">Back to home</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  body {
+    background-color: #f8f9fa;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  
+  .login-container {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .card {
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .card-body {
+    padding: 2rem;
+  }
+</style>

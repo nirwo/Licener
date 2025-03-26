@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  licener:
+    build: .
+    image: licener
+    container_name: licener-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/licener
+      - SESSION_SECRET=change_this_to_a_secure_random_string
+      - JWT_SECRET=change_this_to_another_secure_random_string
+    volumes:
+      - licener-data:/usr/src/app/data
+    networks:
+      - licener-network
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6
+    container_name: licener-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - licener-network
+    # Comment out the following lines if you want to expose MongoDB to the host
+    # ports:
+    #   - "27017:27017"
+
+volumes:
+  licener-data:
+  mongo-data:
+
+networks:
+  licener-network:
+    driver: bridge

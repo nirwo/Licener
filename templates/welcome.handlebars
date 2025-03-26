@@ -1,0 +1,99 @@
+<div class="welcome-container">
+  <div class="row">
+    <div class="col-md-6 d-flex align-items-center">
+      <div class="welcome-content">
+        <h1 class="display-4 fw-bold text-primary">Licener</h1>
+        <h2 class="fw-light">Comprehensive License Management System</h2>
+        <p class="lead my-4">
+          Efficiently manage, track, and optimize your software licenses across your organization.
+          Never miss a renewal, stay compliant, and gain valuable insights.
+        </p>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+          <a href="/users/login" class="btn btn-primary btn-lg px-4 me-md-2">
+            <i class="fas fa-sign-in-alt me-2"></i>Login
+          </a>
+          <a href="/users/register" class="btn btn-outline-secondary btn-lg px-4">
+            <i class="fas fa-user-plus me-2"></i>Register
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="welcome-features mt-5">
+        <div class="row g-4">
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="fas fa-file-contract fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">License Management</h5>
+                <p class="card-text">Track license keys, expiry dates, renewals, and usage in one place.</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="fas fa-server fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">System Tracking</h5>
+                <p class="card-text">Manage systems and their license requirements efficiently.</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="fas fa-chart-bar fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">Reports & Analytics</h5>
+                <p class="card-text">Gain insights with detailed reports and visualizations.</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <i class="fas fa-bell fa-2x text-primary mb-3"></i>
+                <h5 class="card-title">Renewal Alerts</h5>
+                <p class="card-text">Never miss a license renewal with timely notifications.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  body {
+    background-color: #f8f9fa;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  
+  .welcome-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .welcome-content {
+    padding: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    .welcome-content {
+      text-align: center;
+      padding: 1rem;
+    }
+    
+    .d-md-flex {
+      justify-content: center !important;
+    }
+  }
+</style>

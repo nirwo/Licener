@@ -1,0 +1,279 @@
+/* Global Styles */
+body {
+  font-size: .875rem;
+  background-color: #f8f9fa;
+}
+
+.feather {
+  width: 16px;
+  height: 16px;
+  vertical-align: text-bottom;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  padding: 48px 0 0;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+@media (max-width: 767.98px) {
+  .sidebar {
+    top: 5rem;
+  }
+}
+
+.sidebar-sticky {
+  position: relative;
+  top: 0;
+  height: calc(100vh - 48px);
+  padding-top: .5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.sidebar .nav-link {
+  font-weight: 500;
+  color: #333;
+  padding: .5rem 1rem;
+}
+
+.sidebar .nav-link:hover {
+  color: #007bff;
+}
+
+.sidebar .nav-link.active {
+  color: #007bff;
+}
+
+.sidebar-heading {
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+/* Navbar */
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, .25);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+}
+
+.navbar .navbar-toggler {
+  top: .25rem;
+  right: 1rem;
+}
+
+/* Content */
+main {
+  margin-top: 58px;
+}
+
+/* Cards */
+.card {
+  margin-bottom: 1.5rem;
+  border: none;
+  box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+  background-color: #f8f9fc;
+  border-bottom: 1px solid #e3e6f0;
+}
+
+.card-footer {
+  background-color: #f8f9fc;
+  border-top: 1px solid #e3e6f0;
+}
+
+/* Tables */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table th {
+  font-weight: 600;
+  background-color: #f8f9fc;
+}
+
+/* Forms */
+.form-label {
+  font-weight: 500;
+}
+
+.form-control:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Badges */
+.badge {
+  font-size: 85%;
+  font-weight: 600;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #4e73df;
+  border-color: #4e73df;
+}
+
+.btn-primary:hover {
+  background-color: #2e59d9;
+  border-color: #2e59d9;
+}
+
+.btn-success {
+  background-color: #1cc88a;
+  border-color: #1cc88a;
+}
+
+.btn-success:hover {
+  background-color: #169b6b;
+  border-color: #169b6b;
+}
+
+.btn-warning {
+  background-color: #f6c23e;
+  border-color: #f6c23e;
+}
+
+.btn-warning:hover {
+  background-color: #f4b619;
+  border-color: #f4b619;
+}
+
+.btn-danger {
+  background-color: #e74a3b;
+  border-color: #e74a3b;
+}
+
+.btn-danger:hover {
+  background-color: #e02d1b;
+  border-color: #e02d1b;
+}
+
+/* Status colors */
+.bg-success {
+  background-color: #1cc88a !important;
+}
+
+.bg-warning {
+  background-color: #f6c23e !important;
+}
+
+.bg-danger {
+  background-color: #e74a3b !important;
+}
+
+.bg-info {
+  background-color: #36b9cc !important;
+}
+
+.bg-secondary {
+  background-color: #858796 !important;
+}
+
+/* License details */
+.license-details .label {
+  font-weight: 600;
+  color: #4e73df;
+}
+
+/* System details */
+.system-details .label {
+  font-weight: 600;
+  color: #4e73df;
+}
+
+/* File upload */
+.custom-file-input:focus ~ .custom-file-label {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.custom-file-input:lang(en) ~ .custom-file-label::after {
+  content: "Browse";
+}
+
+/* Charts */
+.chart-container {
+  position: relative;
+  margin: auto;
+}
+
+/* Filters */
+.filter-form {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.35rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Reports */
+.report-card {
+  transition: transform .2s;
+}
+
+.report-card:hover {
+  transform: scale(1.02);
+}
+
+.report-icon {
+  font-size: 2.5rem;
+  color: #4e73df;
+}
+
+/* Responsive Fixes */
+@media (max-width: 768px) {
+  .sidebar {
+    padding-top: 0;
+  }
+  
+  main {
+    margin-top: 56px;
+  }
+  
+  .navbar-brand {
+    padding-left: 1rem;
+  }
+  
+  .d-flex.align-items-center {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  
+  .btn-toolbar {
+    margin-top: 1rem;
+  }
+}
+
+/* Utility classes */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.min-width-100 {
+  min-width: 100px;
+}
+
+.min-width-150 {
+  min-width: 150px;
+}
+
+.bg-light-hover:hover {
+  background-color: #f8f9fa;
+}
+
+.text-truncate-custom {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,252 @@
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const passport = require('passport');
+const { ensureAuthenticated, ensureAdmin, forwardAuthenticated } = require('../middleware/auth');
+const User = require('../models/User');
+
+// Login Page
+router.get('/login', forwardAuthenticated, (req, res) => {
+  res.render('users/login', {
+    title: 'Login'
+  });
+});
+
+// Register Page
+router.get('/register', forwardAuthenticated, (req, res) => {
+  res.render('users/register', {
+    title: 'Register'
+  });
+});
+
+// Register Handle
+router.post('/register', (req, res) => {
+  const { name, email, password, password2, company, department } = req.body;
+  let errors = [];
+
+  // Check required fields
+  if (!name || !email || !password || !password2) {
+    errors.push({ msg: 'Please fill in all required fields' });
+  }
+
+  // Check passwords match
+  if (password !== password2) {
+    errors.push({ msg: 'Passwords do not match' });
+  }
+
+  // Check password length
+  if (password.length < 8) {
+    errors.push({ msg: 'Password should be at least 8 characters' });
+  }
+
+  if (errors.length > 0) {
+    res.render('users/register', {
+      title: 'Register',
+      errors,
+      name,
+      email,
+      company,
+      department
+    });
+  } else {
+    // Validation passed
+    User.findOne({ email: email })
+      .then(user => {
+        if (user) {
+          // User exists
+          errors.push({ msg: 'Email is already registered' });
+          res.render('users/register', {
+            title: 'Register',
+            errors,
+            name,
+            email,
+            company,
+            department
+          });
+        } else {
+          const newUser = new User({
+            name,
+            email,
+            password,
+            company,
+            department
+          });
+
+          // Hash Password
+          bcrypt.genSalt(10, (err, salt) => {
+            bcrypt.hash(newUser.password, salt, (err, hash) => {
+              if (err) throw err;
+              // Set password to hashed
+              newUser.password = hash;
+              // Save user
+              newUser.save()
+                .then(user => {
+                  req.flash('success_msg', 'You are now registered and can log in');
+                  res.redirect('/users/login');
+                })
+                .catch(err => console.log(err));
+            });
+          });
+        }
+      });
+  }
+});
+
+// Login Handle
+router.post('/login', (req, res, next) => {
+  passport.authenticate('local', {
+    successRedirect: '/dashboard',
+    failureRedirect: '/users/login',
+    failureFlash: true
+  })(req, res, next);
+});
+
+// Logout Handle
+router.get('/logout', ensureAuthenticated, (req, res) => {
+  req.logout(function(err) {
+    if (err) { return next(err); }
+    req.flash('success_msg', 'You are logged out');
+    res.redirect('/users/login');
+  });
+});
+
+// User Profile
+router.get('/profile', ensureAuthenticated, (req, res) => {
+  res.render('users/profile', {
+    title: 'My Profile',
+    user: req.user
+  });
+});
+
+// Update Profile
+router.put('/profile', ensureAuthenticated, async (req, res) => {
+  const { name, company, department } = req.body;
+  
+  try {
+    const user = await User.findById(req.user.id);
+    
+    user.name = name;
+    user.company = company;
+    user.department = department;
+    
+    await user.save();
+    
+    req.flash('success_msg', 'Profile updated successfully');
+    res.redirect('/users/profile');
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error updating profile');
+    res.redirect('/users/profile');
+  }
+});
+
+// Change Password
+router.put('/change-password', ensureAuthenticated, async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  
+  if (newPassword !== confirmPassword) {
+    req.flash('error_msg', 'New passwords do not match');
+    return res.redirect('/users/profile');
+  }
+  
+  try {
+    const user = await User.findById(req.user.id);
+    
+    // Check current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isMatch) {
+      req.flash('error_msg', 'Current password is incorrect');
+      return res.redirect('/users/profile');
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword, salt);
+    
+    user.password = hash;
+    await user.save();
+    
+    req.flash('success_msg', 'Password updated successfully');
+    res.redirect('/users/profile');
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error updating password');
+    res.redirect('/users/profile');
+  }
+});
+
+// Admin: User Management
+router.get('/manage', ensureAdmin, async (req, res) => {
+  try {
+    const users = await User.find().sort({ name: 1 });
+    
+    res.render('users/manage', {
+      title: 'User Management',
+      users
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error loading users');
+    res.redirect('/dashboard');
+  }
+});
+
+// Admin: Edit User
+router.get('/edit/:id', ensureAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      req.flash('error_msg', 'User not found');
+      return res.redirect('/users/manage');
+    }
+    
+    res.render('users/edit', {
+      title: 'Edit User',
+      user
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error loading user');
+    res.redirect('/users/manage');
+  }
+});
+
+// Admin: Update User
+router.put('/:id', ensureAdmin, async (req, res) => {
+  try {
+    const { name, email, role, company, department } = req.body;
+    
+    await User.findByIdAndUpdate(req.params.id, {
+      name,
+      email,
+      role,
+      company,
+      department
+    });
+    
+    req.flash('success_msg', 'User updated successfully');
+    res.redirect('/users/manage');
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error updating user');
+    res.redirect('/users/manage');
+  }
+});
+
+// Admin: Delete User
+router.delete('/:id', ensureAdmin, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    
+    req.flash('success_msg', 'User deleted successfully');
+    res.redirect('/users/manage');
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error deleting user');
+    res.redirect('/users/manage');
+  }
+});
+
+module.exports = router;
