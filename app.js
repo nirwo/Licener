@@ -41,7 +41,7 @@ app.engine('handlebars', engine({
   helpers: require('./utils/handlebars-helpers')
 }));
 app.set('view engine', 'handlebars');
-app.set('views', './templates');
+app.set('views', path.join(__dirname, 'templates'));
 
 // Body parser middleware
 app.use(express.urlencoded({ extended: false }));
