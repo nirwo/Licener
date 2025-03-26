@@ -20,7 +20,7 @@ router.get('/register', forwardAuthenticated, (req, res) => {
 });
 
 // Register Handle
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   const { name, email, password, password2, company, department } = req.body;
   let errors = [];
 
@@ -40,7 +40,7 @@ router.post('/register', (req, res) => {
   }
 
   if (errors.length > 0) {
-    res.render('users/register', {
+    return res.render('users/register', {
       title: 'Register',
       errors,
       name,
@@ -48,47 +48,55 @@ router.post('/register', (req, res) => {
       company,
       department
     });
-  } else {
-    // Validation passed
-    User.findOne({ email: email })
-      .then(user => {
-        if (user) {
-          // User exists
-          errors.push({ msg: 'Email is already registered' });
-          res.render('users/register', {
-            title: 'Register',
-            errors,
-            name,
-            email,
-            company,
-            department
-          });
-        } else {
-          const newUser = new User({
-            name,
-            email,
-            password,
-            company,
-            department
-          });
+  }
 
-          // Hash Password
-          bcrypt.genSalt(10, (err, salt) => {
-            bcrypt.hash(newUser.password, salt, (err, hash) => {
-              if (err) throw err;
-              // Set password to hashed
-              newUser.password = hash;
-              // Save user
-              newUser.save()
-                .then(user => {
-                  req.flash('success_msg', 'You are now registered and can log in');
-                  res.redirect('/users/login');
-                })
-                .catch(err => console.log(err));
-            });
-          });
-        }
+  try {
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    
+    if (existingUser) {
+      errors.push({ msg: 'Email is already registered' });
+      return res.render('users/register', {
+        title: 'Register',
+        errors,
+        name,
+        email,
+        company,
+        department
       });
+    }
+    
+    // Create new user
+    const newUser = new User({
+      name,
+      email,
+      password,
+      company,
+      department,
+      role: 'user' // Explicitly set default role
+    });
+
+    // Hash Password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newUser.password, salt);
+    newUser.password = hash;
+    
+    // Save user
+    await newUser.save();
+    
+    req.flash('success_msg', 'You are now registered and can log in');
+    res.redirect('/users/login');
+  } catch (err) {
+    console.error('Registration error:', err);
+    req.flash('error_msg', 'An error occurred during registration');
+    res.render('users/register', {
+      title: 'Register',
+      errors: [{ msg: 'Registration failed. Please try again.' }],
+      name,
+      email,
+      company,
+      department
+    });
   }
 });
 
