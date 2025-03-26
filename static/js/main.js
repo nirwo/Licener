@@ -5,6 +5,26 @@
 
 // Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize DataTables if tables with the class exist
+  const dataTables = document.querySelectorAll('.datatable');
+  if (dataTables.length > 0) {
+    dataTables.forEach(table => {
+      $(table).DataTable({
+        responsive: true,
+        pageLength: 10,
+        lengthChange: true,
+        ordering: true,
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search..."
+        }
+      });
+    });
+  }
+  
+  // Load notifications
+  loadExpiringLicenses();
+  
   // Initialize Bootstrap tooltips
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -165,6 +185,15 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       bar.style.width = value + '%';
     }, 100);
+    
+    // Add color class based on value
+    if (value > 90) {
+      bar.classList.add('bg-danger');
+    } else if (value > 70) {
+      bar.classList.add('bg-warning');
+    } else {
+      bar.classList.add('bg-success');
+    }
   });
   
   // Collapsible cards
@@ -212,4 +241,193 @@ document.addEventListener('DOMContentLoaded', function() {
       window.location.href = url.toString();
     });
   });
+  
+  // Initialize any chart.js charts
+  initializeCharts();
 });
+
+// Function to load expiring licenses
+function loadExpiringLicenses() {
+  const expiringLicensesList = document.getElementById('expiring-licenses-list');
+  const expiryBadge = document.getElementById('expiry-badge');
+  const expiryBadgeLg = document.getElementById('expiry-badge-lg');
+  
+  if (!expiringLicensesList) return;
+  
+  // In a real app, this would be an API call
+  // For this demo, we'll simulate loading data
+  setTimeout(() => {
+    const mockLicenses = [
+      { id: 'lic123', name: 'Microsoft Office 365', daysLeft: 5, product: 'Office 365' },
+      { id: 'lic456', name: 'Adobe Creative Cloud', daysLeft: 12, product: 'Creative Cloud' },
+      { id: 'lic789', name: 'Autodesk AutoCAD', daysLeft: 15, product: 'AutoCAD' },
+      { id: 'lic101', name: 'Windows Server 2022', daysLeft: 8, product: 'Windows Server' }
+    ];
+    
+    // Update the badge count
+    const count = mockLicenses.length;
+    expiryBadge.textContent = count;
+    expiryBadgeLg.textContent = count;
+    
+    // Clear loading placeholder
+    expiringLicensesList.innerHTML = '';
+    
+    if (count === 0) {
+      expiringLicensesList.innerHTML = `
+        <div class="text-center text-muted py-4">
+          <i class="fas fa-check-circle fs-4 mb-3"></i>
+          <p>No licenses expiring soon.</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Create notification items
+    mockLicenses.forEach(license => {
+      const notificationItem = document.createElement('div');
+      notificationItem.className = 'card mb-2 border-left-warning';
+      
+      let statusClass = 'warning';
+      if (license.daysLeft <= 7) {
+        statusClass = 'danger';
+      }
+      
+      notificationItem.innerHTML = `
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-0">${license.name}</h6>
+              <small class="text-muted">${license.product}</small>
+            </div>
+            <span class="badge bg-${statusClass}">${license.daysLeft} days</span>
+          </div>
+        </div>
+      `;
+      
+      expiringLicensesList.appendChild(notificationItem);
+    });
+  }, 1000);
+}
+
+// Function to initialize charts
+function initializeCharts() {
+  // License utilization chart
+  const utilizationChart = document.getElementById('utilizationChart');
+  if (utilizationChart) {
+    new Chart(utilizationChart, {
+      type: 'doughnut',
+      data: {
+        labels: ['Used', 'Available'],
+        datasets: [{
+          data: [65, 35],
+          backgroundColor: ['#4e73df', '#eaecf4'],
+          hoverBackgroundColor: ['#2e59d9', '#dddfeb'],
+          hoverBorderColor: 'rgba(234, 236, 244, 1)',
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        cutout: '75%',
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            displayColors: false,
+            callbacks: {
+              label: function(context) {
+                return context.label + ': ' + context.raw + '%';
+              }
+            }
+          }
+        }
+      },
+    });
+  }
+  
+  // License by vendor chart
+  const vendorChart = document.getElementById('vendorChart');
+  if (vendorChart) {
+    new Chart(vendorChart, {
+      type: 'bar',
+      data: {
+        labels: ['Microsoft', 'Adobe', 'Oracle', 'VMware', 'Autodesk'],
+        datasets: [{
+          label: 'License Count',
+          backgroundColor: '#4e73df',
+          hoverBackgroundColor: '#2e59d9',
+          data: [42, 28, 16, 15, 12],
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)',
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      },
+    });
+  }
+  
+  // License expiry timeline
+  const expiryChart = document.getElementById('expiryChart');
+  if (expiryChart) {
+    new Chart(expiryChart, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+        datasets: [{
+          label: 'Expiring Licenses',
+          lineTension: 0.3,
+          backgroundColor: 'rgba(231, 74, 59, 0.05)',
+          borderColor: '#e74a3b',
+          pointRadius: 3,
+          pointBackgroundColor: '#e74a3b',
+          pointBorderColor: '#e74a3b',
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#e74a3b',
+          pointHoverBorderColor: '#e74a3b',
+          pointHitRadius: 10,
+          pointBorderWidth: 2,
+          data: [5, 7, 3, 12, 8, 9, 14],
+          fill: true
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)',
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      },
+    });
+  }
+};
