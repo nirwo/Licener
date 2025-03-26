@@ -17,21 +17,22 @@ body {
   bottom: 0;
   left: 0;
   z-index: 100;
-  padding: 48px 0 0;
+  padding: 56px 0 0; /* Increased to match navbar height */
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
 }
 
 @media (max-width: 767.98px) {
   .sidebar {
-    top: 5rem;
+    top: 56px;
+    padding-top: 0;
   }
 }
 
 .sidebar-sticky {
   position: relative;
   top: 0;
-  height: calc(100vh - 48px);
-  padding-top: .5rem;
+  height: calc(100vh - 56px);
+  padding-top: 1rem;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -43,11 +44,11 @@ body {
 }
 
 .sidebar .nav-link:hover {
-  color: #007bff;
+  color: #0d6efd;
 }
 
 .sidebar .nav-link.active {
-  color: #007bff;
+  color: #0d6efd;
 }
 
 .sidebar-heading {
@@ -60,8 +61,6 @@ body {
   padding-top: .75rem;
   padding-bottom: .75rem;
   font-size: 1rem;
-  background-color: rgba(0, 0, 0, .25);
-  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
 }
 
 .navbar .navbar-toggler {
@@ -71,7 +70,48 @@ body {
 
 /* Content */
 main {
-  margin-top: 58px;
+  margin-top: 56px;
+  padding-top: 1.5rem;
+}
+
+/* Auth Pages */
+.login-container, .register-container {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.login-container .card, .register-container .card {
+  border-radius: 1rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.login-container .card-body, .register-container .card-body {
+  padding: 2rem;
+}
+
+/* Welcome Page */
+.welcome-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.welcome-content {
+  padding: 2rem;
+}
+
+@media (max-width: 768px) {
+  .welcome-content {
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  .welcome-content .d-md-flex {
+    justify-content: center !important;
+  }
 }
 
 /* Cards */
