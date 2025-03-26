@@ -1,90 +1,88 @@
-<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-  <div class="position-sticky pt-3">
+<aside class="sidebar d-md-block bg-light">
+  <div class="sidebar-sticky">
     <ul class="nav flex-column">
       <li class="nav-item">
-        <a class="nav-link" href="/dashboard">
+        <a class="nav-link {{#if (eq active 'dashboard')}}active{{/if}}" href="/dashboard">
           <i class="fas fa-tachometer-alt me-2"></i>
           Dashboard
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/licenses">
+        <a class="nav-link {{#if (eq active 'licenses')}}active{{/if}}" href="/licenses">
           <i class="fas fa-file-contract me-2"></i>
           Licenses
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/licenses/add">
+        <a class="nav-link {{#if (eq active 'add-license')}}active{{/if}}" href="/licenses/add">
           <i class="fas fa-plus-circle me-2"></i>
           Add License
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/licenses/import">
+        <a class="nav-link {{#if (eq active 'import-licenses')}}active{{/if}}" href="/licenses/import">
           <i class="fas fa-file-import me-2"></i>
           Import Licenses
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/systems">
+        <a class="nav-link {{#if (eq active 'systems')}}active{{/if}}" href="/systems">
           <i class="fas fa-server me-2"></i>
           Systems
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/systems/add">
+        <a class="nav-link {{#if (eq active 'add-system')}}active{{/if}}" href="/systems/add">
           <i class="fas fa-plus-circle me-2"></i>
           Add System
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/systems/import">
+        <a class="nav-link {{#if (eq active 'import-systems')}}active{{/if}}" href="/systems/import">
           <i class="fas fa-file-import me-2"></i>
           Import Systems
         </a>
       </li>
     </ul>
 
-    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
-      <span>Reports</span>
-    </h6>
+    <h6 class="sidebar-heading mt-4">Reports</h6>
     <ul class="nav flex-column mb-2">
       <li class="nav-item">
-        <a class="nav-link" href="/reports/license-expiry">
+        <a class="nav-link {{#if (eq active 'license-expiry')}}active{{/if}}" href="/reports/license-expiry">
           <i class="fas fa-calendar-times me-2"></i>
           License Expiry
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/reports/license-utilization">
+        <a class="nav-link {{#if (eq active 'license-utilization')}}active{{/if}}" href="/reports/license-utilization">
           <i class="fas fa-chart-pie me-2"></i>
           License Utilization
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/reports/cost-analysis">
+        <a class="nav-link {{#if (eq active 'cost-analysis')}}active{{/if}}" href="/reports/cost-analysis">
           <i class="fas fa-dollar-sign me-2"></i>
           Cost Analysis
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/reports/compliance">
+        <a class="nav-link {{#if (eq active 'compliance')}}active{{/if}}" href="/reports/compliance">
           <i class="fas fa-check-circle me-2"></i>
           Compliance
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/reports/renewal-forecast">
+        <a class="nav-link {{#if (eq active 'renewal-forecast')}}active{{/if}}" href="/reports/renewal-forecast">
           <i class="fas fa-business-time me-2"></i>
           Renewal Forecast
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="/reports/custom">
+        <a class="nav-link {{#if (eq active 'custom-report')}}active{{/if}}" href="/reports/custom">
           <i class="fas fa-tools me-2"></i>
           Custom Report
         </a>
       </li>
     </ul>
   </div>
-</nav>
+</aside>

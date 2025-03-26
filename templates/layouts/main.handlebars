@@ -16,13 +16,13 @@
   {{#if user}}
     {{> _navbar}}
     <div class="container-fluid">
-      <div class="row">
         {{> _sidebar}}
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-          {{> _messages}}
-          {{{body}}}
+        <main>
+          <div class="px-4 py-4">
+            {{> _messages}}
+            {{{body}}}
+          </div>
         </main>
-      </div>
     </div>
   {{else}}
     <div class="container mt-5">
