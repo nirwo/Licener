@@ -16,13 +16,24 @@ const app = express();
 // DB Config
 const db = process.env.MONGO_URI || 'mongodb://localhost:27017/licener';
 
-// Connect to MongoDB
-mongoose.connect(db, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log(err));
+// Connect to MongoDB with retry logic
+const connectWithRetry = () => {
+  console.log('MongoDB connection attempt...');
+  mongoose.connect(db, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+    .then(() => {
+      console.log('MongoDB Connected');
+    })
+    .catch(err => {
+      console.error('MongoDB connection error:', err);
+      console.log('Retrying connection in 5 seconds...');
+      setTimeout(connectWithRetry, 5000);
+    });
+};
+
+connectWithRetry();
 
 // Configure Passport
 require('./config/passport')(passport);
