@@ -75,8 +75,22 @@ main {
 }
 
 /* Auth Pages */
-.login-container, .register-container {
+body:not(.dashboard-page) {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.login-container {
   max-width: 400px;
+  margin: 0 auto;
+}
+
+.register-container {
+  max-width: 500px;
   margin: 0 auto;
 }
 
