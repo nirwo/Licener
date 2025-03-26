@@ -16,7 +16,18 @@ document.addEventListener('DOMContentLoaded', function() {
         ordering: true,
         language: {
           search: "_INPUT_",
-          searchPlaceholder: "Search..."
+          searchPlaceholder: "Search...",
+          lengthMenu: "_MENU_ records per page",
+          info: "Showing _START_ to _END_ of _TOTAL_ records",
+          infoEmpty: "Showing 0 to 0 of 0 records",
+          infoFiltered: "(filtered from _MAX_ total records)"
+        },
+        drawCallback: function() {
+          // Reinitialize tooltips after table draw
+          var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+          tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+          });
         }
       });
     });

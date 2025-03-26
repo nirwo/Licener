@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="description" content="Licener - Comprehensive License Management System">
   <title>{{ title }} | Licener - License Management System</title>
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234e73df' d='M336 352c97.2 0 176-78.8 176-176S433.2 0 336 0S160 78.8 160 176c0 18.7 2.9 36.8 8.3 53.7L7 391c-4.5 4.5-7 10.6-7 17v80c0 13.3 10.7 24 24 24h80c13.3 0 24-10.7 24-24V448h40c13.3 0 24-10.7 24-24V384h40c6.4 0 12.5-2.5 17-7l33.3-33.3c16.9 5.4 35 8.3 53.7 8.3zM376 96a40 40 0 1 1 0 80 40 40 0 1 1 0-80z'/%3E%3C/svg%3E" type="image/svg+xml">
   <!-- Bootstrap CSS -->
   <link href="/css/bootstrap.min.css" rel="stylesheet">
   <!-- Font Awesome -->
@@ -13,6 +16,10 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/css/style.css">
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="{{ title }} | Licener">
+  <meta property="og:description" content="Comprehensive software license management system">
+  <meta property="og:type" content="website">
 </head>
 <body class="{{#if user}}dashboard-page{{/if}}">
   {{#if user}}

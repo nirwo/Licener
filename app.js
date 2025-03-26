@@ -19,10 +19,7 @@ const db = process.env.MONGO_URI || 'mongodb://localhost:27017/licener';
 // Connect to MongoDB with retry logic
 const connectWithRetry = () => {
   console.log('MongoDB connection attempt...');
-  mongoose.connect(db, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  mongoose.connect(db)
     .then(() => {
       console.log('MongoDB Connected');
     })
