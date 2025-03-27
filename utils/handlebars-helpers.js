@@ -1,6 +1,11 @@
 const moment = require('moment');
 
 module.exports = {
+  // Simple equality comparison
+  eq: function(a, b) {
+    return a === b;
+  },
+  
   // Format date using moment.js
   formatDate: function(date, format) {
     return moment(date).format(format);
