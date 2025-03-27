@@ -45,30 +45,45 @@ const upload = multer({
 // Get all licenses
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
-    let query = { owner: req.user.id };
+    console.log('User ID for license query:', req.user._id);
+    
+    // Create base query
+    let query = { owner: req.user._id };
     
     // Filter by status if provided
     if (req.query.status && req.query.status !== 'all') {
       query.status = req.query.status;
     }
     
-    // Filter by product if provided
+    // Find matching licenses
+    console.log('License query:', query);
+    let licenses = License.find(query);
+    console.log('Found licenses:', licenses.length);
+    
+    // Apply manual filtering for text search (product & vendor)
     if (req.query.product) {
-      query.product = { $regex: new RegExp(req.query.product, 'i') };
+      const productRegex = new RegExp(req.query.product, 'i');
+      licenses = licenses.filter(license => productRegex.test(license.product));
     }
     
-    // Filter by vendor if provided
     if (req.query.vendor) {
-      query.vendor = { $regex: new RegExp(req.query.vendor, 'i') };
+      const vendorRegex = new RegExp(req.query.vendor, 'i');
+      licenses = licenses.filter(license => vendorRegex.test(license.vendor));
     }
+      
+    // Sort by expiry date
+    licenses.sort((a, b) => {
+      const dateA = a.expiryDate ? new Date(a.expiryDate) : new Date();
+      const dateB = b.expiryDate ? new Date(b.expiryDate) : new Date();
+      return dateA - dateB;
+    });
     
-    const licenses = await License.find(query)
-      .sort({ expiryDate: 1 })
-      .populate('assignedSystems', 'name');
+    // Populate assigned systems
+    licenses = await License.populate(licenses, 'assignedSystems');
     
     // Get unique products and vendors for filter dropdowns
-    const products = await License.distinct('product', { owner: req.user.id });
-    const vendors = await License.distinct('vendor', { owner: req.user.id });
+    const products = License.distinct('product', { owner: req.user._id });
+    const vendors = License.distinct('vendor', { owner: req.user._id });
     
     res.render('licenses/index', {
       title: 'Licenses',
@@ -160,28 +175,35 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
     }
     
     console.log('Creating license with data:', licenseData);
-    const newLicense = new License(licenseData);
+    // Use file-db create method instead of Mongoose style
+    const newLicense = await License.create(licenseData);
     
-    await newLicense.save();
-    
-    // Update assigned systems with the license requirement
+    // Update assigned systems with the license requirement - modified for file-db
     if (assignedSystems && assignedSystems.length > 0) {
-      await System.updateMany(
-        { _id: { $in: assignedSystems } },
-        { 
-          $push: { 
-            licenseRequirements: {
-              licenseType: product,
-              quantity: 1,
-              licenseId: newLicense._id
-            }
+      // For each system, add the license requirement
+      for (const systemId of (Array.isArray(assignedSystems) ? assignedSystems : [assignedSystems])) {
+        const system = System.findById(systemId);
+        if (system) {
+          if (!system.licenseRequirements) {
+            system.licenseRequirements = [];
           }
+          
+          system.licenseRequirements.push({
+            licenseType: product,
+            quantity: 1,
+            licenseId: newLicense._id
+          });
+          
+          await System.findByIdAndUpdate(systemId, {
+            licenseRequirements: system.licenseRequirements
+          });
         }
-      );
+      }
       
-      // Update used seats count
-      newLicense.usedSeats = assignedSystems.length;
-      await newLicense.save();
+      // Update used seats count using file-db method
+      await License.findByIdAndUpdate(newLicense._id, {
+        usedSeats: assignedSystems.length
+      });
     }
     
     req.flash('success_msg', 'License added successfully');
