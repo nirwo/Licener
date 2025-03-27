@@ -47,24 +47,26 @@ Licener is a full-featured web application for managing, tracking, and optimizin
    npm start
    ```
 
-5. For production with MongoDB:
+5. For standard mode with MongoDB:
    ```
    npm start
+   # or
+   npm run start:mongo
    ```
    
 6. For demo mode (no MongoDB needed):
    ```
-   npm run demo
+   npm run start:demo
    ```
    
-7. For development with auto-restart:
+7. For development with auto-restart and demo mode (DEFAULT RECOMMENDED):
    ```
    npm run dev
    ```
    
-8. For development in demo mode with auto-restart:
+8. For development with auto-restart and MongoDB:
    ```
-   npm run dev:demo
+   npm run dev:mongo
    ```
 
 ### Demo Mode

@@ -417,37 +417,55 @@ if (startWithoutMongo) {
             } else {
               req.flash('error_msg', 'License not found in demo mode');
             }
-          } else if (method === 'DELETE') {
+          } else if (method === 'DELETE' || req.body && req.body._method === 'DELETE') {
             // Delete license
-            // Extract the license ID from the URL
+            // Extract the license ID from the URL or from the form action
+            let licenseId = null;
+            
+            // Try to extract from URL
             const licenseIdMatch = req.originalUrl.match(/\/licenses\/([^/?]+)/);
-            const licenseId = licenseIdMatch ? licenseIdMatch[1] : null;
+            if (licenseIdMatch && licenseIdMatch[1]) {
+              licenseId = licenseIdMatch[1];
+            }
+            
+            console.log(`Demo mode: DELETE request received for URL: ${req.originalUrl}`);
+            console.log(`Demo mode: Request body:`, req.body);
+            console.log(`Demo mode: Extracted license ID: ${licenseId}`);
             
             if (licenseId) {
               console.log(`Demo mode: Attempting to delete license with ID: ${licenseId}`);
+              console.log(`Demo mode: Current licenses (${demoLicenses.length}):`, demoLicenses.map(l => l._id));
+              
               const licenseIndex = demoLicenses.findIndex(l => l._id === licenseId);
+              console.log(`Demo mode: License index found: ${licenseIndex}`);
               
               if (licenseIndex !== -1) {
                 // Remove license references from systems
                 const license = demoLicenses[licenseIndex];
                 if (license.assignedSystems && license.assignedSystems.length > 0) {
+                  console.log(`Demo mode: Removing license references from ${license.assignedSystems.length} systems`);
+                  
                   license.assignedSystems.forEach(systemId => {
                     const system = findById(demoSystems, systemId);
                     if (system) {
                       system.licenseRequirements = system.licenseRequirements.filter(
                         req => req.licenseId !== licenseId
                       );
+                      console.log(`Demo mode: Removed license reference from system ${systemId}`);
                     }
                   });
                 }
                 
                 // Remove the license
                 demoLicenses.splice(licenseIndex, 1);
+                console.log(`Demo mode: License deleted. Remaining licenses: ${demoLicenses.length}`);
                 req.flash('success_msg', 'License deleted successfully in demo mode');
               } else {
+                console.log(`Demo mode: License not found for deletion: ${licenseId}`);
                 req.flash('error_msg', 'License not found in demo mode');
               }
             } else {
+              console.log('Demo mode: Could not extract license ID for deletion');
               req.flash('error_msg', 'Invalid license ID for deletion');
             }
           }
@@ -1408,8 +1426,21 @@ app.set('views', path.join(__dirname, 'templates'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-// Method override middleware
-app.use(methodOverride('_method'));
+// Method override middleware - enable both query and body parameter overrides
+app.use(methodOverride(function (req, res) {
+  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+    // look in urlencoded POST bodies and delete it
+    const method = req.body._method;
+    delete req.body._method;
+    return method;
+  }
+  
+  // Check query param too (for ?_method=DELETE style)
+  if (req.query && '_method' in req.query) {
+    return req.query._method;
+  }
+}));
+app.use(methodOverride('_method')); // Also keep the default for redundancy
 
 // Express session middleware
 app.use(session({
