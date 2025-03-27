@@ -16,10 +16,13 @@ const app = express();
 // DB Config
 const db = process.env.MONGO_URI || 'mongodb://localhost:27017/licener';
 
-// Connect to MongoDB with retry logic
+// Connect to MongoDB with retry logic and improved error handling
 const connectWithRetry = () => {
   console.log('MongoDB connection attempt...');
-  mongoose.connect(db)
+  mongoose.connect(db, {
+    serverSelectionTimeoutMS: 5000, // 5 seconds timeout on server selection
+    connectTimeoutMS: 10000,       // 10 seconds timeout on connection
+  })
     .then(() => {
       console.log('MongoDB Connected');
     })
@@ -30,7 +33,14 @@ const connectWithRetry = () => {
     });
 };
 
-connectWithRetry();
+// For development/testing purposes - allow app to start even if MongoDB is not available
+const startWithoutMongo = process.env.START_WITHOUT_MONGO === 'true';
+
+if (startWithoutMongo) {
+  console.warn('WARNING: Starting application without MongoDB connection (START_WITHOUT_MONGO=true)');
+} else {
+  connectWithRetry();
+}
 
 // Configure Passport
 require('./config/passport')(passport);
@@ -86,11 +96,22 @@ app.use('/api', require('./routes/api'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).render('error', {
-    title: 'Server Error',
-    error: err.message
-  });
+  console.error('Server error:', err);
+  
+  // Check if headers have already been sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  try {
+    res.status(500).render('error', {
+      title: 'Server Error',
+      error: err.message || 'An unknown error occurred'
+    });
+  } catch (renderError) {
+    console.error('Error rendering error page:', renderError);
+    res.status(500).send('Internal Server Error. Please try again later.');
+  }
 });
 
 const PORT = process.env.PORT || 3000;

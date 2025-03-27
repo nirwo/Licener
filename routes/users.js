@@ -102,11 +102,27 @@ router.post('/register', async (req, res) => {
 
 // Login Handle
 router.post('/login', (req, res, next) => {
-  passport.authenticate('local', {
-    successRedirect: '/dashboard',
-    failureRedirect: '/users/login',
-    failureFlash: true,
-    successFlash: 'Welcome! You have successfully logged in.'
+  passport.authenticate('local', (err, user, info) => {
+    if (err) {
+      console.error('Login error:', err);
+      req.flash('error_msg', 'An internal error occurred during login');
+      return res.redirect('/users/login');
+    }
+    
+    if (!user) {
+      return res.redirect('/users/login');
+    }
+    
+    req.logIn(user, (err) => {
+      if (err) {
+        console.error('Session error:', err);
+        req.flash('error_msg', 'Failed to create login session');
+        return res.redirect('/users/login');
+      }
+      
+      req.flash('success_msg', 'Welcome! You have successfully logged in.');
+      return res.redirect('/dashboard');
+    });
   })(req, res, next);
 });
 
