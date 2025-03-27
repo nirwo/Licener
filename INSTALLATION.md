@@ -8,17 +8,18 @@ Before installing Licener, ensure you have the following:
 
 - Node.js (v14 or higher)
 - npm (included with Node.js)
-- MongoDB (v4.4 or higher) OR Docker
 
 ## Installation Options
 
 You can install Licener using one of the following methods:
 
-1. [Direct Installation](#direct-installation) - Install directly on your host machine
+1. [File-based Database Installation](#file-based-database-installation) - Recommended for most users
 2. [Docker Installation](#docker-installation) - Install using Docker containers
 3. [Script-based Installation](#script-based-installation) - Use the provided deployment scripts
 
-## Direct Installation
+## File-based Database Installation
+
+Licener uses a file-based database system that stores data in JSON files, making it easy to set up and maintain without external dependencies.
 
 ### 1. Clone the Repository
 
@@ -27,83 +28,54 @@ git clone https://github.com/yourusername/licener.git
 cd licener
 ```
 
-### 2. Install MongoDB
-
-#### On Ubuntu/Debian:
+### 2. Install Dependencies
 
 ```bash
-# Import the MongoDB public GPG key
-wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
-
-# Create a list file for MongoDB
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-
-# Update package database
-sudo apt-get update
-
-# Install MongoDB packages
-sudo apt-get install -y mongodb-org
-
-# Start and enable MongoDB
-sudo systemctl daemon-reload
-sudo systemctl start mongod
-sudo systemctl enable mongod
+npm install
 ```
-
-#### On RHEL/CentOS/Fedora:
-
-```bash
-# Create a repository file
-sudo tee /etc/yum.repos.d/mongodb-org-6.0.repo << EOF
-[mongodb-org-6.0]
-name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/\$releasever/mongodb-org/6.0/x86_64/
-gpgcheck=1
-enabled=1
-gpgkey=https://www.mongodb.org/static/pgp/server-6.0.asc
-EOF
-
-# Install MongoDB packages
-sudo yum install -y mongodb-org
-
-# Start and enable MongoDB
-sudo systemctl daemon-reload
-sudo systemctl start mongod
-sudo systemctl enable mongod
-```
-
-#### On Windows:
-
-Download and install MongoDB Community Edition from [MongoDB's website](https://www.mongodb.com/try/download/community)
 
 ### 3. Configure Environment
 
 ```bash
-# Copy the example environment file
+# Copy the example environment file if it exists
 cp .env.example .env
 
 # Edit the .env file to match your configuration
 # Especially update SESSION_SECRET and JWT_SECRET with random strings
 ```
 
-### 4. Install Dependencies
-
-```bash
-npm install --production
+At minimum, your .env file should contain:
+```
+PORT=3000
+SESSION_SECRET=your_session_secret
+JWT_SECRET=your_jwt_secret
 ```
 
-### 5. Create Required Directories
+### 4. Initialize File Database
+
+The file database requires certain directories and files to be created. Use the provided script:
 
 ```bash
-mkdir -p data/uploads data/exports
-chmod 755 data/uploads data/exports
+# Make the script executable
+chmod +x scripts/start_file_db.sh
+
+# Run the script to initialize the database and start the application
+./scripts/start_file_db.sh
 ```
 
-### 6. Start the Application
+The script will:
+- Create the data directory
+- Initialize necessary JSON database files
+- Create upload and export directories
+- Start the application
 
-```bash
-NODE_ENV=production node app.js
-```
+### 5. Access the Application
+
+Open your browser and navigate to `http://localhost:3000`
+
+Default login credentials:
+- Email: demo@example.com
+- Password: password
 
 ## Docker Installation
 
@@ -155,31 +127,34 @@ scripts\deploy_windows.bat
 
 The scripts will:
 - Check for required dependencies
-- Install MongoDB (or use Docker for MongoDB)
 - Install Node.js dependencies
 - Create necessary directories
 - Configure environment variables
 - Optionally set up a service/daemon
 
-## MongoDB Standalone Docker Installation
+## Development Mode
 
-If you prefer to use MongoDB with Docker but install the application directly:
+For development with auto-reload:
 
 ```bash
-# Create a Docker network
-docker network create mongodb-network
+# Make the script executable
+chmod +x scripts/dev_file_db.sh
 
-# Run MongoDB in Docker
-docker run -d --name mongodb \
-  --network mongodb-network \
-  -p 27017:27017 \
-  -v mongodb-data:/data/db \
-  --restart unless-stopped \
-  mongo:6
-
-# Update your .env file to use the Docker MongoDB
-# MONGO_URI=mongodb://localhost:27017/licener
+# Start in development mode
+./scripts/dev_file_db.sh
 ```
+
+Or using npm:
+
+```bash
+npm run dev
+```
+
+This will:
+- Start the application using nodemon
+- Watch for file changes and automatically restart
+- Use the file-based database
+- Ignore data file changes to prevent restart loops
 
 ## Configuration
 
@@ -189,9 +164,18 @@ Key environment variables to configure:
 
 - `PORT`: The port the application will run on (default: 3000)
 - `NODE_ENV`: Environment setting ('development' or 'production')
-- `MONGO_URI`: MongoDB connection string
 - `SESSION_SECRET`: Secret for session encryption
 - `JWT_SECRET`: Secret for JWT token signing
+
+### Data Storage
+
+With the file-based database, all data is stored in JSON files in the `data` directory:
+
+- `data/licenses.json`: License data
+- `data/systems.json`: System data
+- `data/users.json`: User data
+- `data/uploads/`: Uploaded files
+- `data/exports/`: Exported reports
 
 ## Starting and Stopping
 
@@ -199,7 +183,7 @@ Key environment variables to configure:
 
 #### Direct start:
 ```bash
-NODE_ENV=production node app.js
+node app.js
 ```
 
 #### Using npm:
@@ -209,56 +193,68 @@ npm start
 
 #### Using the provided start script:
 ```bash
-./scripts/start_app.sh
+./scripts/start_file_db.sh
 ```
 
 ### Running as a Service
 
 #### Linux (systemd):
 ```bash
-# Copy the service file
-sudo cp licener.service /etc/systemd/system/
-
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Enable and start the service
-sudo systemctl enable licener
-sudo systemctl start licener
-
-# Check status
-sudo systemctl status licener
+# Create a systemd service file
+sudo nano /etc/systemd/system/licener.service
 ```
 
-#### Windows (using NSSM):
-```batch
-# Install the service (if not done by the deploy script)
-nssm install Licener "C:\path\to\node.exe" "C:\path\to\licener\app.js"
-nssm set Licener AppDirectory "C:\path\to\licener"
+Add the following content:
+```
+[Unit]
+Description=Licener License Management System
+After=network.target
 
-# Start the service
-nssm start Licener
+[Service]
+Type=simple
+User=yourusername
+WorkingDirectory=/path/to/licener
+ExecStart=/usr/bin/node app.js
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable and start the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable licener
+sudo systemctl start licener
 ```
 
 ## Troubleshooting
 
-### Connection Issues
+### Common Issues
 
-1. **MongoDB connection failed**
-   - Check if MongoDB is running: `systemctl status mongod`
-   - Verify your MongoDB connection string in `.env`
-   - For Docker: ensure the MongoDB container is running
-
-2. **Application not starting**
+1. **Application not starting**
    - Check for errors in the console output
    - Verify that all dependencies are installed
    - Check Node.js version compatibility
    - Verify file permissions on directories
 
-3. **Cannot access the application**
+2. **Cannot access the application**
    - Check if the application is running and listening on the expected port
    - Verify firewall settings
    - Check for conflicting applications on the same port
+
+3. **Data not persisting**
+   - Verify the data directory has proper write permissions
+   - Check that the JSON files are being created correctly
+   - Look for error messages in the console output
+
+4. **Login issues**
+   - If the default user doesn't work, delete the `data/users.json` file and restart
+   - The system will recreate the default user automatically
+
+5. **Nodemon keeps restarting**
+   - Ensure you're using the provided `nodemon.json` configuration
+   - This config ignores changes to data files to prevent restart loops
 
 ### Logs
 
@@ -268,6 +264,6 @@ nssm start Licener
 
 ## Additional Resources
 
-- [MongoDB Documentation](https://docs.mongodb.com/)
 - [Node.js Documentation](https://nodejs.org/en/docs/)
-- [Docker Documentation](https://docs.docker.com/)
+- [Express Documentation](https://expressjs.com/)
+- [LowDB Documentation](https://github.com/typicode/lowdb)

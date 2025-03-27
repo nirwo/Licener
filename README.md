@@ -1,6 +1,6 @@
 # Licener - Comprehensive License Management System
 
-Licener is a full-featured web application for managing, tracking, and optimizing software licenses across your organization. Built with Node.js, Express, and MongoDB, it provides a robust platform for license lifecycle management.
+Licener is a full-featured web application for managing, tracking, and optimizing software licenses across your organization. Built with Node.js and Express, it provides a robust platform for license lifecycle management.
 
 ## Features
 
@@ -18,7 +18,6 @@ Licener is a full-featured web application for managing, tracking, and optimizin
 ### Prerequisites
 
 - Node.js (v14+ recommended)
-- MongoDB (local or Atlas)
 - npm or yarn
 
 ### Setup
@@ -37,7 +36,6 @@ Licener is a full-featured web application for managing, tracking, and optimizin
 3. Create a `.env` file in the root directory with the following variables:
    ```
    PORT=3000
-   MONGO_URI=mongodb://localhost:27017/licener
    SESSION_SECRET=your_session_secret
    JWT_SECRET=your_jwt_secret
    ```
@@ -47,51 +45,47 @@ Licener is a full-featured web application for managing, tracking, and optimizin
    npm start
    ```
 
-5. For standard mode with MongoDB:
-   ```
-   npm start
-   ```
-   
-6. For demo mode (no MongoDB needed):
-   ```
-   npm run demo
-   ```
-   
-7. For development with MongoDB and auto-restart:
+5. For development with auto-restart:
    ```
    npm run dev
    ```
-   
-8. For development in demo mode with auto-restart:
-   ```
-   npm run dev:demo
-   ```
 
-### Demo Mode
+6. Access the application at http://localhost:3000
 
-The application includes a comprehensive demo mode that works without requiring a MongoDB connection. This is useful for:
-- Evaluating the software without setting up a database
-- Development and testing without database dependencies
-- Demonstrating features to stakeholders
+## File Database
 
-To run in demo mode:
+Licener uses a file-based database system with LowDB for data storage. This provides:
+
+- Simple setup with no external database requirements
+- JSON file storage for easy backup and portability
+- Persistence across application restarts
+- Familiar Mongoose-like API for data operations
+
+### Data Storage
+
+- All data is stored in JSON files in the `data` directory
+- License data: `data/licenses.json`
+- System data: `data/systems.json`
+- User data: `data/users.json`
+
+### Quick Start Scripts
+
+To ensure all required data files are created:
+
 ```
-npm run demo
+# For production
+./scripts/start_file_db.sh
+
+# For development with auto-restart
+./scripts/dev_file_db.sh
 ```
 
-Demo mode features:
-- Pre-populated sample licenses and systems
-- Fully functional UI with all features enabled
-- Form submissions are processed and "saved" in memory
-- Reports and dashboards work with sample data
-- File upload/download operations are simulated
-- Flash messages and notifications work normally
+### Default User
 
-Note: Data in demo mode is not persistent and will reset when the application restarts.
-
-For detailed information about demo mode, see [DEMO_MODE.md](DEMO_MODE.md).
-
-7. Access the application at http://localhost:3000
+On first run, the system automatically creates a demo user:
+- Email: demo@example.com
+- Password: password
+- Role: admin
 
 ## Usage
 
@@ -143,7 +137,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Built with [Express](https://expressjs.com/)
-- Database by [MongoDB](https://www.mongodb.com/)
+- Database by [LowDB](https://github.com/typicode/lowdb)
 - UI with [Bootstrap](https://getbootstrap.com/)
 - Charts by [Chart.js](https://www.chartjs.org/)
 - Icons by [Font Awesome](https://fontawesome.com/)

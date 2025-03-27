@@ -9,7 +9,7 @@ This guide provides instructions for deploying the Licener application in variou
   - [1. Linux Deployment](#1-linux-deployment)
   - [2. Windows Deployment](#2-windows-deployment)
   - [3. Docker Deployment](#3-docker-deployment)
-- [Database Setup](#database-setup)
+- [File Database Setup](#file-database-setup)
 - [Securing Your Deployment](#securing-your-deployment)
 - [Troubleshooting](#troubleshooting)
 
@@ -19,7 +19,6 @@ Before deploying Licener, ensure you have the following:
 
 - Node.js (v14 or higher)
 - npm (included with Node.js)
-- MongoDB (v4.4 or higher)
 - Git (to clone the repository)
 
 ## Environment Configuration
@@ -34,9 +33,6 @@ Before deploying Licener, ensure you have the following:
    # Server Configuration
    PORT=3000                     # The port your app will run on
    NODE_ENV=production           # Use 'production' for deployment
-
-   # MongoDB Configuration
-   MONGO_URI=mongodb://localhost:27017/licener  # Your MongoDB connection string
 
    # Security
    SESSION_SECRET=your_long_random_string       # Session encryption key
@@ -76,10 +72,10 @@ If you prefer to deploy manually:
    npm install --production
    ```
 
-2. Create required directories:
+2. Create required directories and initialize the file database:
    ```bash
-   mkdir -p data/uploads data/exports
-   chmod 755 data/uploads data/exports
+   chmod +x scripts/start_file_db.sh
+   ./scripts/start_file_db.sh
    ```
 
 3. Start the application:
@@ -102,8 +98,7 @@ If you prefer to deploy manually:
    # Add the following content (adjust paths as needed)
    [Unit]
    Description=Licener - License Management System
-   After=network.target mongodb.service
-   Wants=mongodb.service
+   After=network.target
 
    [Service]
    ExecStart=/path/to/node /path/to/licener/app.js
@@ -147,8 +142,12 @@ If you prefer to deploy manually:
    npm install --production
    ```
 
-2. Create required directories:
+2. Create required directories and database files:
    ```
+   mkdir data
+   echo {"data": []} > data\licenses.json
+   echo {"data": []} > data\systems.json
+   echo {"data": []} > data\users.json
    mkdir data\uploads data\exports
    ```
 
@@ -208,90 +207,67 @@ For a containerized deployment, we provide Docker and Docker Compose configurati
    docker build -t licener .
    ```
 
-2. Create a network for the containers:
-   ```bash
-   docker network create licener-network
-   ```
-
-3. Start a MongoDB container:
-   ```bash
-   docker run -d --name licener-mongodb \
-     --network licener-network \
-     -v licener-mongo-data:/data/db \
-     mongo:6
-   ```
-
-4. Start the Licener application container:
+2. Run the container with volume for data persistence:
    ```bash
    docker run -d --name licener-app \
-     --network licener-network \
      -p 3000:3000 \
      -e NODE_ENV=production \
-     -e MONGO_URI=mongodb://licener-mongodb:27017/licener \
      -e SESSION_SECRET=your_session_secret \
      -e JWT_SECRET=your_jwt_secret \
-     -v licener-data:/usr/src/app/data \
+     -v $(pwd)/data:/usr/src/app/data \
      licener
    ```
 
-## Database Setup
+## File Database Setup
 
-### MongoDB Community Edition
+Licener uses a file-based database system that stores data in JSON files. To initialize the database:
 
-1. Install MongoDB for your platform:
-   - [Linux Installation](https://docs.mongodb.com/manual/administration/install-on-linux/)
-   - [Windows Installation](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-windows/)
-   - [macOS Installation](https://docs.mongodb.com/manual/tutorial/install-mongodb-on-os-x/)
-
-2. Start MongoDB:
+1. Create the data directory structure:
    ```bash
-   # Linux
-   sudo systemctl start mongod
-   
-   # Windows
-   net start MongoDB
+   mkdir -p data/uploads data/exports
    ```
 
-3. Create a database user (optional but recommended):
-   ```javascript
-   // Connect to MongoDB
-   mongo
-   
-   // Switch to admin database
-   use admin
-   
-   // Create admin user
-   db.createUser({
-     user: "adminUser",
-     pwd: "securePassword",
-     roles: [{ role: "userAdminAnyDatabase", db: "admin" }]
-   })
-   
-   // Switch to Licener database
-   use licener
-   
-   // Create application user
-   db.createUser({
-     user: "licenerUser",
-     pwd: "anotherSecurePassword",
-     roles: [{ role: "readWrite", db: "licener" }]
-   })
+2. Create the database files if they don't exist:
+   ```bash
+   echo '{"data": []}' > data/licenses.json
+   echo '{"data": []}' > data/systems.json
+   echo '{"data": []}' > data/users.json
    ```
 
-4. Update your `.env` file with authentication:
-   ```
-   MONGO_URI=mongodb://licenerUser:anotherSecurePassword@localhost:27017/licener
+3. Set appropriate permissions:
+   ```bash
+   chmod -R 755 data
    ```
 
-### MongoDB Atlas (Cloud Hosting)
-
-1. [Sign up](https://www.mongodb.com/cloud/atlas/register) for MongoDB Atlas
-2. Create a new cluster
-3. Create a database user
-4. Whitelist your IP address
-5. Get your connection string and update your `.env` file:
+4. For convenience, use the provided setup script:
+   ```bash
+   chmod +x scripts/start_file_db.sh
+   ./scripts/start_file_db.sh
    ```
-   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/licener?retryWrites=true&w=majority
+
+### Backup Strategy
+
+Since all data is stored in JSON files, regular backups are essential:
+
+1. Create a backup script:
+   ```bash
+   #!/bin/bash
+   # backup.sh
+   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+   BACKUP_DIR="/path/to/backups"
+   mkdir -p $BACKUP_DIR
+   tar -czf $BACKUP_DIR/licener_backup_$TIMESTAMP.tar.gz /path/to/licener/data/*.json
+   ```
+
+2. Make it executable and add to cron:
+   ```bash
+   chmod +x backup.sh
+   crontab -e
+   ```
+
+3. Add a daily backup schedule:
+   ```
+   0 2 * * * /path/to/backup.sh
    ```
 
 ## Securing Your Deployment
@@ -327,14 +303,27 @@ For production deployments, consider the following security measures:
    # Use Windows Update
    ```
 
+4. File permissions:
+   ```bash
+   # Ensure proper file permissions
+   chmod -R 755 data
+   chmod 600 .env
+   ```
+
+5. Regular data backups:
+   ```bash
+   # Manual backup
+   tar -czf licener_backup_$(date +%Y%m%d).tar.gz data/*.json
+   ```
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Cannot connect to MongoDB**
-   - Check if MongoDB is running: `systemctl status mongod` (Linux) or Services console (Windows)
-   - Verify connection string in `.env` file
-   - Check network connectivity and firewall settings
+1. **Application won't start**
+   - Check Node.js version: `node -v` (should be 14+)
+   - Verify npm modules are installed: `npm install`
+   - Check for errors in the console output
 
 2. **Application starts but isn't accessible**
    - Check if the correct port is being used (default: 3000)
@@ -344,6 +333,15 @@ For production deployments, consider the following security measures:
 3. **File upload issues**
    - Verify that data directories exist and have proper permissions
    - Check disk space: `df -h` (Linux) or check Disk Management (Windows)
+
+4. **Data not persisting**
+   - Ensure the data directory has proper write permissions
+   - Check that the JSON files exist and are writable
+   - For Docker deployments, verify the volume is mounted correctly
+
+5. **Login issues**
+   - If the default user doesn't work, delete the `data/users.json` file and restart
+   - The system will recreate the default user automatically
 
 ### Logs
 
