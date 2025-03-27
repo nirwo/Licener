@@ -370,6 +370,57 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
 // Delete license
 router.delete('/:id', ensureAuthenticated, async (req, res) => {
   try {
+    console.log(`DELETE request received for license ID: ${req.params.id}`);
+    console.log(`Request method: ${req.method}`);
+    console.log(`Original URL: ${req.originalUrl}`);
+    console.log(`Request body:`, req.body);
+    
+    const license = await License.findById(req.params.id);
+    
+    if (!license) {
+      req.flash('error_msg', 'License not found');
+      return res.redirect('/licenses');
+    }
+    
+    // Check if user is owner or admin
+    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+      req.flash('error_msg', 'Not authorized');
+      return res.redirect('/licenses');
+    }
+    
+    // Remove license references from systems
+    await System.updateMany(
+      { licenseRequirements: { $elemMatch: { licenseId: license._id } } },
+      { $pull: { licenseRequirements: { licenseId: license._id } } }
+    );
+    
+    // Delete attachments from filesystem
+    if (license.attachments && license.attachments.length > 0) {
+      license.attachments.forEach(attachment => {
+        if (fs.existsSync(attachment.path)) {
+          fs.unlinkSync(attachment.path);
+        }
+      });
+    }
+    
+    await License.findByIdAndDelete(req.params.id);
+    
+    req.flash('success_msg', 'License deleted successfully');
+    res.redirect('/licenses');
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error deleting license');
+    res.redirect('/licenses');
+  }
+});
+
+// Explicit POST route for license deletion (as a fallback)
+router.post('/:id/delete', ensureAuthenticated, async (req, res) => {
+  try {
+    console.log(`POST to delete route received for license ID: ${req.params.id}`);
+    console.log(`Request method: ${req.method}`);
+    console.log(`Original URL: ${req.originalUrl}`);
+    
     const license = await License.findById(req.params.id);
     
     if (!license) {

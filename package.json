@@ -5,10 +5,9 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "start:mongo": "node app.js",
-    "start:demo": "START_WITHOUT_MONGO=true node app.js",
-    "dev": "START_WITHOUT_MONGO=true nodemon app.js",
-    "dev:mongo": "nodemon app.js",
+    "demo": "START_WITHOUT_MONGO=true node app.js",
+    "dev": "nodemon app.js",
+    "dev:demo": "START_WITHOUT_MONGO=true nodemon app.js",
     "test": "mocha"
   },
   "dependencies": {
