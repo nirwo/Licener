@@ -9,7 +9,7 @@ const LicenseSchema = new mongoose.Schema({
   licenseKey: {
     type: String,
     required: true,
-    unique: true
+    unique: false // Changed to prevent validation errors in demo mode
   },
   product: {
     type: String,

@@ -47,12 +47,51 @@ Licener is a full-featured web application for managing, tracking, and optimizin
    npm start
    ```
 
-5. For development with auto-restart:
+5. For production with MongoDB:
+   ```
+   npm start
+   ```
+   
+6. For demo mode (no MongoDB needed):
+   ```
+   npm run demo
+   ```
+   
+7. For development with auto-restart:
    ```
    npm run dev
    ```
+   
+8. For development in demo mode with auto-restart:
+   ```
+   npm run dev:demo
+   ```
 
-6. Access the application at http://localhost:3000
+### Demo Mode
+
+The application includes a comprehensive demo mode that works without requiring a MongoDB connection. This is useful for:
+- Evaluating the software without setting up a database
+- Development and testing without database dependencies
+- Demonstrating features to stakeholders
+
+To run in demo mode:
+```
+npm run demo
+```
+
+Demo mode features:
+- Pre-populated sample licenses and systems
+- Fully functional UI with all features enabled
+- Form submissions are processed and "saved" in memory
+- Reports and dashboards work with sample data
+- File upload/download operations are simulated
+- Flash messages and notifications work normally
+
+Note: Data in demo mode is not persistent and will reset when the application restarts.
+
+For detailed information about demo mode, see [DEMO_MODE.md](DEMO_MODE.md).
+
+7. Access the application at http://localhost:3000
 
 ## Usage
 

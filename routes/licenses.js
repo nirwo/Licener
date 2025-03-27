@@ -103,6 +103,9 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
 // Add license
 router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
   try {
+    console.log('License form submitted:', req.body);
+    
+    // Get form data
     const {
       name,
       licenseKey,
@@ -115,7 +118,8 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       cost,
       currency,
       notes,
-      assignedSystems
+      assignedSystems,
+      status
     } = req.body;
     
     // Create attachments array if files were uploaded
@@ -125,22 +129,38 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       uploadDate: Date.now()
     })) : [];
     
-    const newLicense = new License({
-      name,
+    // Define license data
+    const licenseData = {
+      name: name || product, // Use product name as fallback
       licenseKey,
       product,
       vendor,
       purchaseDate,
-      expiryDate,
-      renewalDate: renewalDate || undefined,
-      totalSeats,
+      expiryDate: expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Default to 1 year from now
+      totalSeats: totalSeats || 1,
+      status: status || 'active',
       cost: cost || undefined,
       currency: currency || 'USD',
       notes,
       attachments,
-      owner: req.user.id,
-      assignedSystems: assignedSystems || []
-    });
+      owner: req.user.id
+    };
+    
+    // Handle assignedSystems (could be string or array depending on form submission)
+    if (assignedSystems) {
+      if (Array.isArray(assignedSystems)) {
+        licenseData.assignedSystems = assignedSystems;
+      } else if (typeof assignedSystems === 'string' && assignedSystems.trim() !== '') {
+        licenseData.assignedSystems = [assignedSystems];
+      } else {
+        licenseData.assignedSystems = [];
+      }
+    } else {
+      licenseData.assignedSystems = [];
+    }
+    
+    console.log('Creating license with data:', licenseData);
+    const newLicense = new License(licenseData);
     
     await newLicense.save();
     
