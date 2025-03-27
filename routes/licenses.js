@@ -137,6 +137,8 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       status
     } = req.body;
     
+    console.log('Current user:', req.user);
+    
     // Create attachments array if files were uploaded
     const attachments = req.files ? req.files.map(file => ({
       filename: file.originalname,
@@ -158,7 +160,7 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       currency: currency || 'USD',
       notes,
       attachments,
-      owner: req.user.id
+      owner: req.user._id
     };
     
     // Handle assignedSystems (could be string or array depending on form submission)

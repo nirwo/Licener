@@ -7,30 +7,39 @@ const License = require('../models/License');
 // Get all systems
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
-    let query = { managedBy: req.user.id };
+    console.log('User ID for systems query:', req.user._id);
+    let query = { managedBy: req.user._id };
     
     // Filter by type if provided
     if (req.query.type && req.query.type !== 'all') {
       query.type = req.query.type;
     }
     
-    // Filter by OS if provided
+    // Find matching systems
+    console.log('Systems query:', query);
+    let systems = System.find(query);
+    console.log('Found systems:', systems.length);
+    
+    // Apply manual filtering for text search (OS)
     if (req.query.os) {
-      query.os = { $regex: new RegExp(req.query.os, 'i') };
+      const osRegex = new RegExp(req.query.os, 'i');
+      systems = systems.filter(system => osRegex.test(system.os));
     }
     
     // Filter by status if provided
     if (req.query.status && req.query.status !== 'all') {
-      query.status = req.query.status;
+      systems = systems.filter(system => system.status === req.query.status);
     }
     
-    const systems = await System.find(query)
-      .sort({ name: 1 })
-      .populate('managedBy', 'name')
-      .populate('licenseRequirements.licenseId');
+    // Sort by name
+    systems.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Populate references
+    systems = await System.populate(systems, 'managedBy');
+    systems = await System.populate(systems, 'licenseRequirements.licenseId');
     
     // Get unique OS values for filter dropdown
-    const osValues = await System.distinct('os', { managedBy: req.user.id });
+    const osValues = System.distinct('os', { managedBy: req.user._id });
     
     res.render('systems/index', {
       title: 'Systems',
@@ -48,7 +57,17 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 // Add system form
 router.get('/add', ensureAuthenticated, async (req, res) => {
   try {
-    const licenses = await License.find({ owner: req.user.id }).sort({ name: 1 });
+    console.log('Getting licenses for user ID:', req.user._id);
+    
+    // Find licenses owned by user
+    let licenses = License.find({ owner: req.user._id });
+    
+    // Sort by name
+    licenses.sort((a, b) => {
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      return nameA.localeCompare(nameB);
+    });
     
     res.render('systems/add', {
       title: 'Add System',
@@ -118,7 +137,10 @@ router.post('/', ensureAuthenticated, async (req, res) => {
       }
     }
     
-    const newSystem = new System({
+    // Create system using file-db method
+    console.log('Creating system with user ID:', req.user._id);
+    
+    const systemData = {
       name,
       type,
       os,
@@ -126,14 +148,15 @@ router.post('/', ensureAuthenticated, async (req, res) => {
       location,
       ip,
       department,
-      managedBy: req.user.id,
+      managedBy: req.user._id,
       installedSoftware: softwareArray,
       licenseRequirements,
       notes,
       status: status || 'active'
-    });
+    };
     
-    await newSystem.save();
+    console.log('Creating system with data:', systemData);
+    const newSystem = await System.create(systemData);
     
     // Update license used seats for each assigned license
     if (licenseRequirements.length > 0) {
@@ -141,9 +164,16 @@ router.post('/', ensureAuthenticated, async (req, res) => {
         const license = await License.findById(requirement.licenseId);
         
         if (license) {
+          // Need to modify for file-db approach
+          if (!license.assignedSystems) {
+            license.assignedSystems = [];
+          }
           license.assignedSystems.push(newSystem._id);
-          license.usedSeats = license.assignedSystems.length;
-          await license.save();
+          
+          await License.findByIdAndUpdate(requirement.licenseId, {
+            assignedSystems: license.assignedSystems,
+            usedSeats: license.assignedSystems.length
+          });
         }
       }
     }
