@@ -1,0 +1,151 @@
+<h1 class="h3 mb-4">Renew License</h1>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Renewal Details for {{license.product}}</h5>
+      </div>
+      <div class="card-body">
+        <!-- Current License Info -->
+        <div class="alert alert-info mb-4">
+          <h5 class="alert-heading">Current License Information</h5>
+          <div class="row">
+            <div class="col-md-6">
+              <p class="mb-1"><strong>Product:</strong> {{license.product}}</p>
+              <p class="mb-1"><strong>Vendor:</strong> {{license.vendor}}</p>
+              <p class="mb-1"><strong>License Type:</strong> {{license.licenseType}}</p>
+            </div>
+            <div class="col-md-6">
+              <p class="mb-1"><strong>Current Expiry:</strong> {{formatDate license.expiryDate "MMM D, YYYY"}}</p>
+              <p class="mb-1"><strong>Status:</strong> <span class="badge bg-{{licenseStatusClass license.status}}">{{license.status}}</span></p>
+              <p class="mb-1"><strong>Current Cost:</strong> {{#if license.cost}}{{formatCurrency license.cost license.currency}}{{else}}Not specified{{/if}}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Renewal Form -->
+        <form action="/licenses/renew/{{license._id}}" method="POST" enctype="multipart/form-data">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="expiryDate" class="form-label">New Expiry Date</label>
+                <input type="date" class="form-control" id="expiryDate" name="expiryDate" required value="{{suggestedExpiryDate}}">
+                <small class="text-muted">Typically one year from current expiry date</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="renewalDate" class="form-label">Next Renewal Reminder Date</label>
+                <input type="date" class="form-control" id="renewalDate" name="renewalDate" value="{{suggestedRenewalDate}}">
+                <small class="text-muted">When to be reminded about the next renewal</small>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="cost" class="form-label">Renewal Cost</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control" id="cost" name="cost" step="0.01" min="0" value="{{license.cost}}">
+              <span class="input-group-text">{{license.currency}}</span>
+            </div>
+            <small class="text-muted">Leave blank to keep the current cost</small>
+          </div>
+          
+          <div class="mb-3">
+            <label for="notes" class="form-label">Renewal Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Enter details about this renewal..."></textarea>
+          </div>
+          
+          <div class="mb-3">
+            <label for="attachments" class="form-label">Renewal Documentation</label>
+            <input class="form-control" type="file" id="attachments" name="attachments" multiple>
+            <small class="text-muted">Upload renewal invoice, confirmation emails, etc.</small>
+          </div>
+          
+          <div class="d-flex justify-content-between">
+            <a href="/licenses/{{license._id}}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-sync-alt me-2"></i> Complete Renewal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Renewal Information</h5>
+      </div>
+      <div class="card-body">
+        <h6 class="mb-3">Renewal Process</h6>
+        <ol class="mb-4">
+          <li>Confirm the new expiry date</li>
+          <li>Enter the cost of the renewal</li>
+          <li>Add any relevant notes</li>
+          <li>Upload supporting documentation</li>
+          <li>Click "Complete Renewal" to update the license</li>
+        </ol>
+        
+        <h6 class="mb-3">What Happens Next</h6>
+        <ul class="mb-4">
+          <li>License status will be updated to "renewed"</li>
+          <li>Expiry date will be extended</li>
+          <li>Renewal will be recorded in history</li>
+          <li>All assigned systems will retain their assignments</li>
+        </ul>
+        
+        <div class="alert alert-warning mb-0">
+          <h6 class="alert-heading">Important</h6>
+          <p class="mb-0">Make sure to include accurate information about the renewal to maintain proper license compliance records.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Renewal History</h5>
+      </div>
+      <div class="card-body">
+        {{#if license.renewalHistory.length}}
+          <div class="list-group">
+            {{#each license.renewalHistory}}
+              <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">Renewed on {{formatDate date "MMM D, YYYY"}}</h6>
+                  <small>{{formatCurrency cost ../license.currency}}</small>
+                </div>
+                <p class="mb-1">Extended until {{formatDate expiryDate "MMM D, YYYY"}}</p>
+                {{#if notes}}
+                  <small class="text-muted">{{notes}}</small>
+                {{/if}}
+              </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="text-muted mb-0">No previous renewals recorded</p>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set default dates if not provided
+    if (!document.getElementById('expiryDate').value) {
+      // Default to one year from now
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      document.getElementById('expiryDate').value = oneYearFromNow.toISOString().split('T')[0];
+      
+      // Set renewal reminder to 30 days before expiry
+      const reminderDate = new Date(oneYearFromNow);
+      reminderDate.setDate(reminderDate.getDate() - 30);
+      document.getElementById('renewalDate').value = reminderDate.toISOString().split('T')[0];
+    }
+  });
+</script>

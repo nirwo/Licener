@@ -1,0 +1,326 @@
+<h1 class="h3 mb-4">License Utilization Report</h1>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Filters</h5>
+        <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+          <i class="fas fa-filter"></i> Toggle Filters
+        </button>
+      </div>
+      <div class="collapse show" id="filterCollapse">
+        <div class="card-body">
+          <form action="/reports/license-utilization" method="GET">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label for="licenseType" class="form-label">License Type</label>
+                <select class="form-select" id="licenseType" name="licenseType">
+                  <option value="all" {{#if (eq licenseType "all")}}selected{{/if}}>All Types</option>
+                  <option value="subscription" {{#if (eq licenseType "subscription")}}selected{{/if}}>Subscription</option>
+                  <option value="perpetual" {{#if (eq licenseType "perpetual")}}selected{{/if}}>Perpetual</option>
+                  <option value="trial" {{#if (eq licenseType "trial")}}selected{{/if}}>Trial</option>
+                  <option value="enterprise" {{#if (eq licenseType "enterprise")}}selected{{/if}}>Enterprise</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="vendor" class="form-label">Vendor</label>
+                <select class="form-select" id="vendor" name="vendor">
+                  <option value="all" {{#if (eq vendor "all")}}selected{{/if}}>All Vendors</option>
+                  {{#each vendors}}
+                    <option value="{{this}}" {{#if (eq ../vendor this)}}selected{{/if}}>{{this}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="utilizationRate" class="form-label">Utilization Rate</label>
+                <select class="form-select" id="utilizationRate" name="utilizationRate">
+                  <option value="all" {{#if (eq utilizationRate "all")}}selected{{/if}}>All</option>
+                  <option value="under50" {{#if (eq utilizationRate "under50")}}selected{{/if}}>Under 50%</option>
+                  <option value="50to80" {{#if (eq utilizationRate "50to80")}}selected{{/if}}>50% to 80%</option>
+                  <option value="over80" {{#if (eq utilizationRate "over80")}}selected{{/if}}>Over 80%</option>
+                  <option value="over100" {{#if (eq utilizationRate "over100")}}selected{{/if}}>Over 100% (Overutilized)</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="sortBy" class="form-label">Sort By</label>
+                <select class="form-select" id="sortBy" name="sortBy">
+                  <option value="utilization" {{#if (eq sortBy "utilization")}}selected{{/if}}>Utilization Rate</option>
+                  <option value="product" {{#if (eq sortBy "product")}}selected{{/if}}>Product Name</option>
+                  <option value="cost" {{#if (eq sortBy "cost")}}selected{{/if}}>Cost</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-2"></i> Apply Filters
+              </button>
+              <a href="/reports/license-utilization" class="btn btn-secondary ms-2">
+                <i class="fas fa-times me-2"></i> Clear Filters
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-danger h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+              Underutilized (Under 50%)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.underutilized}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-battery-quarter fa-2x text-danger"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-warning h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+              Optimized (50%-80%)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.optimized}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-battery-half fa-2x text-warning"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-success h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+              Fully Utilized (>80%)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.fullyUtilized}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-battery-full fa-2x text-success"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">License Utilization Details</h5>
+    <div>
+      <a href="/reports/license-utilization/export/pdf" class="btn btn-sm btn-secondary">
+        <i class="fas fa-file-pdf me-1"></i> Export PDF
+      </a>
+      <a href="/reports/license-utilization/export/excel" class="btn btn-sm btn-success">
+        <i class="fas fa-file-excel me-1"></i> Export Excel
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Vendor</th>
+            <th>License Type</th>
+            <th>Total Seats</th>
+            <th>Used Seats</th>
+            <th>Utilization Rate</th>
+            <th>Cost Per Seat</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if licenses}}
+            {{#each licenses}}
+              <tr>
+                <td>{{product}}</td>
+                <td>{{vendor}}</td>
+                <td>{{licenseType}}</td>
+                <td>{{totalSeats}}</td>
+                <td>{{usedSeats}}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                      <div class="progress-bar bg-{{utilizationClass}}" role="progressbar" style="width: {{utilizationRate}}%" 
+                        aria-valuenow="{{utilizationRate}}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <span class="badge bg-{{utilizationClass}}">{{utilizationRate}}%</span>
+                  </div>
+                </td>
+                <td>{{formatCurrency costPerSeat}}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="/licenses/view/{{_id}}" class="btn btn-info">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="/licenses/edit/{{_id}}" class="btn btn-warning">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr>
+              <td colspan="8" class="text-center">
+                <p class="my-3">No licenses match the current filters</p>
+              </td>
+            </tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Overall Utilization Distribution</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="utilizationDistributionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Top 10 Underutilized Licenses by Cost</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="costWasteChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">Optimization Recommendations</h5>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <h5 class="alert-heading"><i class="fas fa-lightbulb me-2"></i>Potential Cost Savings</h5>
+      <p>Based on current utilization rates, you could potentially save {{formatCurrency stats.potentialSavings}} by optimizing your license allocation.</p>
+    </div>
+    
+    <h6 class="mb-3">Recommendations:</h6>
+    <ul class="list-group mb-3">
+      {{#if recommendations}}
+        {{#each recommendations}}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{product}}</strong> ({{vendor}})
+                <p class="mb-0 text-muted">{{recommendation}}</p>
+              </div>
+              <span class="badge bg-primary rounded-pill">Save {{formatCurrency potentialSavings}}</span>
+            </div>
+          </li>
+        {{/each}}
+      {{else}}
+        <li class="list-group-item">No recommendations available based on current data.</li>
+      {{/if}}
+    </ul>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    const table = document.querySelector('table');
+    if (table) {
+      new DataTable(table, {
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        language: {
+          search: "Filter records:"
+        }
+      });
+    }
+    
+    {{#if chartData}}
+      // Utilization Distribution Chart
+      const distributionCtx = document.getElementById('utilizationDistributionChart').getContext('2d');
+      new Chart(distributionCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Under 50%', '50% - 80%', 'Over 80%', 'Over 100%'],
+          datasets: [{
+            data: [
+              {{stats.underutilized}}, 
+              {{stats.optimized}}, 
+              {{stats.fullyUtilized}},
+              {{stats.overutilized}}
+            ],
+            backgroundColor: ['#e74a3b', '#f6c23e', '#1cc88a', '#36b9cc'],
+            hoverBackgroundColor: ['#e02d1b', '#f4b619', '#169b6b', '#2c9faf'],
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          },
+          cutout: '60%'
+        }
+      });
+      
+      // Cost Waste Chart
+      const costWasteCtx = document.getElementById('costWasteChart').getContext('2d');
+      new Chart(costWasteCtx, {
+        type: 'horizontalBar',
+        data: {
+          labels: {{{json chartData.costWaste.labels}}},
+          datasets: [{
+            label: 'Potential Savings',
+            data: {{{json chartData.costWaste.data}}},
+            backgroundColor: '#e74a3b',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          scales: {
+            x: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Potential Savings ($)'
+              }
+            }
+          }
+        }
+      });
+    {{/if}}
+  });
+</script>

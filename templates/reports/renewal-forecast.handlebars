@@ -1,0 +1,382 @@
+<h1 class="h3 mb-4">Renewal Forecast</h1>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Filters</h5>
+        <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+          <i class="fas fa-filter"></i> Toggle Filters
+        </button>
+      </div>
+      <div class="collapse show" id="filterCollapse">
+        <div class="card-body">
+          <form action="/reports/renewal-forecast" method="GET">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label for="forecastPeriod" class="form-label">Forecast Period</label>
+                <select class="form-select" id="forecastPeriod" name="forecastPeriod">
+                  <option value="3" {{#if (eq forecastPeriod "3")}}selected{{/if}}>Next 3 months</option>
+                  <option value="6" {{#if (eq forecastPeriod "6")}}selected{{/if}}>Next 6 months</option>
+                  <option value="12" {{#if (eq forecastPeriod "12")}}selected{{/if}}>Next 12 months</option>
+                  <option value="24" {{#if (eq forecastPeriod "24")}}selected{{/if}}>Next 24 months</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="licenseType" class="form-label">License Type</label>
+                <select class="form-select" id="licenseType" name="licenseType">
+                  <option value="all" {{#if (eq licenseType "all")}}selected{{/if}}>All Types</option>
+                  <option value="subscription" {{#if (eq licenseType "subscription")}}selected{{/if}}>Subscription</option>
+                  <option value="perpetual" {{#if (eq licenseType "perpetual")}}selected{{/if}}>Perpetual</option>
+                  <option value="trial" {{#if (eq licenseType "trial")}}selected{{/if}}>Trial</option>
+                  <option value="enterprise" {{#if (eq licenseType "enterprise")}}selected{{/if}}>Enterprise</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="vendor" class="form-label">Vendor</label>
+                <select class="form-select" id="vendor" name="vendor">
+                  <option value="all" {{#if (eq vendor "all")}}selected{{/if}}>All Vendors</option>
+                  {{#each vendors}}
+                    <option value="{{this}}" {{#if (eq ../vendor this)}}selected{{/if}}>{{this}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="groupBy" class="form-label">Group By</label>
+                <select class="form-select" id="groupBy" name="groupBy">
+                  <option value="month" {{#if (eq groupBy "month")}}selected{{/if}}>Month</option>
+                  <option value="quarter" {{#if (eq groupBy "quarter")}}selected{{/if}}>Quarter</option>
+                  <option value="vendor" {{#if (eq groupBy "vendor")}}selected{{/if}}>Vendor</option>
+                  <option value="licenseType" {{#if (eq groupBy "licenseType")}}selected{{/if}}>License Type</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-2"></i> Apply Filters
+              </button>
+              <a href="/reports/renewal-forecast" class="btn btn-secondary ms-2">
+                <i class="fas fa-times me-2"></i> Clear Filters
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-primary h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+              Total Renewals ({{forecastPeriod}} months)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.totalRenewals}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-sync-alt fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-info h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+              Estimated Renewal Cost
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{formatCurrency stats.totalCost}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-warning h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+              Next Month Renewals
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.nextMonthRenewals}} ({{formatCurrency stats.nextMonthCost}})</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Forecast Charts -->
+<div class="row mb-4">
+  <div class="col-lg-8 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Renewal Forecast by {{groupByLabel}}</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 400px;">
+          <canvas id="renewalForecastChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Renewals by License Type</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="licenseTypeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upcoming Renewals Table -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Upcoming Renewals</h5>
+    <div>
+      <a href="/reports/renewal-forecast/export/pdf" class="btn btn-sm btn-secondary">
+        <i class="fas fa-file-pdf me-1"></i> Export PDF
+      </a>
+      <a href="/reports/renewal-forecast/export/excel" class="btn btn-sm btn-success">
+        <i class="fas fa-file-excel me-1"></i> Export Excel
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Vendor</th>
+            <th>License Type</th>
+            <th>Expiry Date</th>
+            <th>Days Until Renewal</th>
+            <th>Renewal Cost</th>
+            <th>Assigned To</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if renewals}}
+            {{#each renewals}}
+              <tr>
+                <td>{{product}}</td>
+                <td>{{vendor}}</td>
+                <td>{{licenseType}}</td>
+                <td>{{formatDate expiryDate "MMM D, YYYY"}}</td>
+                <td>
+                  <span class="badge bg-{{daysRemainingClass daysUntilRenewal}}">
+                    {{daysUntilRenewal}} days
+                  </span>
+                </td>
+                <td>{{formatCurrency renewalCost}}</td>
+                <td>{{assignedToName}}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="/licenses/view/{{_id}}" class="btn btn-info">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="/licenses/renew/{{_id}}" class="btn btn-success">
+                      <i class="fas fa-sync-alt"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr>
+              <td colspan="8" class="text-center">
+                <p class="my-3">No upcoming renewals found for the selected period</p>
+              </td>
+            </tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Budget Planning -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">Budget Planning</h5>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Budget Planning Tips</h5>
+      <p>Based on your renewal forecast, we've prepared the following budget allocation recommendations:</p>
+    </div>
+    
+    <div class="row">
+      <div class="col-lg-6 mb-4">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title">Quarterly Budget Allocation</h6>
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Quarter</th>
+                  <th>Number of Renewals</th>
+                  <th>Estimated Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each budgetPlan.quarterly}}
+                  <tr>
+                    <td>{{quarter}}</td>
+                    <td>{{count}}</td>
+                    <td>{{formatCurrency cost}}</td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 mb-4">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title">Vendor Budget Allocation</h6>
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Number of Renewals</th>
+                  <th>Estimated Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each budgetPlan.byVendor}}
+                  <tr>
+                    <td>{{vendor}}</td>
+                    <td>{{count}}</td>
+                    <td>{{formatCurrency cost}}</td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    const table = document.querySelector('table');
+    if (table) {
+      new DataTable(table, {
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        language: {
+          search: "Filter records:"
+        }
+      });
+    }
+    
+    {{#if chartData}}
+      // Renewal Forecast Chart
+      const forecastCtx = document.getElementById('renewalForecastChart').getContext('2d');
+      new Chart(forecastCtx, {
+        type: 'bar',
+        data: {
+          labels: {{{json chartData.forecast.labels}}},
+          datasets: [
+            {
+              label: 'Number of Renewals',
+              data: {{{json chartData.forecast.counts}}},
+              backgroundColor: 'rgba(78, 115, 223, 0.6)',
+              borderColor: 'rgba(78, 115, 223, 1)',
+              borderWidth: 1,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Estimated Cost',
+              data: {{{json chartData.forecast.costs}}},
+              type: 'line',
+              backgroundColor: 'rgba(28, 200, 138, 0.05)',
+              borderColor: 'rgba(28, 200, 138, 1)',
+              borderWidth: 2,
+              pointBackgroundColor: 'rgba(28, 200, 138, 1)',
+              pointRadius: 4,
+              fill: true,
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              position: 'left',
+              title: {
+                display: true,
+                text: 'Number of Renewals'
+              }
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Cost ($)'
+              },
+              grid: {
+                drawOnChartArea: false
+              }
+            }
+          }
+        }
+      });
+      
+      // License Type Chart
+      const licenseTypeCtx = document.getElementById('licenseTypeChart').getContext('2d');
+      new Chart(licenseTypeCtx, {
+        type: 'doughnut',
+        data: {
+          labels: {{{json chartData.licenseType.labels}}},
+          datasets: [{
+            data: {{{json chartData.licenseType.data}}},
+            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+            hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#f4b619', '#e02d1b'],
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    {{/if}}
+  });
+</script>

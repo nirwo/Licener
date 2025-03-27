@@ -1,0 +1,325 @@
+<h1 class="h3 mb-4">Compliance Report</h1>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Filters</h5>
+        <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+          <i class="fas fa-filter"></i> Toggle Filters
+        </button>
+      </div>
+      <div class="collapse show" id="filterCollapse">
+        <div class="card-body">
+          <form action="/reports/compliance" method="GET">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label for="systemType" class="form-label">System Type</label>
+                <select class="form-select" id="systemType" name="systemType">
+                  <option value="all" {{#if (eq systemType "all")}}selected{{/if}}>All Types</option>
+                  <option value="physical" {{#if (eq systemType "physical")}}selected{{/if}}>Physical Server</option>
+                  <option value="virtual" {{#if (eq systemType "virtual")}}selected{{/if}}>Virtual Machine</option>
+                  <option value="cloud" {{#if (eq systemType "cloud")}}selected{{/if}}>Cloud Instance</option>
+                  <option value="desktop" {{#if (eq systemType "desktop")}}selected{{/if}}>Desktop/Workstation</option>
+                  <option value="laptop" {{#if (eq systemType "laptop")}}selected{{/if}}>Laptop</option>
+                  <option value="mobile" {{#if (eq systemType "mobile")}}selected{{/if}}>Mobile Device</option>
+                  <option value="network" {{#if (eq systemType "network")}}selected{{/if}}>Network Device</option>
+                  <option value="other" {{#if (eq systemType "other")}}selected{{/if}}>Other</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="environment" class="form-label">Environment</label>
+                <select class="form-select" id="environment" name="environment">
+                  <option value="all" {{#if (eq environment "all")}}selected{{/if}}>All Environments</option>
+                  <option value="production" {{#if (eq environment "production")}}selected{{/if}}>Production</option>
+                  <option value="staging" {{#if (eq environment "staging")}}selected{{/if}}>Staging</option>
+                  <option value="testing" {{#if (eq environment "testing")}}selected{{/if}}>Testing</option>
+                  <option value="development" {{#if (eq environment "development")}}selected{{/if}}>Development</option>
+                  <option value="dr" {{#if (eq environment "dr")}}selected{{/if}}>Disaster Recovery</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="department" class="form-label">Department</label>
+                <select class="form-select" id="department" name="department">
+                  <option value="all" {{#if (eq department "all")}}selected{{/if}}>All Departments</option>
+                  {{#each departments}}
+                    <option value="{{this}}" {{#if (eq ../department this)}}selected{{/if}}>{{this}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="complianceStatus" class="form-label">Compliance Status</label>
+                <select class="form-select" id="complianceStatus" name="complianceStatus">
+                  <option value="all" {{#if (eq complianceStatus "all")}}selected{{/if}}>All</option>
+                  <option value="compliant" {{#if (eq complianceStatus "compliant")}}selected{{/if}}>Compliant</option>
+                  <option value="non-compliant" {{#if (eq complianceStatus "non-compliant")}}selected{{/if}}>Non-Compliant</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-2"></i> Apply Filters
+              </button>
+              <a href="/reports/compliance" class="btn btn-secondary ms-2">
+                <i class="fas fa-times me-2"></i> Clear Filters
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-success h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+              Compliant Systems
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.compliantSystems}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-check-circle fa-2x text-success"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-danger h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+              Non-Compliant Systems
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.nonCompliantSystems}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-times-circle fa-2x text-danger"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-info h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+              Overall Compliance Rate
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.complianceRate}}%</div>
+            <div class="progress mt-2">
+              <div class="progress-bar bg-{{stats.complianceClass}}" role="progressbar" style="width: {{stats.complianceRate}}%"
+                aria-valuenow="{{stats.complianceRate}}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-clipboard-check fa-2x text-info"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Compliance Details</h5>
+    <div>
+      <a href="/reports/compliance/export/pdf" class="btn btn-sm btn-secondary">
+        <i class="fas fa-file-pdf me-1"></i> Export PDF
+      </a>
+      <a href="/reports/compliance/export/excel" class="btn btn-sm btn-success">
+        <i class="fas fa-file-excel me-1"></i> Export Excel
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>System</th>
+            <th>Environment</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Total Licenses</th>
+            <th>Expired Licenses</th>
+            <th>Compliance</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if systems}}
+            {{#each systems}}
+              <tr>
+                <td>{{name}}</td>
+                <td>{{environment}}</td>
+                <td>{{department}}</td>
+                <td>
+                  <span class="badge bg-{{systemStatusClass status}}">
+                    {{status}}
+                  </span>
+                </td>
+                <td>{{licenseCount}}</td>
+                <td>{{expiredLicenseCount}}</td>
+                <td>
+                  {{#if isCompliant}}
+                    <span class="badge bg-success">Compliant</span>
+                  {{else}}
+                    <span class="badge bg-danger">Non-Compliant</span>
+                  {{/if}}
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="/systems/view/{{_id}}" class="btn btn-info">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="/systems/licenses/{{_id}}" class="btn btn-primary">
+                      <i class="fas fa-file-contract"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr>
+              <td colspan="8" class="text-center">
+                <p class="my-3">No systems match the current filters</p>
+              </td>
+            </tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Compliance by Environment</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="environmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Compliance by Department</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="departmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    const table = document.querySelector('table');
+    if (table) {
+      new DataTable(table, {
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        language: {
+          search: "Filter records:"
+        }
+      });
+    }
+    
+    {{#if chartData}}
+      // Environment Compliance Chart
+      const environmentCtx = document.getElementById('environmentChart').getContext('2d');
+      new Chart(environmentCtx, {
+        type: 'bar',
+        data: {
+          labels: {{{json chartData.environment.labels}}},
+          datasets: [
+            {
+              label: 'Compliant',
+              data: {{{json chartData.environment.compliant}}},
+              backgroundColor: '#1cc88a',
+            },
+            {
+              label: 'Non-Compliant',
+              data: {{{json chartData.environment.nonCompliant}}},
+              backgroundColor: '#e74a3b',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Systems'
+              }
+            }
+          }
+        }
+      });
+      
+      // Department Compliance Chart
+      const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+      new Chart(departmentCtx, {
+        type: 'bar',
+        data: {
+          labels: {{{json chartData.department.labels}}},
+          datasets: [
+            {
+              label: 'Compliant',
+              data: {{{json chartData.department.compliant}}},
+              backgroundColor: '#1cc88a',
+            },
+            {
+              label: 'Non-Compliant',
+              data: {{{json chartData.department.nonCompliant}}},
+              backgroundColor: '#e74a3b',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Systems'
+              }
+            }
+          }
+        }
+      });
+    {{/if}}
+  });
+</script>
