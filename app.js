@@ -212,7 +212,23 @@ if (startWithoutMongo) {
   
   // Define helper function to find item by ID
   const findById = (collection, id) => {
-    return collection.find(item => item._id === id);
+    if (!id) {
+      console.log('Demo mode: WARNING - findById called with null or undefined ID');
+      return null;
+    }
+    
+    if (!collection || !Array.isArray(collection)) {
+      console.log(`Demo mode: WARNING - findById called with invalid collection for ID: ${id}`);
+      return null;
+    }
+    
+    const result = collection.find(item => item && item._id === id);
+    
+    if (!result) {
+      console.log(`Demo mode: findById could not find item with ID: ${id} in collection of ${collection.length} items`);
+    }
+    
+    return result;
   };
 
   // Define helper function to generate ID
@@ -256,31 +272,50 @@ if (startWithoutMongo) {
       return flashMessages[type] || [];
     };
     
+    // Store request parameters for later use
+    req.storedParams = req.params;
+    
     // Override res.redirect to handle form submissions
     const originalRedirect = res.redirect;
     res.redirect = function(path) {
-      if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
-        console.log(`Demo mode: intercepting ${req.method} redirect to ${path}`);
+      // Track redirect path for debugging
+      console.log(`Demo mode: Redirect called with path: ${path}`);
+      
+      // Handle method override properly for form submissions
+      const method = req.body && req.body._method ? req.body._method.toUpperCase() : req.method;
+      
+      if (req.method === 'POST' || req.method === 'PUT' || method === 'DELETE') {
+        console.log(`Demo mode: intercepting ${method} redirect to ${path}`);
         
         // Handle license operations
         if (path === '/licenses' || path.startsWith('/licenses/')) {
           if (req.originalUrl.includes('/licenses/add') || req.originalUrl === '/licenses') {
+            console.log('Demo mode: Creating new license with form data:', req.body);
+            
+            // Process assigned systems
+            let assignedSystemsArray = [];
+            if (req.body.assignedSystems) {
+              assignedSystemsArray = Array.isArray(req.body.assignedSystems) 
+                ? req.body.assignedSystems 
+                : [req.body.assignedSystems];
+            }
+            
             // Create new license
             const newLicense = {
               _id: generateId('license'),
-              name: req.body.name || 'New Demo License',
+              name: req.body.name || req.body.product || 'New Demo License',
               product: req.body.product || 'Demo Product',
               licenseKey: req.body.licenseKey || 'DEMO-XXXX-XXXX-XXXX',
               purchaseDate: req.body.purchaseDate ? new Date(req.body.purchaseDate) : new Date(),
               expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : new Date(new Date().getTime() + 365 * 24 * 60 * 60 * 1000),
               totalSeats: parseInt(req.body.totalSeats) || 10,
-              usedSeats: req.body.assignedSystems ? (Array.isArray(req.body.assignedSystems) ? req.body.assignedSystems.length : 1) : 0,
+              usedSeats: assignedSystemsArray.length,
               cost: parseFloat(req.body.cost) || 1000,
               currency: req.body.currency || 'USD',
               vendor: req.body.vendor || 'Demo Vendor',
               notes: req.body.notes || 'Created in demo mode',
               status: req.body.status || 'active',
-              assignedSystems: req.body.assignedSystems ? (Array.isArray(req.body.assignedSystems) ? req.body.assignedSystems : [req.body.assignedSystems]) : [],
+              assignedSystems: assignedSystemsArray,
               owner: req.user.id,
               attachments: req.files ? req.files.map(file => ({
                 _id: generateId('att'),
@@ -290,9 +325,45 @@ if (startWithoutMongo) {
               })) : []
             };
             
+            console.log('Demo mode: Created new license:', newLicense);
+            
+            // Add the license to the collection
             demoLicenses.push(newLicense);
+            console.log(`Demo mode: Added new license with ID ${newLicense._id}`);
+            console.log(`Demo mode: Current licenses count: ${demoLicenses.length}`);
+            
+            // Log all license IDs for debugging
+            console.log('Demo mode: All license IDs:', demoLicenses.map(l => l._id));
+            
+            // Update assigned systems with the license reference
+            if (assignedSystemsArray.length > 0) {
+              console.log(`Demo mode: Assigning license to ${assignedSystemsArray.length} systems:`, assignedSystemsArray);
+              
+              assignedSystemsArray.forEach(systemId => {
+                const system = findById(demoSystems, systemId);
+                if (system) {
+                  if (!system.licenseRequirements) {
+                    system.licenseRequirements = [];
+                  }
+                  
+                  // Add license to the system's requirements
+                  system.licenseRequirements.push({
+                    licenseType: newLicense.product,
+                    quantity: 1,
+                    licenseId: newLicense._id
+                  });
+                  
+                  console.log(`Demo mode: Updated system ${systemId} with new license reference (${newLicense._id})`);
+                } else {
+                  console.log(`Demo mode: WARNING - Could not find system with ID ${systemId} to assign license`);
+                }
+              });
+            } else {
+              console.log('Demo mode: No systems assigned to this license');
+            }
+            
             req.flash('success_msg', 'License added successfully in demo mode');
-          } else if (req.originalUrl.includes('/edit/') && req.method === 'PUT') {
+          } else if (req.originalUrl.includes('/edit/') && method === 'PUT') {
             // Update license
             const licenseId = req.params.id;
             const license = findById(demoLicenses, licenseId);
@@ -346,16 +417,38 @@ if (startWithoutMongo) {
             } else {
               req.flash('error_msg', 'License not found in demo mode');
             }
-          } else if (req.method === 'DELETE') {
+          } else if (method === 'DELETE') {
             // Delete license
-            const licenseId = req.params.id;
-            const licenseIndex = demoLicenses.findIndex(l => l._id === licenseId);
+            // Extract the license ID from the URL
+            const licenseIdMatch = req.originalUrl.match(/\/licenses\/([^/?]+)/);
+            const licenseId = licenseIdMatch ? licenseIdMatch[1] : null;
             
-            if (licenseIndex !== -1) {
-              demoLicenses.splice(licenseIndex, 1);
-              req.flash('success_msg', 'License deleted successfully in demo mode');
+            if (licenseId) {
+              console.log(`Demo mode: Attempting to delete license with ID: ${licenseId}`);
+              const licenseIndex = demoLicenses.findIndex(l => l._id === licenseId);
+              
+              if (licenseIndex !== -1) {
+                // Remove license references from systems
+                const license = demoLicenses[licenseIndex];
+                if (license.assignedSystems && license.assignedSystems.length > 0) {
+                  license.assignedSystems.forEach(systemId => {
+                    const system = findById(demoSystems, systemId);
+                    if (system) {
+                      system.licenseRequirements = system.licenseRequirements.filter(
+                        req => req.licenseId !== licenseId
+                      );
+                    }
+                  });
+                }
+                
+                // Remove the license
+                demoLicenses.splice(licenseIndex, 1);
+                req.flash('success_msg', 'License deleted successfully in demo mode');
+              } else {
+                req.flash('error_msg', 'License not found in demo mode');
+              }
             } else {
-              req.flash('error_msg', 'License not found in demo mode');
+              req.flash('error_msg', 'Invalid license ID for deletion');
             }
           }
         } 
@@ -505,24 +598,32 @@ if (startWithoutMongo) {
             } else {
               req.flash('error_msg', 'System not found in demo mode');
             }
-          } else if (req.method === 'DELETE') {
+          } else if (method === 'DELETE') {
             // Delete system
-            const systemId = req.params.id;
-            const systemIndex = demoSystems.findIndex(s => s._id === systemId);
+            // Extract the system ID from the URL
+            const systemIdMatch = req.originalUrl.match(/\/systems\/([^/?]+)/);
+            const systemId = systemIdMatch ? systemIdMatch[1] : null;
             
-            if (systemIndex !== -1) {
-              const system = demoSystems[systemIndex];
+            if (systemId) {
+              console.log(`Demo mode: Attempting to delete system with ID: ${systemId}`);
+              const systemIndex = demoSystems.findIndex(s => s._id === systemId);
               
-              // Remove system from licenses
-              for (const license of demoLicenses) {
-                license.assignedSystems = license.assignedSystems.filter(sysId => sysId !== system._id);
-                license.usedSeats = license.assignedSystems.length;
+              if (systemIndex !== -1) {
+                const system = demoSystems[systemIndex];
+                
+                // Remove system from licenses
+                for (const license of demoLicenses) {
+                  license.assignedSystems = license.assignedSystems.filter(sysId => sysId !== system._id);
+                  license.usedSeats = license.assignedSystems.length;
+                }
+                
+                demoSystems.splice(systemIndex, 1);
+                req.flash('success_msg', 'System deleted successfully in demo mode');
+              } else {
+                req.flash('error_msg', 'System not found in demo mode');
               }
-              
-              demoSystems.splice(systemIndex, 1);
-              req.flash('success_msg', 'System deleted successfully in demo mode');
             } else {
-              req.flash('error_msg', 'System not found in demo mode');
+              req.flash('error_msg', 'Invalid system ID for deletion');
             }
           }
         }
@@ -534,12 +635,24 @@ if (startWithoutMongo) {
     // Helper function to populate licenses and systems with related objects
     const populateLicenses = (licenses) => {
       return licenses.map(license => {
+        if (!license) return null;
+        
         // Deep clone to avoid modifying the original
         const populatedLicense = JSON.parse(JSON.stringify(license));
         
+        // Ensure required fields exist
+        if (!populatedLicense.assignedSystems) populatedLicense.assignedSystems = [];
+        if (!populatedLicense.attachments) populatedLicense.attachments = [];
+        
         // Populate assigned systems
         populatedLicense.assignedSystems = populatedLicense.assignedSystems.map(systemId => {
-          return findById(demoSystems, systemId) || systemId;
+          const system = findById(demoSystems, systemId);
+          return system ? {...system} : {
+            _id: systemId,
+            name: 'Unknown System',
+            type: 'unknown',
+            status: 'unknown'
+          };
         });
         
         // Populate owner
@@ -549,14 +662,32 @@ if (startWithoutMongo) {
           email: req.user.email
         };
         
+        // Add additional helper fields for the UI
+        populatedLicense.licenseType = populatedLicense.licenseType || 'Standard';
+        populatedLicense.hasExpired = populatedLicense.expiryDate < new Date();
+        populatedLicense.daysUntilExpiry = Math.ceil((populatedLicense.expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        
+        // Ensure dates are proper Date objects
+        populatedLicense.purchaseDate = new Date(populatedLicense.purchaseDate);
+        populatedLicense.expiryDate = new Date(populatedLicense.expiryDate);
+        if (populatedLicense.renewalDate) {
+          populatedLicense.renewalDate = new Date(populatedLicense.renewalDate);
+        }
+        
         return populatedLicense;
-      });
+      }).filter(Boolean); // Remove any null entries
     };
     
     const populateSystems = (systems) => {
       return systems.map(system => {
+        if (!system) return null;
+        
         // Deep clone to avoid modifying the original
         const populatedSystem = JSON.parse(JSON.stringify(system));
+        
+        // Ensure required fields exist
+        if (!populatedSystem.licenseRequirements) populatedSystem.licenseRequirements = [];
+        if (!populatedSystem.installedSoftware) populatedSystem.installedSoftware = [];
         
         // Populate license requirements
         populatedSystem.licenseRequirements = populatedSystem.licenseRequirements.map(req => {
@@ -565,7 +696,7 @@ if (startWithoutMongo) {
             if (license) {
               return {
                 ...req,
-                licenseId: license
+                licenseId: {...license}
               };
             }
           }
@@ -579,8 +710,23 @@ if (startWithoutMongo) {
           email: req.user.email
         };
         
+        // Ensure dates are proper Date objects
+        if (populatedSystem.lastSeen) {
+          populatedSystem.lastSeen = new Date(populatedSystem.lastSeen);
+        } else {
+          populatedSystem.lastSeen = new Date();
+        }
+        
+        // Process installed software dates
+        if (populatedSystem.installedSoftware.length > 0) {
+          populatedSystem.installedSoftware = populatedSystem.installedSoftware.map(software => ({
+            ...software,
+            installDate: new Date(software.installDate)
+          }));
+        }
+        
         return populatedSystem;
-      });
+      }).filter(Boolean); // Remove any null entries
     };
     
     // Override route handlers with mock data
@@ -599,6 +745,13 @@ if (startWithoutMongo) {
       if (view === 'dashboard') {
         options.title = 'License Manager Dashboard';
         options.active = 'dashboard';
+        
+        console.log('Demo mode: Generating dashboard data');
+        
+        // Calculate dynamic dashboard statistics based on current data
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
         options.stats = {
           totalLicenses: demoLicenses.length,
           activeLicenses: demoLicenses.filter(l => l.status === 'active').length,
@@ -607,55 +760,125 @@ if (startWithoutMongo) {
           renewedLicenses: demoLicenses.filter(l => l.status === 'renewed').length,
           expiringSoon: demoLicenses.filter(l => 
             l.status === 'active' && 
-            l.expiryDate > new Date() && 
-            l.expiryDate < new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000)
+            l.expiryDate > now && 
+            l.expiryDate < thirtyDaysFromNow
           ).length,
           totalSystems: demoSystems.length
         };
-        options.recentLicenses = populateLicenses(demoLicenses.slice(0, 5));
+        
+        // Sort licenses by expiry date (newest first) for recent licenses
+        const sortedLicenses = [...demoLicenses].sort((a, b) => 
+          new Date(b.purchaseDate) - new Date(a.purchaseDate)
+        );
+        
+        options.recentLicenses = populateLicenses(sortedLicenses.slice(0, 5));
+        
+        // Generate dynamic chart data based on actual licenses
+        const vendors = [...new Set(demoLicenses.map(l => l.vendor))];
+        const vendorCounts = vendors.map(vendor => 
+          demoLicenses.filter(l => l.vendor === vendor).length
+        );
+        
+        const vendorCosts = vendors.map(vendor => 
+          demoLicenses.filter(l => l.vendor === vendor)
+            .reduce((sum, license) => sum + (license.cost || 0), 0)
+        );
+        
+        // Generate expiry timeline data
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentMonth = now.getMonth();
+        const timelineLabels = [];
+        const timelineData = [];
+        const timelineColors = [];
+        
+        for (let i = 0; i < 6; i++) {
+          const monthIndex = (currentMonth + i) % 12;
+          timelineLabels.push(months[monthIndex]);
+          
+          // Count licenses expiring in this month
+          const monthStart = new Date(now.getFullYear(), currentMonth + i, 1);
+          const monthEnd = new Date(now.getFullYear(), currentMonth + i + 1, 0);
+          
+          const count = demoLicenses.filter(l => 
+            l.expiryDate >= monthStart && l.expiryDate <= monthEnd
+          ).length;
+          
+          timelineData.push(count);
+          
+          // Determine color based on proximity to current date
+          if (i < 2) {
+            timelineColors.push('#e74a3b'); // Red for soon
+          } else if (i < 4) {
+            timelineColors.push('#f6c23e'); // Yellow for medium term
+          } else {
+            timelineColors.push('#1cc88a'); // Green for long term
+          }
+        }
+        
         options.chartData = {
           expiryTimeline: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            data: [1, 1, 0, 2, 1, 0],
-            colors: ['#e74a3b', '#e74a3b', '#f6c23e', '#f6c23e', '#1cc88a', '#1cc88a']
+            labels: timelineLabels,
+            data: timelineData,
+            colors: timelineColors
           },
           vendors: {
-            labels: ['Microsoft', 'Adobe', 'Symantec', 'VMware'],
-            data: [2, 1, 1, 1]
+            labels: vendors,
+            data: vendorCounts
           },
           costs: {
-            labels: ['Microsoft', 'Adobe', 'Symantec', 'VMware'],
-            data: [6200, 3000, 3600, 8000]
+            labels: vendors,
+            data: vendorCosts
           }
         };
+        
+        console.log('Demo mode: Dashboard data generated with updated statistics');
       } 
       else if (view === 'licenses/index') {
         options.title = 'Licenses';
         options.active = 'licenses';
+        
+        console.log('Demo mode: Rendering licenses index page');
+        console.log(`Demo mode: Current licenses count: ${demoLicenses.length}`);
+        console.log('Demo mode: All license IDs:', demoLicenses.map(l => l._id));
         
         // Support filtering in demo mode
         let filteredLicenses = [...demoLicenses];
         
         if (req.query.status && req.query.status !== 'all') {
           filteredLicenses = filteredLicenses.filter(l => l.status === req.query.status);
+          console.log(`Demo mode: Filtered by status '${req.query.status}', ${filteredLicenses.length} licenses matched`);
         }
         
         if (req.query.product) {
           filteredLicenses = filteredLicenses.filter(l => 
             l.product.toLowerCase().includes(req.query.product.toLowerCase())
           );
+          console.log(`Demo mode: Filtered by product '${req.query.product}', ${filteredLicenses.length} licenses matched`);
         }
         
         if (req.query.vendor) {
           filteredLicenses = filteredLicenses.filter(l => 
             l.vendor.toLowerCase().includes(req.query.vendor.toLowerCase())
           );
+          console.log(`Demo mode: Filtered by vendor '${req.query.vendor}', ${filteredLicenses.length} licenses matched`);
         }
         
-        options.licenses = populateLicenses(filteredLicenses);
+        // Sort licenses by most recently added/updated first
+        filteredLicenses.sort((a, b) => {
+          // If purchaseDate is the same, sort by ID (more recent IDs are "larger")
+          if (a.purchaseDate.getTime() === b.purchaseDate.getTime()) {
+            return a._id > b._id ? -1 : 1;
+          }
+          return b.purchaseDate - a.purchaseDate;
+        });
+        
+        const populatedLicenses = populateLicenses(filteredLicenses);
+        options.licenses = populatedLicenses;
         options.products = [...new Set(demoLicenses.map(l => l.product))];
         options.vendors = [...new Set(demoLicenses.map(l => l.vendor))];
         options.filters = req.query;
+        
+        console.log(`Demo mode: Sending ${populatedLicenses.length} licenses to view`);
       }
       else if (view === 'licenses/add') {
         options.title = 'Add License';
@@ -678,11 +901,61 @@ if (startWithoutMongo) {
         options.title = 'License Details';
         options.active = 'licenses';
         
-        if (req.params.id) {
-          const license = findById(demoLicenses, req.params.id);
+        // Extract license ID from URL or params
+        const licenseId = req.params.id || req.originalUrl.split('/licenses/')[1]?.split('?')[0];
+        
+        if (licenseId) {
+          console.log(`Demo mode: Loading license details for ID: ${licenseId}`);
+          
+          // Find license by ID
+          const license = findById(demoLicenses, licenseId);
+          
           if (license) {
-            options.license = populateLicenses([license])[0];
+            console.log('Demo mode: Found license to display:', license);
+            
+            // Add additional properties needed by the view
+            const licenseWithDetails = {
+              ...license,
+              licenseType: license.licenseType || 'Standard',
+              systemType: license.systemType || 'All',
+              environment: license.environment || 'Production'
+            };
+            
+            // Populate the license completely for the view
+            const populatedLicense = populateLicenses([licenseWithDetails])[0];
+            options.license = populatedLicense;
+            
+            console.log('Demo mode: Populated license for view:', {
+              id: populatedLicense._id,
+              name: populatedLicense.name,
+              product: populatedLicense.product,
+              assignedSystems: populatedLicense.assignedSystems.length
+            });
+          } else {
+            console.log(`Demo mode: License not found with ID: ${licenseId}`);
+            // Provide a fallback for debugging purposes
+            options.license = {
+              _id: licenseId,
+              name: 'License Not Found',
+              product: 'Unknown',
+              licenseKey: 'ERROR-LICENSE-NOT-FOUND',
+              purchaseDate: new Date(),
+              expiryDate: new Date(),
+              totalSeats: 0,
+              usedSeats: 0,
+              status: 'error',
+              vendor: 'Unknown',
+              notes: 'This license could not be found in the demo database',
+              owner: {
+                name: req.user.name,
+                email: req.user.email
+              },
+              assignedSystems: [],
+              attachments: []
+            };
           }
+        } else {
+          console.log('Demo mode: No license ID provided for license view');
         }
       }
       else if (view === 'licenses/renew') {
