@@ -51,10 +51,10 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
+    // Check if user exists in file-based database
+    const existingUsers = User.find({ email });
     
-    if (existingUser) {
+    if (existingUsers && existingUsers.length > 0) {
       errors.push({ msg: 'Email is already registered' });
       return res.render('users/register', {
         title: 'Register',
@@ -66,23 +66,15 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    // Create new user
-    const newUser = new User({
+    // Create new user with file-based database
+    await User.create({
       name,
       email,
-      password,
+      password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
       company,
       department,
       role: 'user' // Explicitly set default role
     });
-
-    // Hash Password
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(newUser.password, salt);
-    newUser.password = hash;
-    
-    // Save user
-    await newUser.save();
     
     req.flash('success_msg', 'You are now registered and can log in');
     res.redirect('/users/login');
@@ -154,13 +146,12 @@ router.put('/profile', ensureAuthenticated, async (req, res) => {
   const { name, company, department } = req.body;
   
   try {
-    const user = await User.findById(req.user.id);
-    
-    user.name = name;
-    user.company = company;
-    user.department = department;
-    
-    await user.save();
+    // Update user with file-based approach
+    await User.findByIdAndUpdate(req.user.id, {
+      name,
+      company,
+      department
+    });
     
     req.flash('success_msg', 'Profile updated successfully');
     res.redirect('/users/profile');
@@ -181,7 +172,12 @@ router.put('/change-password', ensureAuthenticated, async (req, res) => {
   }
   
   try {
-    const user = await User.findById(req.user.id);
+    const user = User.findById(req.user.id);
+    
+    if (!user) {
+      req.flash('error_msg', 'User not found');
+      return res.redirect('/users/profile');
+    }
     
     // Check current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -195,8 +191,10 @@ router.put('/change-password', ensureAuthenticated, async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword, salt);
     
-    user.password = hash;
-    await user.save();
+    // Update user with new password
+    await User.findByIdAndUpdate(req.user.id, {
+      password: hash
+    });
     
     req.flash('success_msg', 'Password updated successfully');
     res.redirect('/users/profile');
