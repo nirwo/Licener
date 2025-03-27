@@ -1,0 +1,142 @@
+<h1 class="h3 mb-4">Add New License</h1>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">License Details</h5>
+  </div>
+  <div class="card-body">
+    <form action="/licenses" method="POST">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="product" class="form-label">Product Name</label>
+            <input type="text" class="form-control" id="product" name="product" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="vendor" class="form-label">Vendor</label>
+            <input type="text" class="form-control" id="vendor" name="vendor" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="licenseKey" class="form-label">License Key</label>
+            <input type="text" class="form-control" id="licenseKey" name="licenseKey" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="licenseType" class="form-label">License Type</label>
+            <select class="form-select" id="licenseType" name="licenseType" required>
+              <option value="">Select Type</option>
+              <option value="perpetual">Perpetual</option>
+              <option value="subscription">Subscription</option>
+              <option value="trial">Trial</option>
+              <option value="opensource">Open Source</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="purchaseDate" class="form-label">Purchase Date</label>
+            <input type="date" class="form-control" id="purchaseDate" name="purchaseDate" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="expiryDate" class="form-label">Expiry Date</label>
+            <input type="date" class="form-control" id="expiryDate" name="expiryDate">
+            <small class="text-muted">Leave blank for perpetual licenses</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label for="cost" class="form-label">Cost</label>
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              <input type="number" class="form-control" id="cost" name="cost" step="0.01" min="0">
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label for="seats" class="form-label">Number of Seats</label>
+            <input type="number" class="form-control" id="seats" name="seats" min="1" value="1">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status" required>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="expired">Expired</option>
+              <option value="renewed">Renewed</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="assignedTo" class="form-label">Assigned System</label>
+        <select class="form-select" id="assignedTo" name="assignedTo">
+          <option value="">Not assigned</option>
+          {{#if systems}}
+            {{#each systems}}
+              <option value="{{_id}}">{{name}} ({{systemType}})</option>
+            {{/each}}
+          {{/if}}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label for="maintenanceInfo" class="form-label">Maintenance Information</label>
+        <textarea class="form-control" id="maintenanceInfo" name="maintenanceInfo" rows="2"></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label for="supportContact" class="form-label">Support Contact</label>
+        <input type="text" class="form-control" id="supportContact" name="supportContact">
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="/licenses" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-2"></i> Save License
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide expiry date based on license type
+    const licenseTypeSelect = document.getElementById('licenseType');
+    const expiryDateField = document.getElementById('expiryDate').parentNode;
+    
+    licenseTypeSelect.addEventListener('change', function() {
+      if (this.value === 'perpetual') {
+        expiryDateField.style.display = 'none';
+      } else {
+        expiryDateField.style.display = 'block';
+      }
+    });
+  });
+</script>

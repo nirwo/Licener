@@ -1,0 +1,322 @@
+<h1 class="h3 mb-4">License Expiry Report</h1>
+
+<div class="row mb-4">
+  <div class="col-md-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Filters</h5>
+        <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
+          <i class="fas fa-filter"></i> Toggle Filters
+        </button>
+      </div>
+      <div class="collapse show" id="filterCollapse">
+        <div class="card-body">
+          <form action="/reports/license-expiry" method="GET">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label for="timeFrame" class="form-label">Time Frame</label>
+                <select class="form-select" id="timeFrame" name="timeFrame">
+                  <option value="30" {{#if (eq timeFrame "30")}}selected{{/if}}>Next 30 days</option>
+                  <option value="60" {{#if (eq timeFrame "60")}}selected{{/if}}>Next 60 days</option>
+                  <option value="90" {{#if (eq timeFrame "90")}}selected{{/if}}>Next 90 days</option>
+                  <option value="180" {{#if (eq timeFrame "180")}}selected{{/if}}>Next 6 months</option>
+                  <option value="365" {{#if (eq timeFrame "365")}}selected{{/if}}>Next 12 months</option>
+                  <option value="expired" {{#if (eq timeFrame "expired")}}selected{{/if}}>Already Expired</option>
+                  <option value="all" {{#if (eq timeFrame "all")}}selected{{/if}}>All</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="licenseType" class="form-label">License Type</label>
+                <select class="form-select" id="licenseType" name="licenseType">
+                  <option value="all" {{#if (eq licenseType "all")}}selected{{/if}}>All Types</option>
+                  <option value="subscription" {{#if (eq licenseType "subscription")}}selected{{/if}}>Subscription</option>
+                  <option value="perpetual" {{#if (eq licenseType "perpetual")}}selected{{/if}}>Perpetual</option>
+                  <option value="trial" {{#if (eq licenseType "trial")}}selected{{/if}}>Trial</option>
+                  <option value="enterprise" {{#if (eq licenseType "enterprise")}}selected{{/if}}>Enterprise</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="vendor" class="form-label">Vendor</label>
+                <select class="form-select" id="vendor" name="vendor">
+                  <option value="all" {{#if (eq vendor "all")}}selected{{/if}}>All Vendors</option>
+                  {{#each vendors}}
+                    <option value="{{this}}" {{#if (eq ../vendor this)}}selected{{/if}}>{{this}}</option>
+                  {{/each}}
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="sortBy" class="form-label">Sort By</label>
+                <select class="form-select" id="sortBy" name="sortBy">
+                  <option value="expiryDate" {{#if (eq sortBy "expiryDate")}}selected{{/if}}>Expiry Date</option>
+                  <option value="daysRemaining" {{#if (eq sortBy "daysRemaining")}}selected{{/if}}>Days Remaining</option>
+                  <option value="cost" {{#if (eq sortBy "cost")}}selected{{/if}}>Cost</option>
+                  <option value="product" {{#if (eq sortBy "product")}}selected{{/if}}>Product Name</option>
+                </select>
+              </div>
+            </div>
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-2"></i> Apply Filters
+              </button>
+              <a href="/reports/license-expiry" class="btn btn-secondary ms-2">
+                <i class="fas fa-times me-2"></i> Clear Filters
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-danger h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+              Critical (0-30 days)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.critical}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-exclamation-circle fa-2x text-danger"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-warning h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+              Warning (31-90 days)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.warning}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-success h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+              OK (>90 days)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.ok}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-check-circle fa-2x text-success"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Expiring Licenses</h5>
+    <div>
+      <a href="/reports/license-expiry/export/pdf" class="btn btn-sm btn-secondary">
+        <i class="fas fa-file-pdf me-1"></i> Export PDF
+      </a>
+      <a href="/reports/license-expiry/export/excel" class="btn btn-sm btn-success">
+        <i class="fas fa-file-excel me-1"></i> Export Excel
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Vendor</th>
+            <th>License Type</th>
+            <th>Expiry Date</th>
+            <th>Days Remaining</th>
+            <th>Cost</th>
+            <th>Assigned To</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if licenses}}
+            {{#each licenses}}
+              <tr>
+                <td>{{product}}</td>
+                <td>{{vendor}}</td>
+                <td>{{licenseType}}</td>
+                <td>{{formatDate expiryDate "MMM D, YYYY"}}</td>
+                <td>
+                  <span class="badge bg-{{daysRemainingClass daysRemaining}}">
+                    {{daysRemaining}} days
+                  </span>
+                </td>
+                <td>{{formatCurrency cost}}</td>
+                <td>{{assignedToName}}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="/licenses/view/{{_id}}" class="btn btn-info">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="/licenses/renew/{{_id}}" class="btn btn-success">
+                      <i class="fas fa-sync-alt"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr>
+              <td colspan="8" class="text-center">
+                <p class="my-3">No licenses match the current filters</p>
+              </td>
+            </tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Expiry Timeline</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="expiryTimeline"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Renewal Cost by Month</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="renewalCostChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    const table = document.querySelector('table');
+    if (table) {
+      new DataTable(table, {
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        language: {
+          search: "Filter records:"
+        }
+      });
+    }
+    
+    {{#if chartData}}
+      // Expiry Timeline Chart
+      const expiryTimelineCtx = document.getElementById('expiryTimeline').getContext('2d');
+      new Chart(expiryTimelineCtx, {
+        type: 'bar',
+        data: {
+          labels: {{{json chartData.timeline.labels}}},
+          datasets: [{
+            label: 'Licenses Expiring',
+            data: {{{json chartData.timeline.data}}},
+            backgroundColor: {{{json chartData.timeline.colors}}},
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Licenses'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Month'
+              }
+            }
+          }
+        }
+      });
+      
+      // Renewal Cost Chart
+      const renewalCostCtx = document.getElementById('renewalCostChart').getContext('2d');
+      new Chart(renewalCostCtx, {
+        type: 'line',
+        data: {
+          labels: {{{json chartData.cost.labels}}},
+          datasets: [{
+            label: 'Estimated Renewal Cost',
+            data: {{{json chartData.cost.data}}},
+            backgroundColor: 'rgba(78, 115, 223, 0.2)',
+            borderColor: 'rgba(78, 115, 223, 1)',
+            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+            tension: 0.3,
+            borderWidth: 2,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Cost'
+              },
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toLocaleString();
+                }
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Month'
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return 'Renewal Cost: $' + context.raw.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    {{/if}}
+  });
+</script>

@@ -1,0 +1,157 @@
+<h1 class="h3 mb-4">Add New System</h1>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">System Details</h5>
+  </div>
+  <div class="card-body">
+    <form action="/systems" method="POST">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="name" class="form-label">System Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="systemType" class="form-label">System Type</label>
+            <select class="form-select" id="systemType" name="systemType" required>
+              <option value="">Select Type</option>
+              <option value="physical">Physical Server</option>
+              <option value="virtual">Virtual Machine</option>
+              <option value="cloud">Cloud Instance</option>
+              <option value="desktop">Desktop/Workstation</option>
+              <option value="laptop">Laptop</option>
+              <option value="mobile">Mobile Device</option>
+              <option value="network">Network Device</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="environment" class="form-label">Environment</label>
+            <select class="form-select" id="environment" name="environment" required>
+              <option value="">Select Environment</option>
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+              <option value="testing">Testing</option>
+              <option value="development">Development</option>
+              <option value="dr">Disaster Recovery</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status" required>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="retired">Retired</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="ipAddress" class="form-label">IP Address</label>
+            <input type="text" class="form-control" id="ipAddress" name="ipAddress">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="macAddress" class="form-label">MAC Address</label>
+            <input type="text" class="form-control" id="macAddress" name="macAddress">
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="operatingSystem" class="form-label">Operating System</label>
+            <input type="text" class="form-control" id="operatingSystem" name="operatingSystem">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="osVersion" class="form-label">OS Version</label>
+            <input type="text" class="form-control" id="osVersion" name="osVersion">
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="location" class="form-label">Location</label>
+            <input type="text" class="form-control" id="location" name="location">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="department" class="form-label">Department</label>
+            <input type="text" class="form-control" id="department" name="department">
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="specifications" class="form-label">System Specifications</label>
+        <textarea class="form-control" id="specifications" name="specifications" rows="3"></textarea>
+        <small class="text-muted">CPU, RAM, storage, etc.</small>
+      </div>
+
+      <div class="mb-3">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label for="maintenanceInfo" class="form-label">Maintenance Information</label>
+        <textarea class="form-control" id="maintenanceInfo" name="maintenanceInfo" rows="2"></textarea>
+      </div>
+
+      <div class="mb-4">
+        <label for="contactPerson" class="form-label">Contact Person</label>
+        <input type="text" class="form-control" id="contactPerson" name="contactPerson">
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="/systems" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-2"></i> Save System
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide fields based on system type
+    const systemTypeSelect = document.getElementById('systemType');
+    const ipAddressField = document.getElementById('ipAddress').parentNode.parentNode.parentNode;
+    const specField = document.getElementById('specifications').parentNode;
+    
+    systemTypeSelect.addEventListener('change', function() {
+      if (this.value === 'network') {
+        ipAddressField.style.display = 'block';
+        specField.style.display = 'none';
+      } else if (this.value === 'mobile') {
+        ipAddressField.style.display = 'none';
+        specField.style.display = 'block';
+      } else {
+        ipAddressField.style.display = 'block';
+        specField.style.display = 'block';
+      }
+    });
+  });
+</script>

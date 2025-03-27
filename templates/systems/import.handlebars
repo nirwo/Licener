@@ -1,0 +1,163 @@
+<h1 class="h3 mb-4">Import Systems</h1>
+
+<div class="row">
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Import from CSV</h5>
+      </div>
+      <div class="card-body">
+        <form action="/systems/import/csv" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="csvFile" class="form-label">CSV File</label>
+            <input class="form-control" type="file" id="csvFile" name="csvFile" accept=".csv" required>
+            <small class="text-muted">
+              File must be in CSV format with the required columns
+            </small>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="headerRow" name="headerRow" checked>
+            <label class="form-check-label" for="headerRow">File contains header row</label>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-file-import me-2"></i> Import CSV
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer">
+        <h6 class="mb-2">CSV Format</h6>
+        <p class="small mb-1">Required columns:</p>
+        <ul class="small ps-3">
+          <li>Name</li>
+          <li>SystemType</li>
+          <li>Environment</li>
+          <li>Status</li>
+        </ul>
+        <p class="small mb-1">Optional columns:</p>
+        <ul class="small ps-3">
+          <li>IPAddress</li>
+          <li>MACAddress</li>
+          <li>OperatingSystem</li>
+          <li>OSVersion</li>
+          <li>Location</li>
+          <li>Department</li>
+          <li>Specifications</li>
+          <li>Notes</li>
+          <li>MaintenanceInfo</li>
+          <li>ContactPerson</li>
+        </ul>
+        <p class="small mt-2">
+          <a href="/systems/sample-csv" class="text-decoration-none">
+            <i class="fas fa-download me-1"></i> Download sample CSV
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Import from Excel</h5>
+      </div>
+      <div class="card-body">
+        <form action="/systems/import/excel" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="excelFile" class="form-label">Excel File</label>
+            <input class="form-control" type="file" id="excelFile" name="excelFile" accept=".xlsx,.xls" required>
+            <small class="text-muted">
+              File must be in Excel format (.xlsx or .xls)
+            </small>
+          </div>
+          
+          <div class="mb-3">
+            <label for="sheetName" class="form-label">Sheet Name</label>
+            <input type="text" class="form-control" id="sheetName" name="sheetName" placeholder="Leave blank for first sheet">
+            <small class="text-muted">
+              Optional - specify sheet name if not using the first sheet
+            </small>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="excelHeaderRow" name="headerRow" checked>
+            <label class="form-check-label" for="excelHeaderRow">File contains header row</label>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-file-excel me-2"></i> Import Excel
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer">
+        <h6 class="mb-2">Excel Format</h6>
+        <p class="small">
+          Fields should be in the same order as the CSV format.
+        </p>
+        <p class="small mt-2">
+          <a href="/systems/sample-excel" class="text-decoration-none">
+            <i class="fas fa-download me-1"></i> Download sample Excel template
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">Bulk Import from Network Scan</h5>
+  </div>
+  <div class="card-body">
+    <form action="/systems/import/scan" method="POST">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="ipRange" class="form-label">IP Range</label>
+            <input type="text" class="form-control" id="ipRange" name="ipRange" placeholder="192.168.1.0/24" required>
+            <small class="text-muted">
+              Enter in CIDR notation (e.g., 192.168.1.0/24)
+            </small>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label for="scanType" class="form-label">Scan Type</label>
+            <select class="form-select" id="scanType" name="scanType" required>
+              <option value="quick">Quick Scan</option>
+              <option value="detailed">Detailed Scan</option>
+              <option value="full">Full Scan (Slower)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="includeOffline" name="includeOffline">
+        <label class="form-check-label" for="includeOffline">Include offline devices</label>
+      </div>
+      
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Network scanning requires proper permissions on your network. The scan may take several minutes depending on the range and scan type.
+      </div>
+      
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-network-wired me-2"></i> Start Network Scan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="text-end">
+  <a href="/systems" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i> Back to Systems
+  </a>
+</div>

@@ -1,0 +1,119 @@
+<h1 class="h3 mb-4">Licenses</h1>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Manage Licenses</h5>
+    <div>
+      <a href="/licenses/add" class="btn btn-sm btn-primary">
+        <i class="fas fa-plus-circle me-1"></i> Add New
+      </a>
+      <a href="/licenses/import" class="btn btn-sm btn-secondary">
+        <i class="fas fa-file-import me-1"></i> Import
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>License Key</th>
+            <th>Product</th>
+            <th>Assigned To</th>
+            <th>Status</th>
+            <th>Expiry Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#if licenses}}
+            {{#each licenses}}
+              <tr>
+                <td class="text-truncate-custom">{{licenseKey}}</td>
+                <td>{{product}}</td>
+                <td>{{assignedTo}}</td>
+                <td>
+                  <span class="badge bg-{{licenseStatusClass status}}">
+                    {{status}}
+                  </span>
+                </td>
+                <td>
+                  {{formatDate expiryDate "MMM D, YYYY"}}
+                  {{#if (isPast expiryDate)}}
+                    <span class="badge bg-danger ms-1">Expired</span>
+                  {{else}}
+                    <span class="badge bg-{{daysRemainingClass (daysFromNow expiryDate)}} ms-1">
+                      {{daysFromNow expiryDate}} days
+                    </span>
+                  {{/if}}
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <a href="/licenses/view/{{_id}}" class="btn btn-info">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="/licenses/edit/{{_id}}" class="btn btn-warning">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="/licenses/renew/{{_id}}" class="btn btn-success">
+                      <i class="fas fa-sync-alt"></i>
+                    </a>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{_id}}">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+
+                  <!-- Delete Modal -->
+                  <div class="modal fade" id="deleteModal{{_id}}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          Are you sure you want to delete the license for <strong>{{product}}</strong>?
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <form action="/licenses/{{_id}}?_method=DELETE" method="POST">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          {{else}}
+            <tr>
+              <td colspan="6" class="text-center">
+                <p class="my-3">No licenses found</p>
+                <a href="/licenses/add" class="btn btn-primary">
+                  <i class="fas fa-plus-circle me-1"></i> Add Your First License
+                </a>
+              </td>
+            </tr>
+          {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const table = document.querySelector('table');
+    if (table) {
+      new DataTable(table, {
+        responsive: true,
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50],
+        language: {
+          search: "Filter records:"
+        }
+      });
+    }
+  });
+</script>

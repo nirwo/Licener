@@ -1,0 +1,136 @@
+<h1 class="h3 mb-4">Import Licenses</h1>
+
+<div class="row">
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Import from CSV</h5>
+      </div>
+      <div class="card-body">
+        <form action="/licenses/import/csv" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="csvFile" class="form-label">CSV File</label>
+            <input class="form-control" type="file" id="csvFile" name="csvFile" accept=".csv" required>
+            <small class="text-muted">
+              File must be in CSV format with the required columns
+            </small>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="headerRow" name="headerRow" checked>
+            <label class="form-check-label" for="headerRow">File contains header row</label>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-file-import me-2"></i> Import CSV
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer">
+        <h6 class="mb-2">CSV Format</h6>
+        <p class="small mb-1">Required columns:</p>
+        <ul class="small ps-3">
+          <li>Product</li>
+          <li>Vendor</li>
+          <li>LicenseKey</li>
+          <li>LicenseType</li>
+          <li>PurchaseDate (YYYY-MM-DD)</li>
+          <li>ExpiryDate (YYYY-MM-DD)</li>
+        </ul>
+        <p class="small mb-1">Optional columns:</p>
+        <ul class="small ps-3">
+          <li>Cost</li>
+          <li>Seats</li>
+          <li>Status</li>
+          <li>Notes</li>
+          <li>MaintenanceInfo</li>
+          <li>SupportContact</li>
+        </ul>
+        <p class="small mt-2">
+          <a href="/licenses/sample-csv" class="text-decoration-none">
+            <i class="fas fa-download me-1"></i> Download sample CSV
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Import from Excel</h5>
+      </div>
+      <div class="card-body">
+        <form action="/licenses/import/excel" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="excelFile" class="form-label">Excel File</label>
+            <input class="form-control" type="file" id="excelFile" name="excelFile" accept=".xlsx,.xls" required>
+            <small class="text-muted">
+              File must be in Excel format (.xlsx or .xls)
+            </small>
+          </div>
+          
+          <div class="mb-3">
+            <label for="sheetName" class="form-label">Sheet Name</label>
+            <input type="text" class="form-control" id="sheetName" name="sheetName" placeholder="Leave blank for first sheet">
+            <small class="text-muted">
+              Optional - specify sheet name if not using the first sheet
+            </small>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="excelHeaderRow" name="headerRow" checked>
+            <label class="form-check-label" for="excelHeaderRow">File contains header row</label>
+          </div>
+          
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-file-excel me-2"></i> Import Excel
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer">
+        <h6 class="mb-2">Excel Format</h6>
+        <p class="small">
+          Fields should be in the same order as the CSV format.
+        </p>
+        <p class="small mt-2">
+          <a href="/licenses/sample-excel" class="text-decoration-none">
+            <i class="fas fa-download me-1"></i> Download sample Excel template
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">API Integration</h5>
+  </div>
+  <div class="card-body">
+    <p>You can also import licenses using our API integration. Use the endpoint below:</p>
+    <div class="bg-light p-3 mb-3 border rounded">
+      <code>POST /api/licenses/import</code>
+    </div>
+    
+    <p>Required API key can be generated in your <a href="/profile/api-keys">profile settings</a>.</p>
+    
+    <div class="alert alert-info">
+      <h6 class="alert-heading">API Documentation</h6>
+      <p class="mb-0">
+        For full API documentation, including authentication and request parameters,
+        see the <a href="/api/docs" class="alert-link">API Documentation</a>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="text-end">
+  <a href="/licenses" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-2"></i> Back to Licenses
+  </a>
+</div>
