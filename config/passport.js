@@ -8,8 +8,9 @@ module.exports = function(passport) {
   passport.use(
     new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       try {
-        // Match user
-        const user = await User.findOne({ email });
+        // Match user using file DB
+        const users = User.find({ email });
+        const user = users.length > 0 ? users[0] : null;
         
         if (!user) {
           return done(null, false, { message: 'That email is not registered' });
@@ -21,7 +22,7 @@ module.exports = function(passport) {
         if (isMatch) {
           // Update last login time
           user.lastLogin = Date.now();
-          await user.save();
+          User.findByIdAndUpdate(user._id, { lastLogin: Date.now() });
           return done(null, user);
         } else {
           return done(null, false, { message: 'Password incorrect' });
@@ -37,9 +38,9 @@ module.exports = function(passport) {
     done(null, user.id);
   });
 
-  passport.deserializeUser(async function(id, done) {
+  passport.deserializeUser(function(id, done) {
     try {
-      const user = await User.findById(id);
+      const user = User.findById(id);
       done(null, user);
     } catch (err) {
       done(err, null);
