@@ -1,3 +1,33 @@
 {
-  "data": []
+  "data": [
+    {
+      "_id": "s92nmx62yz",
+      "name": "Example Server",
+      "type": "server",
+      "os": "Linux",
+      "osVersion": "Ubuntu 20.04",
+      "location": "Data Center",
+      "ip": "192.168.1.100",
+      "department": "IT",
+      "managedBy": "u39dks82bn",
+      "installedSoftware": [
+        {
+          "name": "Sample Product",
+          "version": "1.0",
+          "installDate": "2023-01-15T00:00:00.000Z"
+        }
+      ],
+      "licenseRequirements": [
+        {
+          "licenseType": "Sample Product",
+          "quantity": 1,
+          "licenseId": "ljao72a8k1z"
+        }
+      ],
+      "notes": "This is a demo system",
+      "status": "active",
+      "createdAt": "2023-01-01T00:00:00.000Z",
+      "updatedAt": "2023-01-01T00:00:00.000Z"
+    }
+  ]
 }

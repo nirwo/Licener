@@ -1,3 +1,16 @@
 {
-  "data": []
+  "data": [
+    {
+      "_id": "u39dks82bn",
+      "name": "Demo User",
+      "email": "demo@example.com",
+      "password": "$2a$10$XZqOWgAQNQRGQl7jxvp8BuWzBzF10U5idkRr0z0KjWlnf4e0JZ1.i",
+      "role": "admin",
+      "company": "Demo Company",
+      "department": "IT",
+      "lastLogin": "2023-03-26T12:00:00.000Z",
+      "createdAt": "2023-01-01T00:00:00.000Z", 
+      "updatedAt": "2023-03-26T12:00:00.000Z"
+    }
+  ]
 }

@@ -24,19 +24,27 @@ router.get('/license-expiry', ensureAuthenticated, async (req, res) => {
   try {
     const timeframe = req.query.timeframe || '30';
     const days = parseInt(timeframe);
+    const currentDate = new Date();
+    const futureDate = moment().add(days, 'days').toDate();
     
-    const expiringLicenses = await License.find({
-      owner: req.user.id,
-      expiryDate: {
-        $gte: new Date(),
-        $lte: moment().add(days, 'days').toDate()
-      }
-    }).sort({ expiryDate: 1 });
+    // Get all licenses
+    let licenses = License.find({ owner: req.user._id });
     
-    const expiredLicenses = await License.find({
-      owner: req.user.id,
-      expiryDate: { $lt: new Date() }
-    }).sort({ expiryDate: -1 });
+    // Filter for expiring licenses
+    const expiringLicenses = licenses.filter(license => {
+      const expiryDate = new Date(license.expiryDate);
+      return expiryDate >= currentDate && expiryDate <= futureDate;
+    });
+    
+    // Filter for expired licenses
+    const expiredLicenses = licenses.filter(license => {
+      const expiryDate = new Date(license.expiryDate);
+      return expiryDate < currentDate;
+    });
+    
+    // Sort by expiry date
+    expiringLicenses.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    expiredLicenses.sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
     
     res.render('reports/license-expiry', {
       title: 'License Expiry Report',
@@ -54,8 +62,16 @@ router.get('/license-expiry', ensureAuthenticated, async (req, res) => {
 // License Utilization Report
 router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
   try {
-    const licenses = await License.find({ owner: req.user.id })
-      .sort({ product: 1, name: 1 });
+    // Get all licenses
+    let licenses = License.find({ owner: req.user._id });
+    
+    // Sort by product and name
+    licenses.sort((a, b) => {
+      if (a.product === b.product) {
+        return a.name.localeCompare(b.name);
+      }
+      return a.product.localeCompare(b.product);
+    });
     
     // Group licenses by product
     const licensesByProduct = {};
@@ -72,8 +88,8 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
     const productUtilization = [];
     
     for (const [product, productLicenses] of Object.entries(licensesByProduct)) {
-      const totalSeats = productLicenses.reduce((sum, license) => sum + license.totalSeats, 0);
-      const usedSeats = productLicenses.reduce((sum, license) => sum + license.usedSeats, 0);
+      const totalSeats = productLicenses.reduce((sum, license) => sum + (license.totalSeats || 0), 0);
+      const usedSeats = productLicenses.reduce((sum, license) => sum + (license.usedSeats || 0), 0);
       const utilization = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
       
       productUtilization.push({
@@ -103,7 +119,9 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
 router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
   try {
     const period = req.query.period || 'year';
-    const licenses = await License.find({ owner: req.user.id });
+    
+    // Get all licenses
+    let licenses = License.find({ owner: req.user._id });
     
     // Group costs by vendor, product, and time period
     const vendorCosts = {};
@@ -133,13 +151,13 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
     const vendorCostsArray = Object.entries(vendorCosts).map(([vendor, cost]) => ({
       vendor,
       cost,
-      percentage: (cost / totalCost) * 100
+      percentage: totalCost > 0 ? (cost / totalCost) * 100 : 0
     }));
     
     const productCostsArray = Object.entries(productCosts).map(([product, cost]) => ({
       product,
       cost,
-      percentage: (cost / totalCost) * 100
+      percentage: totalCost > 0 ? (cost / totalCost) * 100 : 0
     }));
     
     // Sort by cost (highest to lowest)
@@ -163,17 +181,23 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
 // System License Compliance Report
 router.get('/compliance', ensureAuthenticated, async (req, res) => {
   try {
-    const systems = await System.find({ managedBy: req.user.id })
-      .populate('licenseRequirements.licenseId')
-      .sort({ name: 1 });
+    // Get all systems
+    let systems = System.find({ managedBy: req.user._id });
+    
+    // Sort by name
+    systems.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Populate license requirements
+    systems = await System.populate(systems, 'licenseRequirements.licenseId');
     
     // Calculate compliance status for each system
     const complianceData = systems.map(system => {
-      const licenseRequirements = system.licenseRequirements.filter(req => req.licenseId);
+      const licenseRequirements = system.licenseRequirements ? 
+        system.licenseRequirements.filter(req => req.licenseId) : [];
       
       // Check if all licenses are active
       const hasExpiredLicense = licenseRequirements.some(
-        req => req.licenseId.status === 'expired'
+        req => req.licenseId && req.licenseId.status === 'expired'
       );
       
       // Check if system has any licenses at all
@@ -223,6 +247,9 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
     const period = req.query.period || '12';
     const months = parseInt(period);
     
+    // Get all licenses
+    let licenses = License.find({ owner: req.user._id });
+    
     const renewalData = [];
     let totalCost = 0;
     
@@ -231,13 +258,14 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
       const monthStart = moment().add(i, 'months').startOf('month');
       const monthEnd = moment().add(i, 'months').endOf('month');
       
-      const expiringLicenses = await License.find({
-        owner: req.user.id,
-        expiryDate: {
-          $gte: monthStart.toDate(),
-          $lte: monthEnd.toDate()
-        }
-      }).sort({ expiryDate: 1 });
+      // Filter licenses expiring in this month
+      const expiringLicenses = licenses.filter(license => {
+        const expiryDate = new Date(license.expiryDate);
+        return expiryDate >= monthStart.toDate() && expiryDate <= monthEnd.toDate();
+      });
+      
+      // Sort by expiry date
+      expiringLicenses.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
       
       const monthCost = expiringLicenses.reduce((sum, license) => sum + (license.cost || 0), 0);
       totalCost += monthCost;
@@ -273,25 +301,39 @@ router.get('/custom', ensureAuthenticated, async (req, res) => {
     let reportData = [];
     
     if (fields.length > 0) {
-      // Get licenses with selected fields
-      const projection = {};
-      fields.forEach(field => {
-        projection[field] = 1;
+      // Get all licenses
+      let licenses = License.find({ owner: req.user._id });
+      
+      // Project only selected fields
+      licenses = licenses.map(license => {
+        const projection = {};
+        fields.forEach(field => {
+          projection[field] = license[field];
+        });
+        projection._id = license._id;
+        return projection;
       });
       
-      const sortDirection = sortOrder === 'desc' ? -1 : 1;
-      const sortOptions = {};
-      sortOptions[sortBy] = sortDirection;
+      // Sort the data
+      const sortFunction = (a, b) => {
+        const aValue = a[sortBy] || '';
+        const bValue = b[sortBy] || '';
+        
+        const comparison = typeof aValue === 'string' ?
+          aValue.localeCompare(bValue) :
+          aValue - bValue;
+        
+        return sortOrder === 'desc' ? -comparison : comparison;
+      };
       
-      const licenses = await License.find({ owner: req.user.id }, projection)
-        .sort(sortOptions);
+      licenses.sort(sortFunction);
       
       if (groupBy && fields.includes(groupBy)) {
         // Group data
         const groupedData = {};
         
         licenses.forEach(license => {
-          const groupValue = license[groupBy];
+          const groupValue = license[groupBy] || 'Unknown';
           if (!groupedData[groupValue]) {
             groupedData[groupValue] = [];
           }
@@ -345,47 +387,69 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
     let csvHeaders = '';
     let csvContent = '';
     
+    // Get all licenses and systems
+    let licenses = License.find({ owner: req.user._id });
+    let systems = System.find({ managedBy: req.user._id });
+    
     // Generate report data based on report type
     switch (reportType) {
       case 'expiry':
         const timeframe = req.query.timeframe || '30';
         const days = parseInt(timeframe);
+        const currentDate = new Date();
+        const futureDate = moment().add(days, 'days').toDate();
         
-        const expiringLicenses = await License.find({
-          owner: req.user.id,
-          expiryDate: {
-            $gte: new Date(),
-            $lte: moment().add(days, 'days').toDate()
-          }
-        }).sort({ expiryDate: 1 });
+        // Filter for expiring licenses
+        const expiringLicenses = licenses.filter(license => {
+          const expiryDate = new Date(license.expiryDate);
+          return expiryDate >= currentDate && expiryDate <= futureDate;
+        });
+        
+        // Sort by expiry date
+        expiringLicenses.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
         
         csvHeaders = 'License Name,Product,Vendor,Expiry Date,Days Until Expiry,Status\n';
         csvContent = expiringLicenses.map(license => {
-          const daysUntil = moment(license.expiryDate).diff(moment(), 'days');
-          return `"${license.name}","${license.product}","${license.vendor}","${license.expiryDate.toISOString().split('T')[0]}",${daysUntil},"${license.status}"\n`;
+          const expiryDate = new Date(license.expiryDate);
+          const daysUntil = moment(expiryDate).diff(moment(), 'days');
+          return `"${license.name}","${license.product}","${license.vendor}","${expiryDate.toISOString().split('T')[0]}",${daysUntil},"${license.status}"\n`;
         }).join('');
         break;
         
       case 'utilization':
-        const licenses = await License.find({ owner: req.user.id })
-          .sort({ product: 1, name: 1 });
+        // Sort by product and name
+        licenses.sort((a, b) => {
+          if (a.product === b.product) {
+            return a.name.localeCompare(b.name);
+          }
+          return a.product.localeCompare(b.product);
+        });
         
         csvHeaders = 'License Name,Product,Vendor,Total Seats,Used Seats,Utilization %\n';
         csvContent = licenses.map(license => {
-          const utilization = license.totalSeats > 0 ? Math.round((license.usedSeats / license.totalSeats) * 100) : 0;
-          return `"${license.name}","${license.product}","${license.vendor}",${license.totalSeats},${license.usedSeats},${utilization}\n`;
+          const totalSeats = license.totalSeats || 0;
+          const usedSeats = license.usedSeats || 0;
+          const utilization = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
+          return `"${license.name}","${license.product}","${license.vendor}",${totalSeats},${usedSeats},${utilization}\n`;
         }).join('');
         break;
         
       case 'compliance':
-        const systems = await System.find({ managedBy: req.user.id })
-          .populate('licenseRequirements.licenseId')
-          .sort({ name: 1 });
+        // Populate license requirements
+        systems = await System.populate(systems, 'licenseRequirements.licenseId');
+        
+        // Sort by name
+        systems.sort((a, b) => a.name.localeCompare(b.name));
         
         csvHeaders = 'System Name,OS,Type,Compliance Status,License Count,Expired Licenses\n';
         csvContent = systems.map(system => {
-          const licenseRequirements = system.licenseRequirements.filter(req => req.licenseId);
-          const hasExpiredLicense = licenseRequirements.some(req => req.licenseId.status === 'expired');
+          const licenseRequirements = system.licenseRequirements ?
+            system.licenseRequirements.filter(req => req.licenseId) : [];
+          
+          const hasExpiredLicense = licenseRequirements.some(
+            req => req.licenseId && req.licenseId.status === 'expired'
+          );
+          
           const hasLicenses = licenseRequirements.length > 0;
           
           let complianceStatus;
@@ -397,9 +461,11 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
             complianceStatus = 'compliant';
           }
           
-          const expiredCount = licenseRequirements.filter(req => req.licenseId.status === 'expired').length;
+          const expiredCount = licenseRequirements.filter(
+            req => req.licenseId && req.licenseId.status === 'expired'
+          ).length;
           
-          return `"${system.name}","${system.os}","${system.type}","${complianceStatus}",${licenseRequirements.length},${expiredCount}\n`;
+          return `"${system.name}","${system.os || ''}","${system.type || ''}","${complianceStatus}",${licenseRequirements.length},${expiredCount}\n`;
         }).join('');
         break;
         

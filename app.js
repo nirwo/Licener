@@ -85,7 +85,7 @@ app.use((req, res, next) => {
   // For debugging
   console.log('Session data:', {
     isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : 'function not available',
-    user: req.user ? `User ID: ${req.user.id}` : 'Not logged in',
+    user: req.user ? `User ID: ${req.user._id}` : 'Not logged in',
     session: req.session ? 'Session exists' : 'No session'
   });
   

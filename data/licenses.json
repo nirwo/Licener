@@ -1,3 +1,24 @@
 {
-  "data": []
+  "data": [
+    {
+      "_id": "ljao72a8k1z",
+      "name": "Example License",
+      "licenseKey": "ABCDE-12345-FGHIJ-67890",
+      "product": "Sample Product",
+      "vendor": "Example Vendor",
+      "purchaseDate": "2023-01-01T00:00:00.000Z",
+      "expiryDate": "2024-12-31T00:00:00.000Z",
+      "totalSeats": 10,
+      "usedSeats": 2,
+      "status": "active",
+      "cost": 1000,
+      "currency": "USD",
+      "notes": "This is a demo license",
+      "attachments": [],
+      "assignedSystems": [],
+      "owner": "u39dks82bn",
+      "createdAt": "2023-01-01T00:00:00.000Z",
+      "updatedAt": "2023-01-01T00:00:00.000Z"
+    }
+  ]
 }
