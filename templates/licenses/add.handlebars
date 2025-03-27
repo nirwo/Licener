@@ -21,7 +21,8 @@
         </div>
       </div>
       
-      <div class="col-md-6">
+      <div class="row mb-3">
+        <div class="col-md-6">
           <div class="mb-3">
             <label for="vendor" class="form-label">Vendor</label>
             <input type="text" class="form-control" id="vendor" name="vendor" required>
@@ -38,14 +39,13 @@
         </div>
         <div class="col-md-6">
           <div class="mb-3">
-            <label for="licenseType" class="form-label">License Type</label>
-            <select class="form-select" id="licenseType" name="licenseType" required>
-              <option value="">Select Type</option>
-              <option value="perpetual">Perpetual</option>
-              <option value="subscription">Subscription</option>
+            <label for="status" class="form-label">License Type / Status</label>
+            <select class="form-select" id="status" name="status" required>
+              <option value="active">Active</option>
+              <option value="pending">Pending</option>
+              <option value="expired">Expired</option>
+              <option value="renewed">Renewed</option>
               <option value="trial">Trial</option>
-              <option value="opensource">Open Source</option>
-              <option value="enterprise">Enterprise</option>
             </select>
           </div>
         </div>
@@ -85,13 +85,8 @@
         </div>
         <div class="col-md-4">
           <div class="mb-3">
-            <label for="status" class="form-label">Status</label>
-            <select class="form-select" id="status" name="status" required>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="expired">Expired</option>
-              <option value="renewed">Renewed</option>
-            </select>
+            <label for="renewalDate" class="form-label">Renewal Date</label>
+            <input type="date" class="form-control" id="renewalDate" name="renewalDate">
           </div>
         </div>
       </div>
@@ -132,11 +127,11 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Show/hide expiry date based on license type
-    const licenseTypeSelect = document.getElementById('licenseType');
+    // Show/hide expiry date based on license status
+    const statusSelect = document.getElementById('status');
     const expiryDateField = document.getElementById('expiryDate').parentNode;
     
-    licenseTypeSelect.addEventListener('change', function() {
+    statusSelect.addEventListener('change', function() {
       if (this.value === 'perpetual') {
         expiryDateField.style.display = 'none';
       } else {
