@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 
 // DB Config
-const db = process.env.MONGO_URI || 'mongodb://localhost:27017/licener';
+const db = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/licener';
 
 // Connect to MongoDB with retry logic and improved error handling
 const connectWithRetry = () => {
@@ -80,6 +80,14 @@ app.use((req, res, next) => {
   res.locals.error_msg = req.flash('error_msg');
   res.locals.error = req.flash('error');
   res.locals.user = req.user || null;
+  
+  // For debugging
+  console.log('Session data:', {
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : 'function not available',
+    user: req.user ? `User ID: ${req.user.id}` : 'Not logged in',
+    session: req.session ? 'Session exists' : 'No session'
+  });
+  
   next();
 });
 

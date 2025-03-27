@@ -102,6 +102,9 @@ router.post('/register', async (req, res) => {
 
 // Login Handle
 router.post('/login', (req, res, next) => {
+  // For debugging
+  console.log('Login attempt with:', { email: req.body.email });
+  
   passport.authenticate('local', (err, user, info) => {
     if (err) {
       console.error('Login error:', err);
@@ -110,6 +113,8 @@ router.post('/login', (req, res, next) => {
     }
     
     if (!user) {
+      console.log('Authentication failed:', info?.message || 'Unknown reason');
+      req.flash('error_msg', info?.message || 'Invalid email or password');
       return res.redirect('/users/login');
     }
     
@@ -120,6 +125,7 @@ router.post('/login', (req, res, next) => {
         return res.redirect('/users/login');
       }
       
+      console.log('User logged in successfully:', user.email);
       req.flash('success_msg', 'Welcome! You have successfully logged in.');
       return res.redirect('/dashboard');
     });
@@ -127,7 +133,7 @@ router.post('/login', (req, res, next) => {
 });
 
 // Logout Handle
-router.get('/logout', ensureAuthenticated, (req, res) => {
+router.get('/logout', ensureAuthenticated, (req, res, next) => {
   req.logout(function(err) {
     if (err) { return next(err); }
     req.flash('success_msg', 'You are logged out');
