@@ -5,7 +5,6 @@ const methodOverride = require('method-override');
 const session = require('express-session');
 const flash = require('connect-flash');
 const passport = require('passport');
-const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const { displayBanner } = require('./utils/banner');
 
@@ -14,32 +13,12 @@ dotenv.config();
 
 const app = express();
 
-// DB Config
-const db = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/licener';
+// Initialize file-based database
+const { License, System, User } = require('./utils/file-db');
+console.log('File-based database initialized');
 
-// Connect to MongoDB with retry logic and improved error handling
-const connectWithRetry = () => {
-  console.log('MongoDB connection attempt...');
-  mongoose.connect(db, {
-    serverSelectionTimeoutMS: 5000, // 5 seconds timeout on server selection
-    connectTimeoutMS: 10000,       // 10 seconds timeout on connection
-  })
-    .then(() => {
-      console.log('MongoDB Connected');
-    })
-    .catch(err => {
-      console.error('MongoDB connection error:', err);
-      console.log('Retrying connection in 5 seconds...');
-      setTimeout(connectWithRetry, 5000);
-    });
-};
-
-// For development/testing purposes - allow app to start even if MongoDB is not available
-const startWithoutMongo = process.env.START_WITHOUT_MONGO === 'true';
-
-// Use a mock database for demo mode
-if (startWithoutMongo) {
-  displayBanner(true);
+// Display file database banner
+displayBanner(false, 'FILE-DB');
   
   // Create comprehensive demo data
   const demoLicenses = [

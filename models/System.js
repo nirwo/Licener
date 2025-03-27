@@ -1,76 +1,55 @@
-const mongoose = require('mongoose');
+/**
+ * System Model
+ * File-based implementation using LowDB
+ */
+const { System: FileDBSystem } = require('../utils/file-db');
 
-const SystemSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  type: {
-    type: String,
-    enum: ['physical', 'virtual', 'cloud'],
-    required: true
-  },
-  os: {
-    type: String,
-    required: true
-  },
-  osVersion: {
-    type: String
-  },
-  location: {
-    type: String
-  },
-  ip: {
-    type: String
-  },
-  department: {
-    type: String
-  },
-  managedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  installedSoftware: [{
-    name: String,
-    version: String,
-    installDate: Date
-  }],
-  licenseRequirements: [{
-    licenseType: String,
-    quantity: Number,
-    licenseId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'License'
+// This is a wrapper around the file DB to maintain API compatibility
+const System = {
+  ...FileDBSystem,
+  
+  // Mongoose-like populate functionality
+  populate: async (docs, path) => {
+    const { License } = require('./License');
+    const { User } = require('./User');
+    
+    if (!docs) return null;
+    
+    // Handle single document
+    if (!Array.isArray(docs)) {
+      return System.populate([docs], path)[0];
     }
-  }],
-  notes: {
-    type: String
-  },
-  status: {
-    type: String,
-    enum: ['active', 'inactive', 'maintenance', 'retired'],
-    default: 'active'
-  },
-  lastSeen: {
-    type: Date,
-    default: Date.now
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+    
+    // Clone the documents to avoid modifying originals
+    const clonedDocs = JSON.parse(JSON.stringify(docs));
+    
+    // Process each document
+    for (const doc of clonedDocs) {
+      if (path === 'licenseRequirements.licenseId') {
+        // Populate license requirements
+        if (doc.licenseRequirements && doc.licenseRequirements.length > 0) {
+          for (const req of doc.licenseRequirements) {
+            if (req.licenseId) {
+              const license = License.findById(req.licenseId);
+              if (license) {
+                req.licenseId = license;
+              }
+            }
+          }
+        }
+      } else if (path === 'managedBy') {
+        // Populate managed by
+        if (doc.managedBy) {
+          const manager = User.findById(doc.managedBy);
+          if (manager) {
+            doc.managedBy = manager;
+          }
+        }
+      }
+    }
+    
+    return clonedDocs;
   }
-});
-
-// Pre-save hook to update the updated date
-SystemSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
-const System = mongoose.model('System', SystemSchema);
+};
 
 module.exports = System;
