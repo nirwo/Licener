@@ -208,6 +208,72 @@ router.get('/licenses/:id', verifyToken, async (req, res) => {
   }
 });
 
+// Direct license creation API (no auth)
+router.post('/direct/licenses', async (req, res) => {
+  console.log('Direct license API called');
+  console.log('Request body:', req.body);
+  
+  // For the demo, we'll use a hardcoded user ID
+  req.user = { id: "u39dks82bn" };
+  
+  try {
+    const {
+      name,
+      licenseKey,
+      product,
+      vendor,
+      purchaseDate,
+      expiryDate,
+      renewalDate,
+      totalSeats,
+      cost,
+      currency,
+      notes,
+      assignedSystems
+    } = req.body;
+    
+    console.log('Creating license with data:', {
+      name, product, vendor, totalSeats, owner: req.user.id
+    });
+    
+    // Create the license with file-based DB approach
+    const licenseData = {
+      name: name || product,
+      licenseKey: licenseKey || `LIC-${Date.now()}`,
+      product: product || "Unknown",
+      vendor: vendor || "Unknown",
+      purchaseDate: purchaseDate || new Date(),
+      expiryDate: expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      totalSeats: totalSeats || 1,
+      status: 'active',
+      cost: cost || undefined,
+      currency: currency || 'USD',
+      notes: notes || '',
+      owner: req.user.id,
+      assignedSystems: assignedSystems || [],
+      _id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const License = require('../models/License');
+    const newLicense = await License.create(licenseData);
+    
+    return res.status(201).json({
+      success: true,
+      message: 'License created successfully',
+      license: newLicense
+    });
+  } catch (err) {
+    console.error('License creation error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Error creating license',
+      error: err.message
+    });
+  }
+});
+
 // Create a new license
 router.post('/licenses', verifyToken, async (req, res) => {
   try {

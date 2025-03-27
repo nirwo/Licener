@@ -117,9 +117,10 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
 
 // Add license
 router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
-  console.log('License POST request received');
+  console.log('License POST request received - START');
   console.log('Request body:', req.body);
   console.log('Files:', req.files);
+  console.log('User:', req.user);
   try {
     console.log('License form submitted:', req.body);
     
