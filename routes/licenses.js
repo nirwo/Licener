@@ -102,14 +102,36 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 // Add license form
 router.get('/add', ensureAuthenticated, async (req, res) => {
   try {
-    const systems = await System.find({ managedBy: req.user.id }).sort({ name: 1 });
+    console.log('Loading systems for license form, user:', JSON.stringify({
+      _id: req.user._id,
+      id: req.user.id, 
+      role: req.user.role,
+      name: req.user.name
+    }));
+    
+    // Use the new findByManager method for regular users or find all for admins
+    let systems = [];
+    if (req.user.role === 'admin') {
+      systems = await System.find({});
+    } else {
+      systems = await System.findByManager(req.user._id);
+    }
+    
+    // Sort systems by name
+    systems.sort((a, b) => {
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      return nameA.localeCompare(nameB);
+    });
+    
+    console.log(`Found ${systems.length} systems for user ${req.user._id}`);
     
     res.render('licenses/add', {
       title: 'Add License',
       systems
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error in /licenses/add route:', err);
     req.flash('error_msg', 'Error loading systems');
     res.redirect('/licenses');
   }
@@ -261,12 +283,25 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
     
-    const systems = await System.find({ managedBy: req.user.id }).sort({ name: 1 });
+    // Use the new findByManager method for regular users or find all for admins
+    let systems = [];
+    if (req.user.role === 'admin') {
+      systems = await System.find({});
+    } else {
+      systems = await System.findByManager(req.user._id);
+    }
+    
+    // Sort systems by name
+    systems.sort((a, b) => {
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      return nameA.localeCompare(nameB);
+    });
     
     res.render('licenses/edit', {
       title: 'Edit License',
@@ -274,7 +309,7 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
       systems
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error in edit license route:', err);
     req.flash('error_msg', 'Error loading license');
     res.redirect('/licenses');
   }

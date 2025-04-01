@@ -56,6 +56,12 @@ const dbOperations = (dbName) => {
      * @returns {Array} Array of records
      */
     find: (filter = {}) => {
+      // Debug logging for systems database
+      if (dbName === 'systems') {
+        console.log('SYSTEMS DB QUERY - Filter:', JSON.stringify(filter));
+        console.log('SYSTEMS DB QUERY - DB Content:', JSON.stringify(db.get('data').value()));
+      }
+      
       let result = db.get('data').value();
       
       // Apply filters if provided
@@ -84,18 +90,56 @@ const dbOperations = (dbName) => {
             
             // Handle array contains
             if (Array.isArray(item[key]) && !Array.isArray(value)) {
-              return item[key].includes(value);
+              return item[key].some(v => {
+                // Convert both to strings for proper comparison
+                const itemValue = v ? v.toString() : '';
+                const compareValue = value ? value.toString() : '';
+                return itemValue === compareValue;
+              });
             }
             
             // Handle array vs array (at least one match)
             if (Array.isArray(item[key]) && Array.isArray(value)) {
-              return item[key].some(v => value.includes(v));
+              return item[key].some(v => value.some(val => {
+                const itemValue = v ? v.toString() : '';
+                const compareValue = val ? val.toString() : '';
+                return itemValue === compareValue;
+              }));
+            }
+            
+            // Handle ID comparisons (special case for managedBy, owner, _id)
+            if (key === 'managedBy' || key === 'owner' || key === '_id') {
+              // Convert both to strings for proper comparison
+              const itemValue = item[key] ? item[key].toString() : '';
+              const compareValue = value ? value.toString() : '';
+              
+              console.log(`ID COMPARISON: ${key}=${itemValue} vs ${compareValue}, MATCH=${itemValue === compareValue}`);
+              
+              return itemValue === compareValue;
+            }
+            
+            // Add strict logging for system lookups
+            if (dbName === 'systems' && key === 'managedBy') {
+              console.log(`COMPARING: Item ${key}=${item[key]} vs Query value=${value}, MATCH=${item[key] === value}`);
             }
             
             // Regular equality check
             return item[key] === value;
           });
         });
+      }
+      
+      // More debug logging for systems database
+      if (dbName === 'systems') {
+        console.log('SYSTEMS DB QUERY - Result count:', result.length);
+        if (result.length > 0) {
+          console.log('SYSTEMS DB QUERY - First result:', JSON.stringify(result[0]));
+        }
+      }
+      
+      if (dbName === 'licenses') {
+        console.log('LICENSES DB QUERY - Filter:', JSON.stringify(filter));
+        console.log('LICENSES DB QUERY - Result count:', result.length);
       }
       
       return result;
@@ -107,7 +151,16 @@ const dbOperations = (dbName) => {
      * @returns {Object|null} The record or null if not found
      */
     findById: (id) => {
-      return db.get('data').find({ _id: id }).value() || null;
+      if (!id) return null;
+      
+      // Convert id to string for comparison
+      const idStr = id.toString(); 
+      
+      const result = db.get('data')
+        .find(item => item._id && item._id.toString() === idStr)
+        .value();
+      
+      return result || null;
     },
     
     /**
@@ -123,8 +176,28 @@ const dbOperations = (dbName) => {
         updatedAt: new Date()
       };
       
-      db.get('data').push(newRecord).write();
-      return newRecord;
+      console.log(`${dbName.toUpperCase()} DB - Creating new record:`, JSON.stringify(newRecord));
+      
+      try {
+        // Get current data
+        const currentData = db.get('data').value() || [];
+        
+        // Check that currentData is an array
+        if (!Array.isArray(currentData)) {
+          console.error(`${dbName.toUpperCase()} DB - Error: Current data is not an array`);
+          // Initialize with empty array
+          db.set('data', [newRecord]).write();
+        } else {
+          // Add new record to data array
+          db.set('data', [...currentData, newRecord]).write();
+        }
+        
+        console.log(`${dbName.toUpperCase()} DB - Created record with ID:`, newRecord._id);
+        return newRecord;
+      } catch (error) {
+        console.error(`${dbName.toUpperCase()} DB - Error creating record:`, error);
+        throw error;
+      }
     },
     
     /**
@@ -134,9 +207,18 @@ const dbOperations = (dbName) => {
      * @returns {Object|null} Updated record or null
      */
     findByIdAndUpdate: (id, data) => {
-      const record = db.get('data').find({ _id: id }).value();
+      if (!id) return null;
+      
+      // Convert id to string for comparison
+      const idStr = id.toString();
+      
+      // Find record by string ID
+      const record = db.get('data')
+        .find(item => item._id && item._id.toString() === idStr)
+        .value();
       
       if (!record) {
+        console.warn(`${dbName.toUpperCase()} DB - Update failed: Record with ID ${idStr} not found`);
         return null;
       }
       
@@ -146,12 +228,18 @@ const dbOperations = (dbName) => {
         updatedAt: new Date()
       };
       
-      db.get('data')
-        .find({ _id: id })
-        .assign(updatedRecord)
-        .write();
+      try {
+        db.get('data')
+          .find(item => item._id && item._id.toString() === idStr)
+          .assign(updatedRecord)
+          .write();
         
-      return updatedRecord;
+        console.log(`${dbName.toUpperCase()} DB - Updated record:`, updatedRecord._id);
+        return updatedRecord;
+      } catch (error) {
+        console.error(`${dbName.toUpperCase()} DB - Error updating record:`, error);
+        throw error;
+      }
     },
     
     /**
@@ -160,17 +248,30 @@ const dbOperations = (dbName) => {
      * @returns {Boolean} Success status
      */
     findByIdAndDelete: (id) => {
-      const record = db.get('data').find({ _id: id }).value();
+      if (!id) return false;
+      
+      // Convert id to string for comparison
+      const idStr = id.toString();
+      
+      const record = db.get('data')
+        .find(item => item._id && item._id.toString() === idStr)
+        .value();
       
       if (!record) {
         return false;
       }
       
-      db.get('data')
-        .remove({ _id: id })
-        .write();
+      try {
+        db.get('data')
+          .remove(item => item._id && item._id.toString() === idStr)
+          .write();
         
-      return true;
+        console.log(`${dbName.toUpperCase()} DB - Deleted record with ID:`, idStr);
+        return true;
+      } catch (error) {
+        console.error(`${dbName.toUpperCase()} DB - Error deleting record:`, error);
+        return false;
+      }
     },
     
     /**
@@ -186,11 +287,22 @@ const dbOperations = (dbName) => {
         updatedAt: new Date()
       }));
       
-      db.get('data')
-        .push(...savedRecords)
-        .write();
+      try {
+        // Get current data
+        const currentData = db.get('data').value() || [];
         
-      return savedRecords;
+        // Check that currentData is an array
+        if (!Array.isArray(currentData)) {
+          db.set('data', [...savedRecords]).write();
+        } else {
+          db.set('data', [...currentData, ...savedRecords]).write();
+        }
+          
+        return savedRecords;
+      } catch (error) {
+        console.error(`${dbName.toUpperCase()} DB - Error inserting multiple records:`, error);
+        throw error;
+      }
     },
     
     /**
@@ -201,12 +313,17 @@ const dbOperations = (dbName) => {
     deleteMany: (filter) => {
       const before = db.get('data').size().value();
       
-      db.get('data')
-        .remove(filter)
-        .write();
-        
-      const after = db.get('data').size().value();
-      return before - after;
+      try {
+        db.get('data')
+          .remove(filter)
+          .write();
+          
+        const after = db.get('data').size().value();
+        return before - after;
+      } catch (error) {
+        console.error(`${dbName.toUpperCase()} DB - Error deleting multiple records:`, error);
+        return 0;
+      }
     },
     
     /**
@@ -223,67 +340,79 @@ const dbOperations = (dbName) => {
       const pull = update.$pull;
       const push = update.$push;
       
-      // Get matching records
-      const records = db.get('data')
-        .filter(item => {
-          return Object.entries(filter).every(([key, value]) => {
-            // Handle special query operators for updateMany
-            if (key === 'licenseRequirements' && value.$elemMatch) {
-              return item.licenseRequirements && item.licenseRequirements.some(req => {
-                return Object.entries(value.$elemMatch).every(([subKey, subValue]) => {
-                  return req[subKey] === subValue;
-                });
-              });
-            }
-            
-            return item[key] === value;
-          });
-        })
-        .value();
-      
-      // Apply updates to each matching record
-      records.forEach(record => {
-        // Apply regular updates
-        if (operations) {
-          Object.assign(record, operations, { updatedAt: new Date() });
-        }
-        
-        // Apply $pull operation (remove items from arrays)
-        if (pull) {
-          Object.entries(pull).forEach(([key, value]) => {
-            if (Array.isArray(record[key])) {
-              record[key] = record[key].filter(item => {
-                if (typeof item === 'object') {
-                  return !Object.entries(value).every(([subKey, subValue]) => {
-                    return item[subKey] === subValue;
+      try {
+        // Get matching records
+        const records = db.get('data')
+          .filter(item => {
+            return Object.entries(filter).every(([key, value]) => {
+              // Handle special query operators for updateMany
+              if (key === 'licenseRequirements' && value.$elemMatch) {
+                return item.licenseRequirements && item.licenseRequirements.some(req => {
+                  return Object.entries(value.$elemMatch).every(([subKey, subValue]) => {
+                    return req[subKey] === subValue;
                   });
-                }
-                return item !== value;
-              });
-            }
-          });
-        }
+                });
+              }
+              
+              // Handle ID comparisons
+              if (key === 'managedBy' || key === 'owner' || key === '_id') {
+                const itemValue = item[key] ? item[key].toString() : '';
+                const compareValue = value ? value.toString() : '';
+                return itemValue === compareValue;
+              }
+              
+              return item[key] === value;
+            });
+          })
+          .value();
         
-        // Apply $push operation (add items to arrays)
-        if (push) {
-          Object.entries(push).forEach(([key, value]) => {
-            if (!Array.isArray(record[key])) {
-              record[key] = [];
-            }
-            record[key].push(value);
-          });
-        }
-        
-        // Save the updated record
-        db.get('data')
-          .find({ _id: record._id })
-          .assign(record)
-          .write();
+        // Apply updates to each matching record
+        records.forEach(record => {
+          // Apply regular updates
+          if (operations) {
+            Object.assign(record, operations, { updatedAt: new Date() });
+          }
           
-        updated++;
-      });
-      
-      return updated;
+          // Apply $pull operation (remove items from arrays)
+          if (pull) {
+            Object.entries(pull).forEach(([key, value]) => {
+              if (Array.isArray(record[key])) {
+                record[key] = record[key].filter(item => {
+                  if (typeof item === 'object') {
+                    return !Object.entries(value).every(([subKey, subValue]) => {
+                      return item[subKey] === subValue;
+                    });
+                  }
+                  return item !== value;
+                });
+              }
+            });
+          }
+          
+          // Apply $push operation (add items to arrays)
+          if (push) {
+            Object.entries(push).forEach(([key, value]) => {
+              if (!Array.isArray(record[key])) {
+                record[key] = [];
+              }
+              record[key].push(value);
+            });
+          }
+          
+          // Save the updated record
+          db.get('data')
+            .find({ _id: record._id })
+            .assign(record)
+            .write();
+            
+          updated++;
+        });
+        
+        return updated;
+      } catch (error) {
+        console.error(`${dbName.toUpperCase()} DB - Error updating multiple records:`, error);
+        return 0;
+      }
     },
     
     /**
@@ -299,6 +428,13 @@ const dbOperations = (dbName) => {
       if (Object.keys(filter).length > 0) {
         records = records.filter(item => {
           return Object.entries(filter).every(([key, value]) => {
+            // Handle ID comparisons
+            if (key === 'managedBy' || key === 'owner' || key === '_id') {
+              const itemValue = item[key] ? item[key].toString() : '';
+              const compareValue = value ? value.toString() : '';
+              return itemValue === compareValue;
+            }
+            
             return item[key] === value;
           });
         });

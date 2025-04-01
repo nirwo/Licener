@@ -8,17 +8,19 @@ const License = require('../models/License');
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
     console.log('User ID for systems query:', req.user._id);
-    let query = { managedBy: req.user._id };
+    
+    // Use enhanced System model methods
+    let systems = [];
+    if (req.user.role === 'admin') {
+      systems = await System.find({});
+    } else {
+      systems = await System.findByManager(req.user._id);
+    }
     
     // Filter by type if provided
     if (req.query.type && req.query.type !== 'all') {
-      query.type = req.query.type;
+      systems = systems.filter(system => system.type === req.query.type);
     }
-    
-    // Find matching systems
-    console.log('Systems query:', query);
-    let systems = System.find(query);
-    console.log('Found systems:', systems.length);
     
     // Apply manual filtering for text search (OS)
     if (req.query.os) {
@@ -48,7 +50,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       filters: req.query
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error in systems listing:', err);
     req.flash('error_msg', 'Error loading systems');
     res.redirect('/dashboard');
   }

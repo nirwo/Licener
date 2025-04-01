@@ -9,8 +9,20 @@
       "company": "Demo Company",
       "department": "IT",
       "lastLogin": "2023-03-26T12:00:00.000Z",
-      "createdAt": "2023-01-01T00:00:00.000Z", 
+      "createdAt": "2023-01-01T00:00:00.000Z",
       "updatedAt": "2023-03-26T12:00:00.000Z"
+    },
+    {
+      "name": "nir",
+      "email": "nir@nir.com",
+      "password": "$2a$10$L1F05nFe.w8cROccZDFGFen29WRqEE36ALOnwEB6iU8nKo9Qrl9lu",
+      "company": "",
+      "department": "",
+      "role": "user",
+      "_id": "m8rdc2uoam52f",
+      "createdAt": "2025-03-27T13:07:34.128Z",
+      "updatedAt": "2025-03-27T22:31:14.126Z",
+      "lastLogin": 1743114674126
     }
   ]
 }

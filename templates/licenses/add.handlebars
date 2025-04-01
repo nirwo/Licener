@@ -149,49 +149,14 @@
       }
     });
     
-    // Manual form submission handler
-    const form = document.getElementById('licenseForm');
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      console.log('Form submit triggered');
-      
-      // Create form data object
-      const formData = new FormData(form);
-      
-      // Log form data for debugging
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-      }
-      
-      // Submit the form using fetch to our simplified API endpoint
-      fetch('/api/direct/licenses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: document.getElementById('name').value,
-          licenseKey: document.getElementById('licenseKey').value,
-          product: document.getElementById('product').value,
-          vendor: document.getElementById('vendor').value,
-          purchaseDate: document.getElementById('purchaseDate').value,
-          expiryDate: document.getElementById('expiryDate').value,
-          renewalDate: document.getElementById('renewalDate').value,
-          totalSeats: document.getElementById('totalSeats').value,
-          status: document.getElementById('status').value
-        })
-      })
-      .then(response => {
-        if (response.ok) {
-          window.location.href = '/licenses';
-        } else {
-          alert('Error submitting form. Please try again.');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error submitting form. Please try again.');
-      });
-    });
+    // Set today's date as default for purchase date
+    const purchaseDateInput = document.getElementById('purchaseDate');
+    if (!purchaseDateInput.value) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      purchaseDateInput.value = `${year}-${month}-${day}`;
+    }
   });
 </script>
