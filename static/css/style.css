@@ -19,14 +19,18 @@ html, body {
 
 /* Sidebar - hidden by default */
 .sidebar-wrapper {
-  transition: all 0.3s;
-  width: 0;
-  min-height: calc(100vh - 56px);
-  margin-top: 56px;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  bottom: 0;
+  width: 0; /* Initially hidden */
   margin-left: -250px;
+  min-height: calc(100vh - 56px);
   background-color: #f8f9fa;
-  z-index: 1000;
+  z-index: 100;
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+  transition: all 0.3s ease;
+  overflow-y: auto;
 }
 
 .sidebar-wrapper.show {
@@ -42,9 +46,18 @@ html, body {
 
 .content-wrapper {
   margin-top: 56px;
+  margin-left: 0;
   padding: 0;
   width: 100%;
-  transition: all 0.3s;
+  min-height: calc(100vh - 56px);
+  transition: all 0.3s ease;
+  position: relative;
+  background-color: #f8f9fa;
+}
+
+.content-wrapper.sidebar-expanded {
+  margin-left: 250px;
+  width: calc(100% - 250px);
 }
 
 .sidebar-sticky {
@@ -159,10 +172,10 @@ html, body {
 
 /* Content */
 main {
-  margin-top: 56px;
   padding-top: 1.5rem;
   width: 100%;
   background-color: #f8f9fa;
+  min-height: calc(100vh - 56px);
 }
 
 .dashboard-page .container-fluid {

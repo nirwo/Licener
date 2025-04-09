@@ -24,20 +24,16 @@
 <body class="{{#if user}}dashboard-page{{/if}}">
   {{#if user}}
     {{> _navbar}}
-    <div class="container-fluid">
-      <div class="row">
-        <div class="sidebar-wrapper col-md-auto" id="sidebarWrapper">
-          {{> _sidebar}}
+    <div class="sidebar-wrapper" id="sidebarWrapper">
+      {{> _sidebar}}
+    </div>
+    <div class="content-wrapper">
+      <main>
+        <div class="container-fluid px-4 py-4">
+          {{> _messages}}
+          {{{body}}}
         </div>
-        <div class="col content-wrapper bg-light">
-          <main>
-            <div class="px-4 py-4">
-              {{> _messages}}
-              {{{body}}}
-            </div>
-          </main>
-        </div>
-      </div>
+      </main>
     </div>
   {{else}}
     <div class="container mt-5">
@@ -54,7 +50,7 @@
   <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <!-- Custom JS -->
   <script src="/js/main.js"></script>
 </body>

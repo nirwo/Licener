@@ -162,9 +162,30 @@ module.exports = {
     return array.includes(item);
   },
   
-  // JSON stringify for debugging
+  // JSON stringify for debugging and data serialization
   json: function(context) {
-    return JSON.stringify(context);
+    return JSON.stringify(context || []);
+  },
+  
+  // Safe JSON stringify for use in JavaScript
+  safeJson: function(context) {
+    if (!context) return '[]';
+    try {
+      // If it's already a string, return it
+      if (typeof context === 'string') return context;
+      
+      // If it's an empty array or object, return proper representation
+      if (Array.isArray(context) && context.length === 0) return '[]';
+      if (typeof context === 'object' && Object.keys(context).length === 0) return '{}';
+      
+      // Convert to JSON string with safety checks
+      return JSON.stringify(context)
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
+    } catch (e) {
+      console.error('Error serializing JSON:', e);
+      return Array.isArray(context) ? '[]' : '{}';
+    }
   },
   
   // Truncate text

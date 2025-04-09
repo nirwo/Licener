@@ -13,20 +13,27 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (sidebarToggleBtn && sidebarWrapper) {
     // Check for saved state
-    const sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    const sidebarExpanded = localStorage.getItem('sidebar-expanded') === 'true';
     
     // Apply initial state
-    if (sidebarCollapsed) {
-      sidebarWrapper.classList.add('collapsed');
-      contentWrapper.classList.add('sidebar-collapsed');
+    if (sidebarExpanded) {
+      sidebarWrapper.classList.add('show');
+      contentWrapper.classList.add('sidebar-expanded');
+    } else {
+      // Default to collapsed
+      sidebarWrapper.classList.remove('show');
+      contentWrapper.classList.remove('sidebar-expanded');
     }
     
     sidebarToggleBtn.addEventListener('click', function() {
-      sidebarWrapper.classList.toggle('collapsed');
-      contentWrapper.classList.toggle('sidebar-collapsed');
+      sidebarWrapper.classList.toggle('show');
+      contentWrapper.classList.toggle('sidebar-expanded');
       
       // Save state to localStorage
-      localStorage.setItem('sidebar-collapsed', sidebarWrapper.classList.contains('collapsed'));
+      localStorage.setItem('sidebar-expanded', sidebarWrapper.classList.contains('show'));
+      
+      // Debug
+      console.log(`Sidebar toggled. Show: ${sidebarWrapper.classList.contains('show')}`);
     });
   }
   

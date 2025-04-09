@@ -104,6 +104,13 @@
       <div class="card-body">
         <div class="chart-container">
           <canvas id="licenseStatusChart"></canvas>
+          <div id="licenseStatusFallback" class="chart-fallback" style="display:none;">
+            <p class="text-center py-4">
+              <i class="fas fa-chart-pie fa-3x mb-3 text-secondary"></i><br>
+              License Status Distribution<br>
+              <small class="text-muted">Active: {{stats.activeLicenses}}, Expired: {{stats.expiredLicenses}}, Pending: {{stats.pendingLicenses}}, Renewed: {{stats.renewedLicenses}}</small>
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -238,9 +245,30 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Make sure Chart is available
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not loaded');
+      // Show fallback elements
+      document.querySelectorAll('.chart-fallback').forEach(el => {
+        el.style.display = 'block';
+      });
+      document.querySelectorAll('canvas').forEach(el => {
+        el.style.display = 'none';
+      });
+      return;
+    }
+
     // License Status Chart
-    const licenseStatusCtx = document.getElementById('licenseStatusChart').getContext('2d');
-    new Chart(licenseStatusCtx, {
+    const licenseStatusChart = document.getElementById('licenseStatusChart');
+    if (!licenseStatusChart) {
+      console.warn('License status chart element not found');
+      document.getElementById('licenseStatusFallback').style.display = 'block';
+      return;
+    }
+
+    const licenseStatusCtx = licenseStatusChart.getContext('2d');
+    try {
+      new Chart(licenseStatusCtx, {
       type: 'doughnut',
       data: {
         labels: ['Active', 'Expired', 'Pending', 'Renewed'],
@@ -261,17 +289,27 @@
         cutout: '70%',
       }
     });
+    } catch (err) {
+      console.error('Error initializing chart:', err);
+    }
     
     // Expiry Timeline Chart
-    const expiryTimelineCtx = document.getElementById('expiryTimelineChart').getContext('2d');
-    new Chart(expiryTimelineCtx, {
+    const expiryTimelineChart = document.getElementById('expiryTimelineChart');
+    if (!expiryTimelineChart) {
+      console.warn('Expiry timeline chart element not found');
+      return;
+    }
+
+    const expiryTimelineCtx = expiryTimelineChart.getContext('2d');
+    try {
+      new Chart(expiryTimelineCtx, {
       type: 'bar',
       data: {
-        labels: {{{json chartData.expiryTimeline.labels}}},
+        labels: {{{safeJson chartData.expiryTimeline.labels}}},
         datasets: [{
           label: 'Expiring Licenses',
-          data: {{{json chartData.expiryTimeline.data}}},
-          backgroundColor: {{{json chartData.expiryTimeline.colors}}},
+          data: {{{safeJson chartData.expiryTimeline.data}}},
+          backgroundColor: {{{safeJson chartData.expiryTimeline.colors}}},
         }]
       },
       options: {
@@ -287,15 +325,25 @@
         }
       }
     });
+    } catch (err) {
+      console.error('Error initializing chart:', err);
+    }
     
     // Vendor Chart
-    const vendorCtx = document.getElementById('vendorChart').getContext('2d');
-    new Chart(vendorCtx, {
+    const vendorChart = document.getElementById('vendorChart');
+    if (!vendorChart) {
+      console.warn('Vendor chart element not found');
+      return;
+    }
+
+    const vendorCtx = vendorChart.getContext('2d');
+    try {
+      new Chart(vendorCtx, {
       type: 'pie',
       data: {
-        labels: {{{json chartData.vendors.labels}}},
+        labels: {{{safeJson chartData.vendors.labels}}},
         datasets: [{
-          data: {{{json chartData.vendors.data}}},
+          data: {{{safeJson chartData.vendors.data}}},
           backgroundColor: [
             '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
             '#5a5c69', '#858796', '#6f42c1', '#20c9a6', '#e83e8c',
@@ -312,16 +360,26 @@
         }
       }
     });
+    } catch (err) {
+      console.error('Error initializing chart:', err);
+    }
     
     // Cost Chart
-    const costCtx = document.getElementById('costChart').getContext('2d');
-    new Chart(costCtx, {
+    const costChart = document.getElementById('costChart');
+    if (!costChart) {
+      console.warn('Cost chart element not found');
+      return;
+    }
+
+    const costCtx = costChart.getContext('2d');
+    try {
+      new Chart(costCtx, {
       type: 'bar',
       data: {
-        labels: {{{json chartData.costs.labels}}},
+        labels: {{{safeJson chartData.costs.labels}}},
         datasets: [{
           label: 'License Cost',
-          data: {{{json chartData.costs.data}}},
+          data: {{{safeJson chartData.costs.data}}},
           backgroundColor: '#4e73df',
         }]
       },
@@ -338,6 +396,9 @@
         }
       }
     });
+    } catch (err) {
+      console.error('Error initializing chart:', err);
+    }
     
     // Dismiss alert
     document.querySelectorAll('.dismiss-alert').forEach(button => {
