@@ -15,17 +15,37 @@ router.get('/', (req, res) => {
 // Dashboard
 router.get('/dashboard', ensureAuthenticated, async (req, res) => {
   try {
-    // Fetch all licenses and systems for the user - use _id instead of id
-    const allUserLicenses = await License.find({ owner: req.user._id.toString() });
-    const allUserSystems = await System.find({ managedBy: req.user._id.toString() });
+    const userId = req.user._id.toString();
+    console.log('Dashboard loading for user:', {
+      _id: userId,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    });
+    
+    // Fetch all licenses and systems for the user with enhanced debugging
+    const allUserLicenses = await License.find({ owner: userId });
+    const allUserSystems = await System.find({ managedBy: userId });
 
-    // Debugging: Log user ID and fetched licenses
-    console.log(`Dashboard - Logged in User ID: ${req.user.id}`);
+    // Add detailed debug logging
+    console.log(`Dashboard - Logged in User ID: ${userId}`);
     console.log(`Dashboard - Found ${allUserLicenses.length} licenses for this owner ID.`);
-    // Optional: Log the actual license objects if the count is 0 but shouldn't be
+    console.log(`Dashboard - Found ${allUserSystems.length} systems managed by this user.`);
+    
+    // Log license owner IDs if no licenses found
     if (allUserLicenses.length === 0) {
       const allLicensesInDb = await License.find({}); // Fetch all licenses regardless of owner
-      console.log('Dashboard - All licenses in DB:', JSON.stringify(allLicensesInDb, null, 2));
+      console.log(`Found ${allLicensesInDb.length} total licenses in database`);
+      
+      // Log owner IDs for comparison
+      if (allLicensesInDb.length > 0) {
+        const ownerIds = allLicensesInDb.map(license => ({ 
+          _id: license._id, 
+          owner: license.owner,
+          name: license.name 
+        }));
+        console.log('Dashboard - License owner IDs:', JSON.stringify(ownerIds, null, 2));
+      }
     }
 
     // Calculate counts
@@ -55,14 +75,99 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
       data: licenses.map(license => license.utilization)
     };
 
+    // Prepare data for charts
+    const activeLicensesCount = allUserLicenses.filter(lic => lic.status === 'active').length;
+    const pendingLicensesCount = allUserLicenses.filter(lic => lic.status === 'pending').length;
+    const renewedLicensesCount = allUserLicenses.filter(lic => lic.status === 'renewed').length;
+    
+    // Create vendor distribution data
+    const vendorCounts = {};
+    allUserLicenses.forEach(license => {
+      const vendor = license.vendor || 'Unknown';
+      vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
+    });
+    
+    // Create cost data
+    const vendorCosts = {};
+    allUserLicenses.forEach(license => {
+      const vendor = license.vendor || 'Unknown';
+      const cost = parseFloat(license.cost) || 0;
+      const seats = parseInt(license.totalSeats) || 1;
+      vendorCosts[vendor] = (vendorCosts[vendor] || 0) + (cost * seats);
+    });
+    
+    // Prepare expiry timeline (next 6 months)
+    const expiryTimelineData = {
+      labels: [],
+      data: [],
+      colors: []
+    };
+    
+    const today = new Date();
+    for (let i = 0; i < 6; i++) {
+      const monthStart = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + i + 1, 0);
+      const monthName = monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
+      const expiringCount = allUserLicenses.filter(lic => {
+        const expiryDate = new Date(lic.expiryDate);
+        return expiryDate >= monthStart && expiryDate <= monthEnd;
+      }).length;
+      
+      expiryTimelineData.labels.push(monthName);
+      expiryTimelineData.data.push(expiringCount);
+      
+      // Color code: red for current month, orange for next, yellow for others
+      if (i === 0) expiryTimelineData.colors.push('#e74a3b'); // Red
+      else if (i === 1) expiryTimelineData.colors.push('#f6c23e'); // Orange/Yellow
+      else expiryTimelineData.colors.push('#4e73df'); // Blue
+    }
+    
+    // Get recent licenses for display (5 most recent)
+    const recentLicenses = [...allUserLicenses]
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .slice(0, 5)
+      .map(license => ({
+        _id: license._id,
+        product: license.product || 'Unknown',
+        vendor: license.vendor || 'Unknown',
+        status: license.status || 'unknown',
+        expiryDate: license.expiryDate,
+        assignedTo: Array.isArray(license.assignedSystems) ? license.assignedSystems.length : 0
+      }));
+    
+    // Prepare chart data object
+    const chartData = {
+      expiryTimeline: expiryTimelineData,
+      vendors: {
+        labels: Object.keys(vendorCounts),
+        data: Object.values(vendorCounts)
+      },
+      costs: {
+        labels: Object.keys(vendorCosts),
+        data: Object.values(vendorCosts).map(cost => cost.toFixed(2))
+      }
+    };
+    
+    // Prepare dashboard stats
+    const stats = {
+      totalLicenses: licenseCount,
+      activeLicenses: activeLicensesCount,
+      expiredLicenses: expiredLicensesCount,
+      pendingLicenses: pendingLicensesCount,
+      renewedLicenses: renewedLicensesCount,
+      expiringSoon: expiringLicenses.length,
+      totalSystems: systemCount
+    };
+    
+    // Render dashboard with complete data
     res.render('dashboard', {
       title: 'Dashboard',
       user: req.user,
-      licenseCount,
-      systemCount,
-      expiredLicenses: expiredLicensesCount, // Pass the count
+      stats,
       expiringLicenses,
-      licenseUtilization: JSON.stringify(licenseUtilization)
+      recentLicenses,
+      chartData
     });
   } catch (err) {
     console.error(err);

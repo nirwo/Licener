@@ -201,8 +201,12 @@ router.get('/:id', ensureAuthenticated, async (req, res) => {
       return res.redirect('/systems');
     }
     
-    // Check if user is manager or admin
-    if (system.managedBy._id.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Check if user is manager or admin with better error handling
+    const systemManagerId = system.managedBy && system.managedBy._id ? system.managedBy._id.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    console.log(`Checking authorization - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
+    
+    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/systems');
     }
@@ -228,13 +232,17 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
       return res.redirect('/systems');
     }
     
-    // Check if user is manager or admin
-    if (system.managedBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Check if user is manager or admin with better error handling
+    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    console.log(`Checking authorization - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
+    
+    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/systems');
     }
     
-    const licenses = await License.find({ owner: req.user.id }).sort({ name: 1 });
+    const licenses = await License.find({ owner: req.user._id.toString() }).sort({ name: 1 });
     
     res.render('systems/edit', {
       title: 'Edit System',
@@ -390,8 +398,12 @@ router.delete('/:id', ensureAuthenticated, async (req, res) => {
       return res.redirect('/systems');
     }
     
-    // Check if user is manager or admin
-    if (system.managedBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Check if user is manager or admin with better error handling
+    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    console.log(`Checking authorization - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
+    
+    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/systems');
     }
@@ -449,7 +461,7 @@ router.post('/import', ensureAuthenticated, async (req, res) => {
         location: systemData.location,
         ip: systemData.ip,
         department: systemData.department,
-        managedBy: req.user.id,
+        managedBy: req.user._id.toString(),
         notes: systemData.notes || `Imported on ${new Date().toLocaleDateString()}`,
         status: systemData.status || 'active'
       });
@@ -476,8 +488,12 @@ router.get('/:id/licenses', ensureAuthenticated, async (req, res) => {
       return res.status(404).json({ success: false, error: 'System not found' });
     }
     
-    // Check if user is manager or admin
-    if (system.managedBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Check if user is manager or admin with better error handling
+    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    console.log(`API Check - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
+    
+    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized' });
     }
     

@@ -383,10 +383,13 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
       // Sort by expiry date
       expiringThisMonth.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
       
-      // Calculate cost for the month (ensure cost is a number)
+      // Calculate cost for the month (ensure cost is a number and multiply by total seats for total cost)
       const monthCost = expiringThisMonth.reduce((sum, license) => {
           const cost = parseFloat(license.cost);
-          return sum + (isNaN(cost) ? 0 : cost);
+          const totalSeats = parseInt(license.totalSeats) || 1;
+          const licenseTotalCost = (isNaN(cost) ? 0 : cost) * totalSeats;
+          console.log(`License ${license.name}: Cost per seat: ${cost}, Total seats: ${totalSeats}, Total cost: ${licenseTotalCost}`);
+          return sum + licenseTotalCost;
       }, 0);
       totalForecastCost += monthCost;
       
