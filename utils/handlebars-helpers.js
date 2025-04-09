@@ -6,6 +6,22 @@ module.exports = {
     return a === b;
   },
   
+  // Logical OR operator
+  or: function(a, b) {
+    return a || b;
+  },
+  
+  // Logical AND operator
+  and: function(a, b) {
+    return a && b;
+  },
+  
+  // Average function
+  average: function(total, count) {
+    if (count === 0) return 0;
+    return (parseFloat(total) / count).toFixed(2);
+  },
+  
   // Format date using moment.js
   formatDate: function(date, format) {
     return moment(date).format(format);
@@ -28,10 +44,25 @@ module.exports = {
   
   // Format number as currency
   formatCurrency: function(number, currency = 'USD') {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(number);
+    // Make sure we have a valid currency code
+    if (typeof currency !== 'string') {
+      currency = 'USD';
+    }
+    
+    // Make sure number is a valid numeric value
+    if (isNaN(parseFloat(number))) {
+      return '$0.00';
+    }
+    
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency
+      }).format(parseFloat(number));
+    } catch (error) {
+      // Fallback if there's an error with the formatter
+      return '$' + parseFloat(number).toFixed(2);
+    }
   },
   
   // Calculate percentage

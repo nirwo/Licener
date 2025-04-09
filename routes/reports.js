@@ -13,8 +13,43 @@ const getUserId = (req) => req.user._id.toString();
 // Reports Dashboard
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
-    res.render('reports/index', {
-      title: 'Reports Dashboard'
+    // For the dashboard, we'll redirect to license expiry report as default
+    const userId = getUserId(req);
+    
+    // Get some basic stats for the dashboard
+    let allLicenses = License.find({ owner: userId });
+    
+    const currentDate = new Date();
+    const thirtyDaysLater = new Date(currentDate);
+    thirtyDaysLater.setDate(currentDate.getDate() + 30);
+    const ninetyDaysLater = new Date(currentDate);
+    ninetyDaysLater.setDate(currentDate.getDate() + 90);
+    
+    // Filter licenses manually for date ranges
+    const expiringLicenses = allLicenses.filter(license => {
+      const expiryDate = new Date(license.expiryDate);
+      return expiryDate >= currentDate && expiryDate <= thirtyDaysLater;
+    });
+    
+    const expiredLicenses = allLicenses.filter(license => {
+      return new Date(license.expiryDate) < currentDate;
+    });
+    
+    // Sort by expiry date
+    expiringLicenses.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    expiredLicenses.sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
+    
+    res.render('reports/license-expiry', {
+      title: 'License Expiry Report',
+      expiringLicenses,
+      expiredLicenses,
+      timeframe: 30,
+      stats: {
+        critical: expiringLicenses.length,
+        warning: 0, // We could calculate this if needed
+        ok: allLicenses.length - expiringLicenses.length - expiredLicenses.length
+      },
+      licenses: [...expiringLicenses, ...expiredLicenses]
     });
   } catch (err) {
     console.error('Error loading reports dashboard:', err);
@@ -32,15 +67,19 @@ router.get('/license-expiry', ensureAuthenticated, async (req, res) => {
     const currentDate = new Date();
     const futureDate = moment().add(days, 'days').toDate();
     
-    // Use file-db find with date range operators
-    const expiringLicenses = License.find({
-      owner: userId,
-      expiryDate: { '$gte': currentDate.toISOString(), '$lte': futureDate.toISOString() }
+    // Use file-db find with manual filtering for dates
+    let allLicenses = License.find({
+      owner: userId
     });
     
-    const expiredLicenses = License.find({
-      owner: userId,
-      expiryDate: { '$lt': currentDate.toISOString() }
+    // Filter licenses manually for date ranges
+    const expiringLicenses = allLicenses.filter(license => {
+      const expiryDate = new Date(license.expiryDate);
+      return expiryDate >= currentDate && expiryDate <= futureDate;
+    });
+    
+    const expiredLicenses = allLicenses.filter(license => {
+      return new Date(license.expiryDate) < currentDate;
     });
     
     // Sort by expiry date
@@ -129,6 +168,8 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
   try {
     const userId = getUserId(req);
     const period = req.query.period || 'year'; // Note: Period isn't used in current calculation logic
+    const chartType = req.query.chartType || 'pie';
+    const groupBy = req.query.groupBy || 'vendor';
     
     // Get all licenses for the user
     let licenses = License.find({ owner: userId });
@@ -175,7 +216,9 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
       vendorCosts: vendorCostsArray,
       productCosts: productCostsArray,
       totalCost: totalCost.toFixed(2),
-      period // Pass period to template if needed for display
+      period, // Pass period to template if needed for display
+      chartType, // Pass chart type for rendering
+      groupBy // Pass groupBy preference
     });
   } catch (err) {
     console.error('Error generating cost analysis report:', err);
@@ -271,10 +314,13 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
     const forecastStartDate = moment().startOf('day').toDate();
     const forecastEndDate = moment().add(months, 'months').endOf('month').toDate();
     
-    // Fetch all potentially relevant licenses in one go
-    let relevantLicenses = License.find({
-        owner: userId,
-        expiryDate: { '$gte': forecastStartDate.toISOString(), '$lte': forecastEndDate.toISOString() }
+    // Fetch all licenses and filter manually
+    let allLicenses = License.find({ owner: userId });
+    
+    // Filter for licenses within the forecast period
+    let relevantLicenses = allLicenses.filter(license => {
+      const expiryDate = new Date(license.expiryDate);
+      return expiryDate >= forecastStartDate && expiryDate <= forecastEndDate;
     });
     
     const renewalData = [];
@@ -366,6 +412,7 @@ router.get('/custom', ensureAuthenticated, async (req, res) => {
       const sortFunction = (a, b) => {
         const aValue = a[sortBy];
         const bValue = b[sortBy];
+        let comparison = 0;
 
         // Handle different types for comparison
         if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -374,10 +421,24 @@ router.get('/custom', ensureAuthenticated, async (req, res) => {
             comparison = aValue - bValue;
         } else if (aValue instanceof Date && bValue instanceof Date) {
             comparison = aValue.getTime() - bValue.getTime();
+        } else if (aValue && bValue) { // Add check for non-null values
+            // Try to convert to appropriate types
+            if (!isNaN(Date.parse(aValue)) && !isNaN(Date.parse(bValue))) {
+                // If both can be parsed as dates
+                comparison = new Date(aValue).getTime() - new Date(bValue).getTime();
+            } else if (!isNaN(Number(aValue)) && !isNaN(Number(bValue))) {
+                // If both can be parsed as numbers
+                comparison = Number(aValue) - Number(bValue);
+            } else {
+                // Fallback for other types
+                const strA = String(aValue);
+                const strB = String(bValue);
+                comparison = strA.localeCompare(strB);
+            }
         } else {
-            // Fallback for mixed or null types
-            const strA = String(aValue);
-            const strB = String(bValue);
+            // Handle cases where one or both values are null/undefined
+            const strA = aValue !== null && aValue !== undefined ? String(aValue) : '';
+            const strB = bValue !== null && bValue !== undefined ? String(bValue) : '';
             comparison = strA.localeCompare(strB);
         }
         
@@ -438,9 +499,24 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
       const days = parseInt(timeframe);
       const currentDate = new Date();
       const futureDate = moment().add(days, 'days').toDate();
-      const expiring = License.find({ owner: userId, expiryDate: { '$gte': currentDate.toISOString(), '$lte': futureDate.toISOString() } });
-      const expired = License.find({ owner: userId, expiryDate: { '$lt': currentDate.toISOString() } });
-      reportData = [...expiring, ...expired].map(l => ({ ...l, reportStatus: new Date(l.expiryDate) < currentDate ? 'Expired' : 'Expiring Soon' }));
+      
+      // Get all licenses and filter manually
+      let allLicenses = License.find({ owner: userId });
+      
+      // Filter for expiring and expired licenses
+      const expiring = allLicenses.filter(license => {
+        const expiryDate = new Date(license.expiryDate);
+        return expiryDate >= currentDate && expiryDate <= futureDate;
+      });
+      
+      const expired = allLicenses.filter(license => {
+        return new Date(license.expiryDate) < currentDate;
+      });
+      
+      reportData = [...expiring, ...expired].map(l => ({ 
+        ...l, 
+        reportStatus: new Date(l.expiryDate) < currentDate ? 'Expired' : 'Expiring Soon' 
+      }));
       csvHeaders = ['reportStatus', 'name', 'product', 'vendor', 'expiryDate', 'totalSeats', 'cost'];
       filename = `expiry_report_${timeframe}days_${moment().format('YYYYMMDD_HHmmss')}.csv`;
 
@@ -491,7 +567,16 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
       const months = parseInt(period);
       const forecastStartDate = moment().startOf('day').toDate();
       const forecastEndDate = moment().add(months, 'months').endOf('month').toDate();
-      reportData = License.find({ owner: userId, expiryDate: { '$gte': forecastStartDate.toISOString(), '$lte': forecastEndDate.toISOString() } });
+      
+      // Get all licenses and filter manually
+      let allLicenses = License.find({ owner: userId });
+      
+      // Filter licenses for the forecast period
+      reportData = allLicenses.filter(license => {
+        const expiryDate = new Date(license.expiryDate);
+        return expiryDate >= forecastStartDate && expiryDate <= forecastEndDate;
+      });
+      
       csvHeaders = ['name', 'product', 'vendor', 'expiryDate', 'renewalDate', 'cost', 'currency'];
       filename = `renewal_forecast_${period}months_${moment().format('YYYYMMDD_HHmmss')}.csv`;
 
@@ -511,8 +596,17 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
 
     // --- Generate CSV --- 
     try {
+        // Clean up the data to ensure all fields exist and are properly formatted
+        const cleanData = reportData.map(item => {
+          const cleanItem = {};
+          csvHeaders.forEach(header => {
+            cleanItem[header] = item[header] !== undefined ? item[header] : '';
+          });
+          return cleanItem;
+        });
+        
         const json2csvParser = new NodeParser({ fields: csvHeaders });
-        const csv = json2csvParser.parse(reportData);
+        const csv = json2csvParser.parse(cleanData);
 
         res.header('Content-Type', 'text/csv');
         res.attachment(filename);

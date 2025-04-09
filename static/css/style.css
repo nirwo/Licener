@@ -4,6 +4,13 @@ body {
   background-color: #f8f9fa;
 }
 
+/* Fix for body background */
+html, body {
+  height: 100%;
+  width: 100%;
+  background-color: #f8f9fa;
+}
+
 .feather {
   width: 16px;
   height: 16px;
@@ -11,36 +18,37 @@ body {
 }
 
 /* Sidebar */
-.sidebar {
-  padding: 56px 0 0; /* Increased to match navbar height */
+.sidebar-wrapper {
+  transition: all 0.3s;
+  width: 250px;
+  min-height: calc(100vh - 56px);
+  margin-top: 56px;
+  background-color: #f8f9fa;
+  z-index: 1000;
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-wrapper.collapsed {
+  width: 0;
+  margin-left: -250px;
+}
+
+.sidebar {
+  padding: 1rem 0;
+  background-color: #f8f9fa;
+  height: 100%;
+}
+
+.content-wrapper {
+  margin-top: 56px;
+  padding: 0;
   width: 100%;
-  z-index: 100;
-}
-
-@media (min-width: 768px) {
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 250px;
-    padding-top: 56px;
-    height: 100vh;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .sidebar {
-    position: static;
-    padding-top: 0;
-    height: auto;
-  }
+  transition: all 0.3s;
 }
 
 .sidebar-sticky {
-  position: relative;
-  top: 0;
+  position: sticky;
+  top: 56px;
   height: calc(100vh - 56px);
   padding-top: 1rem;
   overflow-x: hidden;
@@ -73,6 +81,23 @@ body {
   color: #6c757d;
 }
 
+/* Responsive sidebar */
+@media (max-width: 768px) {
+  .sidebar-wrapper {
+    margin-left: -250px;
+    position: fixed;
+    height: 100%;
+  }
+  
+  .sidebar-wrapper.show {
+    margin-left: 0;
+  }
+  
+  .content-wrapper {
+    width: 100%;
+  }
+}
+
 /* Navbar */
 .navbar-brand {
   padding-top: .75rem;
@@ -92,15 +117,18 @@ main {
   margin-top: 56px;
   padding-top: 1.5rem;
   width: 100%;
+  background-color: #f8f9fa;
 }
 
 .dashboard-page .container-fluid {
   padding-left: 0;
   padding-right: 0;
+  background-color: #f8f9fa;
 }
 
 .dashboard-page .col-md-9.ms-sm-auto.col-lg-10 {
   padding-top: 1.5rem;
+  background-color: #f8f9fa;
 }
 
 @media (max-width: 767.98px) {
@@ -170,6 +198,7 @@ body:not(.dashboard-page) {
 .card {
   margin-bottom: 1.5rem;
   border: none;
+  background-color: #fff;
   box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
 }
 
@@ -362,11 +391,13 @@ body:not(.dashboard-page) {
     height: auto;
     box-shadow: none;
     margin-bottom: 1rem;
+    z-index: 1;
   }
   
   .sidebar-sticky {
     height: auto;
     overflow-y: visible;
+    background-color: #f8f9fa;
   }
   
   .navbar-brand {

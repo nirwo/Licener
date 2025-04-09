@@ -6,6 +6,40 @@
 // Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
   
+  // Toggle sidebar
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  const sidebarWrapper = document.getElementById('sidebarWrapper');
+  const contentWrapper = document.querySelector('.content-wrapper');
+  
+  if (sidebarToggleBtn && sidebarWrapper) {
+    // Check for saved state
+    const sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    
+    // Apply initial state
+    if (sidebarCollapsed) {
+      sidebarWrapper.classList.add('collapsed');
+      contentWrapper.classList.add('sidebar-collapsed');
+    }
+    
+    sidebarToggleBtn.addEventListener('click', function() {
+      sidebarWrapper.classList.toggle('collapsed');
+      contentWrapper.classList.toggle('sidebar-collapsed');
+      
+      // Save state to localStorage
+      localStorage.setItem('sidebar-collapsed', sidebarWrapper.classList.contains('collapsed'));
+    });
+  }
+  
+  // Handle mobile sidebar
+  const navbarToggler = document.querySelector('.navbar-toggler');
+  if (navbarToggler && sidebarWrapper) {
+    navbarToggler.addEventListener('click', function() {
+      if (window.innerWidth < 768) {
+        sidebarWrapper.classList.toggle('show');
+      }
+    });
+  }
+  
   // Load notifications
   loadExpiringLicenses();
   

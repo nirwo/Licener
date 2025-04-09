@@ -20,7 +20,34 @@ Licener is a full-featured web application for managing, tracking, and optimizin
 - Node.js (v14+ recommended)
 - npm or yarn
 
-### Setup
+### Quick Setup (Recommended)
+
+Licener comes with a convenient setup script that handles installation, running, and stopping the application.
+
+```bash
+# Install dependencies
+./setup.sh install
+
+# Run the application in development mode
+./setup.sh run
+
+# Start the application in production mode
+./setup.sh start
+
+# Stop the application
+./setup.sh stop
+
+# Check application status
+./setup.sh status
+
+# Backup data
+./setup.sh backup
+
+# Restore data
+./setup.sh restore
+```
+
+### Manual Setup
 
 1. Clone the repository
    ```
@@ -73,11 +100,12 @@ Licener uses a file-based database system with LowDB for data storage. This prov
 To ensure all required data files are created:
 
 ```
-# For production
-./scripts/start_file_db.sh
+# Using the setup script (recommended)
+./setup.sh run
 
-# For development with auto-restart
-./scripts/dev_file_db.sh
+# Or using the legacy scripts
+./scripts/start_file_db.sh    # For production
+./scripts/dev_file_db.sh      # For development with auto-restart
 ```
 
 ### Default User

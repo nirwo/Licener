@@ -239,7 +239,7 @@
     </div>
   </div>
   <div class="card-body">
-    {{#if (eq outputFormat "table") || (eq outputFormat "both")}}
+    {{#if (or (eq outputFormat "table") (eq outputFormat "both"))}}
       <div class="table-responsive mb-4">
         <table class="table table-hover">
           <thead>
@@ -268,7 +268,7 @@
       </div>
     {{/if}}
     
-    {{#if (eq outputFormat "chart") || (eq outputFormat "both")}}
+    {{#if (or (eq outputFormat "chart") (eq outputFormat "both"))}}
       <div class="chart-container mb-4" style="height: 400px;">
         <canvas id="reportChart"></canvas>
       </div>
@@ -443,7 +443,7 @@
     }
     
     {{#if report}}
-      {{#if (eq outputFormat "chart") || (eq outputFormat "both")}}
+      {{#if (or (eq outputFormat "chart") (eq outputFormat "both"))}}
         // Initialize Chart
         const chartCtx = document.getElementById('reportChart').getContext('2d');
         new Chart(chartCtx, {

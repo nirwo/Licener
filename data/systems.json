@@ -42,6 +42,20 @@
       "_id": "m8y88r6icqex8",
       "createdAt": "2025-04-01T08:19:24.186Z",
       "updatedAt": "2025-04-01T08:19:24.186Z"
+    },
+    {
+      "name": "a",
+      "osVersion": "a",
+      "location": "a",
+      "department": "a",
+      "managedBy": "m8rdc2uoam52f",
+      "installedSoftware": [],
+      "licenseRequirements": [],
+      "notes": "a",
+      "status": "active",
+      "_id": "m99svkciorvgr",
+      "createdAt": "2025-04-09T10:42:28.674Z",
+      "updatedAt": "2025-04-09T10:42:28.674Z"
     }
   ]
 }
