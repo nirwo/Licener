@@ -23,31 +23,14 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
       role: req.user.role
     });
     
-    // Fetch all licenses and systems for the user with enhanced debugging
-    // First try to get user-specific licenses
-    let allUserLicenses = await License.find({ owner: userId });
+    // IMPORTANT FIX: Get all licenses temporarily for testing/display
+    console.log(`Loading all licenses for display, skipping owner filter for now`);
+    let allUserLicenses = await License.find({});
     
-    // If no licenses found for this user, show all licenses temporarily (for testing)
-    if (allUserLicenses.length === 0) {
-      console.log(`No licenses found specifically for user ${userId}, showing all licenses for testing`);
-      let allLicenses = await License.find({});
-      
-      // Check if there are licenses with no owner or invalid owner, and assign current user
-      for (const license of allLicenses) {
-        if (!license.owner) {
-          console.log(`License ${license._id} has no owner, assigning current user as owner`);
-          await License.findByIdAndUpdate(license._id, { owner: userId });
-        }
-      }
-      
-      // Refetch licenses after potential updates
-      allUserLicenses = await License.find({ owner: userId });
-      
-      // If still no licenses found for this user, show all licenses
-      if (allUserLicenses.length === 0) {
-        allUserLicenses = allLicenses;
-      }
-    }
+    // Print license details for debugging
+    allUserLicenses.forEach((license, index) => {
+      console.log(`License ${index+1}: ID=${license._id}, Name=${license.name}, Owner=${license.owner}`);
+    });
     
     // Always get user-specific systems 
     const allUserSystems = await System.find({ managedBy: userId });
