@@ -105,14 +105,33 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
     const userId = getUserId(req);
     // Get all licenses for the user
     let licenses = License.find({ owner: userId });
+    
+    // If no licenses found, show empty state
+    if (!licenses || licenses.length === 0) {
+      return res.render('reports/license-utilization', {
+        title: 'License Utilization Report',
+        productUtilization: [],
+        noLicenses: true
+      });
+    }
 
     // Recalculate usedSeats by counting assigned systems for accuracy
-    // This is a safeguard, ideally usedSeats is updated correctly elsewhere
     for (const license of licenses) {
       const assignedSystemIds = license.assignedSystems || [];
       license.usedSeats = assignedSystemIds.length;
-      // Optionally, update the license in the DB if recalculation is primary method
-      // await License.findByIdAndUpdate(license._id, { usedSeats: license.usedSeats });
+      
+      // Make sure totalSeats is a number
+      if (!license.totalSeats || isNaN(parseInt(license.totalSeats))) {
+        license.totalSeats = 1; // Default to 1 seat
+      } else {
+        license.totalSeats = parseInt(license.totalSeats);
+      }
+      
+      // Update license in DB
+      await License.findByIdAndUpdate(license._id, { 
+        usedSeats: license.usedSeats,
+        totalSeats: license.totalSeats
+      });
     }
     
     // Sort by product and name
@@ -145,16 +164,27 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
         usedSeats,
         availableSeats: totalSeats - usedSeats,
         utilization,
-        licenses: productLicenses
+        licenses: productLicenses,
+        licenseCount: productLicenses.length
       });
     }
     
     // Sort by utilization (highest to lowest)
     productUtilization.sort((a, b) => b.utilization - a.utilization);
     
+    // Calculate total utilization
+    const totalSeats = licenses.reduce((sum, license) => sum + (parseInt(license.totalSeats) || 0), 0);
+    const usedSeats = licenses.reduce((sum, license) => sum + (parseInt(license.usedSeats) || 0), 0);
+    const overallUtilization = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
+    
     res.render('reports/license-utilization', {
       title: 'License Utilization Report',
-      productUtilization
+      productUtilization,
+      totalLicenses: licenses.length,
+      totalSeats,
+      usedSeats,
+      availableSeats: totalSeats - usedSeats,
+      overallUtilization
     });
   } catch (err) {
     console.error('Error generating license utilization report:', err);
@@ -163,7 +193,7 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Cost Analysis Report - Assuming cost data is reliable
+// Cost Analysis Report
 router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -178,38 +208,50 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
     const vendorCosts = {};
     const productCosts = {};
     let totalCost = 0;
+    let vendorCounts = {};
+    let productCounts = {};
     
     licenses.forEach(license => {
       // Ensure cost is a valid number
-      const cost = parseFloat(license.cost);
-      if (!isNaN(cost) && cost > 0) {
-        totalCost += cost;
-        const vendorKey = license.vendor || 'Unknown Vendor';
-        const productKey = license.product || 'Unknown Product';
-
-        // Vendor costs
-        vendorCosts[vendorKey] = (vendorCosts[vendorKey] || 0) + cost;
-        // Product costs
-        productCosts[productKey] = (productCosts[productKey] || 0) + cost;
-      }
+      const cost = parseFloat(license.cost || 0);
+      // If cost is NaN, use 0
+      const numericCost = isNaN(cost) ? 0 : cost;
+      
+      // Get vendor and product
+      const vendorKey = license.vendor || 'Unknown Vendor';
+      const productKey = license.product || 'Unknown Product';
+      
+      // Count vendors and products
+      vendorCounts[vendorKey] = (vendorCounts[vendorKey] || 0) + 1;
+      productCounts[productKey] = (productCounts[productKey] || 0) + 1;
+      
+      // Add to total cost
+      totalCost += numericCost;
+      
+      // Vendor costs
+      vendorCosts[vendorKey] = (vendorCosts[vendorKey] || 0) + numericCost;
+      // Product costs
+      productCosts[productKey] = (productCosts[productKey] || 0) + numericCost;
     });
     
     // Convert to arrays for sorting and display
     const vendorCostsArray = Object.entries(vendorCosts).map(([vendor, cost]) => ({
       vendor,
       cost: cost.toFixed(2),
+      count: vendorCounts[vendor], // Add license count
       percentage: totalCost > 0 ? ((cost / totalCost) * 100).toFixed(2) : 0
     }));
     
     const productCostsArray = Object.entries(productCosts).map(([product, cost]) => ({
       product,
       cost: cost.toFixed(2),
+      count: productCounts[product], // Add license count
       percentage: totalCost > 0 ? ((cost / totalCost) * 100).toFixed(2) : 0
     }));
     
     // Sort by cost (highest to lowest)
-    vendorCostsArray.sort((a, b) => b.cost - a.cost);
-    productCostsArray.sort((a, b) => b.cost - a.cost);
+    vendorCostsArray.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));
+    productCostsArray.sort((a, b) => parseFloat(b.cost) - parseFloat(a.cost));
     
     res.render('reports/cost-analysis', {
       title: 'Cost Analysis Report',
@@ -218,7 +260,8 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
       totalCost: totalCost.toFixed(2),
       period, // Pass period to template if needed for display
       chartType, // Pass chart type for rendering
-      groupBy // Pass groupBy preference
+      groupBy, // Pass groupBy preference
+      totalLicenses: licenses.length
     });
   } catch (err) {
     console.error('Error generating cost analysis report:', err);

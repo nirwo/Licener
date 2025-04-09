@@ -269,10 +269,11 @@ router.get('/:id', ensureAuthenticated, async (req, res) => {
     console.log('View License - req.user.id:', req.user.id);
     console.log('View License - req.user.role:', req.user.role);
 
-    // Check if user is owner or admin
+    // Check if user is owner or admin with better error handling
     // Note: Accessing populated owner ID might differ slightly depending on populate implementation
-    // Add a check to ensure license and license.owner exist before accessing _id
-    if (!license || !license.owner || (license.owner._id.toString() !== req.user._id.toString() && req.user.role !== 'admin')) {
+    const licenseOwnerId = license?.owner?._id ? license.owner._id.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (!license || !license.owner || (licenseOwnerId !== currentUserId && req.user.role !== 'admin')) {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -298,8 +299,10 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -341,8 +344,10 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -461,8 +466,10 @@ router.delete('/:id', ensureAuthenticated, async (req, res) => {
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -507,8 +514,10 @@ router.post('/:id/delete', ensureAuthenticated, async (req, res) => {
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -549,8 +558,10 @@ router.delete('/:id/attachments/:attachmentId', ensureAuthenticated, async (req,
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -590,8 +601,10 @@ router.get('/renew/:id', ensureAuthenticated, async (req, res) => {
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -617,8 +630,10 @@ router.post('/renew/:id', ensureAuthenticated, upload.array('attachments', 5), a
       return res.redirect('/licenses');
     }
     
-    // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    // Check if user is owner or admin with better error handling
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }

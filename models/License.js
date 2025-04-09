@@ -27,26 +27,71 @@ const License = {
     // Process each document
     for (const doc of clonedDocs) {
       if (path === 'assignedSystems') {
-        // Populate systems
+        // Populate systems with better error handling
         if (doc.assignedSystems && doc.assignedSystems.length > 0) {
+          console.log(`License Populate - Populating ${doc.assignedSystems.length} systems for license ${doc._id}`);
+          
           // Map to array of promises then await all
           const systemPromises = doc.assignedSystems.map(async systemId => {
-            const system = await System.findById(systemId);
-            return system || systemId;
+            if (!systemId) {
+              console.log(`License Populate - Skipping null/undefined system ID`);
+              return null;
+            }
+            
+            // Ensure we're working with a string ID
+            const sysId = systemId.toString();
+            console.log(`License Populate - Attempting to find System with ID: ${sysId}`);
+            
+            try {
+              const system = await System.findById(sysId);
+              if (system) {
+                return system;
+              } else {
+                console.log(`License Populate - No system found with ID: ${sysId}`);
+                return systemId; // Return original ID if system not found
+              }
+            } catch (err) {
+              console.error(`Error populating system with ID ${sysId}:`, err);
+              return systemId; // Return original ID on error
+            }
           });
-          doc.assignedSystems = await Promise.all(systemPromises);
+          
+          // Filter out null values after populating
+          const populatedSystems = await Promise.all(systemPromises);
+          doc.assignedSystems = populatedSystems.filter(system => system !== null);
+        } else {
+          console.log(`License Populate - No systems to populate for license ${doc._id}`);
+          // Initialize as empty array if undefined
+          if (!doc.assignedSystems) {
+            doc.assignedSystems = [];
+          }
         }
       } else if (path === 'owner') {
-        // Populate owner
+        // Populate owner with better error handling
         if (doc.owner) {
-          console.log(`License Populate - Attempting to find User with ID: ${doc.owner}`); // Log owner ID
-          const owner = await User.findById(doc.owner);
-          console.log(`License Populate - User.findById result: ${JSON.stringify(owner)}`); // Log result
-          if (owner) {
-            doc.owner = owner;
-            // Add id property for backwards compatibility
-            doc.owner.id = doc.owner._id.toString();
+          // Ensure we're working with a string ID
+          const ownerId = doc.owner.toString();
+          console.log(`License Populate - Attempting to find User with ID: ${ownerId}`);
+          
+          try {
+            const owner = await User.findById(ownerId);
+            console.log(`License Populate - User.findById result: ${JSON.stringify(owner)}`);
+            
+            if (owner) {
+              doc.owner = owner;
+              // Ensure _id is available as a string
+              if (owner._id) {
+                // Add id property for backwards compatibility
+                doc.owner.id = owner._id.toString();
+              }
+            } else {
+              console.log(`License Populate - No owner found with ID: ${ownerId}`);
+            }
+          } catch (err) {
+            console.error(`Error populating owner with ID ${ownerId}:`, err);
           }
+        } else {
+          console.log(`License Populate - No owner ID to populate`);
         }
       }
     }

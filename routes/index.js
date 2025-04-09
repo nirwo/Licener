@@ -15,9 +15,9 @@ router.get('/', (req, res) => {
 // Dashboard
 router.get('/dashboard', ensureAuthenticated, async (req, res) => {
   try {
-    // Fetch all licenses and systems for the user
-    const allUserLicenses = await License.find({ owner: req.user.id });
-    const allUserSystems = await System.find({ managedBy: req.user.id });
+    // Fetch all licenses and systems for the user - use _id instead of id
+    const allUserLicenses = await License.find({ owner: req.user._id.toString() });
+    const allUserSystems = await System.find({ managedBy: req.user._id.toString() });
 
     // Debugging: Log user ID and fetched licenses
     console.log(`Dashboard - Logged in User ID: ${req.user.id}`);
@@ -45,8 +45,8 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
       .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)) // Sort by expiry date ASC
       .slice(0, 5); // Limit to 5
 
-    // Get license utilization data for chart
-    const licenses = await License.find({ owner: req.user.id })
+    // Get license utilization data for chart with proper ID comparison
+    const licenses = await License.find({ owner: req.user._id.toString() })
       .sort({ utilization: -1 })
       .limit(5);
     

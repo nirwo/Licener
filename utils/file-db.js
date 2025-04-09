@@ -158,14 +158,33 @@ const dbOperations = (dbName) => {
     findById: (id) => {
       if (!id) return null;
       
-      // Convert id to string for comparison
+      // Convert id to string for comparison with error handling
       const idStr = id.toString(); 
+      console.log(`FIND BY ID: Looking for _id=${idStr} in ${dbName}`);
       
-      const result = db.get('data')
-        .find(item => item._id && item._id.toString() === idStr)
-        .value();
-      
-      return result || null;
+      try {
+        const result = db.get('data')
+          .find(item => {
+            // Ensure item has _id before comparing
+            if (!item || !item._id) return false;
+            
+            const itemIdStr = item._id.toString();
+            const match = itemIdStr === idStr;
+            
+            // Debug logging
+            if (match) {
+              console.log(`FIND BY ID: Found matching item with _id=${itemIdStr}`);
+            }
+            
+            return match;
+          })
+          .value();
+        
+        return result || null;
+      } catch (err) {
+        console.error(`Error in findById for ${dbName}:`, err);
+        return null;
+      }
     },
     
     /**
@@ -214,16 +233,35 @@ const dbOperations = (dbName) => {
     findByIdAndUpdate: (id, data) => {
       if (!id) return null;
       
-      // Convert id to string for comparison
+      // Convert id to string for comparison with error handling
       const idStr = id.toString();
+      console.log(`UPDATE BY ID: Looking to update _id=${idStr} in ${dbName}`);
       
-      // Find record by string ID
-      const record = db.get('data')
-        .find(item => item._id && item._id.toString() === idStr)
-        .value();
-      
-      if (!record) {
-        console.warn(`${dbName.toUpperCase()} DB - Update failed: Record with ID ${idStr} not found`);
+      try {
+        // Find record by string ID with better error handling
+        const record = db.get('data')
+          .find(item => {
+            // Ensure item has _id before comparing
+            if (!item || !item._id) return false;
+            
+            const itemIdStr = item._id.toString();
+            const match = itemIdStr === idStr;
+            
+            // Debug logging
+            if (match) {
+              console.log(`UPDATE BY ID: Found matching item with _id=${itemIdStr}`);
+            }
+            
+            return match;
+          })
+          .value();
+        
+        if (!record) {
+          console.warn(`${dbName.toUpperCase()} DB - Update failed: Record with ID ${idStr} not found`);
+          return null;
+        }
+      } catch (err) {
+        console.error(`Error in findByIdAndUpdate for ${dbName}:`, err);
         return null;
       }
       
@@ -235,7 +273,11 @@ const dbOperations = (dbName) => {
       
       try {
         db.get('data')
-          .find(item => item._id && item._id.toString() === idStr)
+          .find(item => {
+            // Ensure item has _id before comparing
+            if (!item || !item._id) return false;
+            return item._id.toString() === idStr;
+          })
           .assign(updatedRecord)
           .write();
         
@@ -255,20 +297,40 @@ const dbOperations = (dbName) => {
     findByIdAndDelete: (id) => {
       if (!id) return false;
       
-      // Convert id to string for comparison
+      // Convert id to string for comparison with error handling
       const idStr = id.toString();
-      
-      const record = db.get('data')
-        .find(item => item._id && item._id.toString() === idStr)
-        .value();
-      
-      if (!record) {
-        return false;
-      }
+      console.log(`DELETE BY ID: Looking to delete _id=${idStr} in ${dbName}`);
       
       try {
+        // Find record by string ID with better error handling
+        const record = db.get('data')
+          .find(item => {
+            // Ensure item has _id before comparing
+            if (!item || !item._id) return false;
+            
+            const itemIdStr = item._id.toString();
+            const match = itemIdStr === idStr;
+            
+            // Debug logging
+            if (match) {
+              console.log(`DELETE BY ID: Found matching item with _id=${itemIdStr}`);
+            }
+            
+            return match;
+          })
+          .value();
+        
+        if (!record) {
+          console.warn(`${dbName.toUpperCase()} DB - Delete failed: Record with ID ${idStr} not found`);
+          return false;
+        }
+        
         db.get('data')
-          .remove(item => item._id && item._id.toString() === idStr)
+          .remove(item => {
+            // Ensure item has _id before comparing
+            if (!item || !item._id) return false;
+            return item._id.toString() === idStr;
+          })
           .write();
         
         console.log(`${dbName.toUpperCase()} DB - Deleted record with ID:`, idStr);
@@ -359,10 +421,17 @@ const dbOperations = (dbName) => {
                 });
               }
               
-              // Handle ID comparisons
+              // Handle ID comparisons with better error handling
               if (key === 'managedBy' || key === 'owner' || key === '_id') {
+                // Ensure both values exist before comparing
+                if (item[key] === undefined || value === undefined) {
+                  return false;
+                }
+                
                 const itemValue = item[key] ? item[key].toString() : '';
                 const compareValue = value ? value.toString() : '';
+                
+                console.log(`ID COMPARISON in updateMany: ${key}=${itemValue} vs ${compareValue}, MATCH=${itemValue === compareValue}`);
                 return itemValue === compareValue;
               }
               
@@ -433,10 +502,17 @@ const dbOperations = (dbName) => {
       if (Object.keys(filter).length > 0) {
         records = records.filter(item => {
           return Object.entries(filter).every(([key, value]) => {
-            // Handle ID comparisons
+            // Handle ID comparisons with better error handling
             if (key === 'managedBy' || key === 'owner' || key === '_id') {
+              // Ensure both values exist before comparing
+              if (item[key] === undefined || value === undefined) {
+                return false;
+              }
+              
               const itemValue = item[key] ? item[key].toString() : '';
               const compareValue = value ? value.toString() : '';
+              
+              console.log(`ID COMPARISON in distinct: ${key}=${itemValue} vs ${compareValue}, MATCH=${itemValue === compareValue}`);
               return itemValue === compareValue;
             }
             
