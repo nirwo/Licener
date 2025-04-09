@@ -31,8 +31,8 @@ const System = {
           for (const req of doc.licenseRequirements) {
             if (req.licenseId) {
               try {
-                // Use the robust findById from the License model
-                const license = License.findById(req.licenseId);
+                // Use the robust findById from the License model with await
+                const license = await License.findById(req.licenseId);
                 if (license) {
                   req.licenseId = license; // Replace ID with populated object
                 } else {
@@ -49,12 +49,13 @@ const System = {
         // Populate managed by
         if (doc.managedBy) {
           try {
-            // Use the robust findById from the User model
-            const manager = User.findById(doc.managedBy);
+            // Use the robust findById from the User model with await
+            const manager = await User.findById(doc.managedBy);
             if (manager) {
               // Selectively populate user fields to avoid exposing sensitive data like password hash
               doc.managedBy = {
                 _id: manager._id,
+                id: manager._id.toString(), // Add id for backwards compatibility
                 name: manager.name,
                 email: manager.email,
                 role: manager.role

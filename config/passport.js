@@ -41,6 +41,10 @@ module.exports = function(passport) {
   passport.deserializeUser(function(id, done) {
     try {
       const user = User.findById(id);
+      if (user) {
+        // Ensure user.id is set for backward compatibility
+        user.id = user._id.toString();
+      }
       done(null, user);
     } catch (err) {
       done(err, null);

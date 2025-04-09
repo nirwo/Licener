@@ -109,6 +109,11 @@ const dbOperations = (dbName) => {
             
             // Handle ID comparisons (special case for managedBy, owner, _id)
             if (key === 'managedBy' || key === 'owner' || key === '_id') {
+              // Ensure both values exist before comparing
+              if (item[key] === undefined || value === undefined) {
+                return false;
+              }
+              
               // Convert both to strings for proper comparison
               const itemValue = item[key] ? item[key].toString() : '';
               const compareValue = value ? value.toString() : '';

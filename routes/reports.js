@@ -5,7 +5,7 @@ const License = require('../models/License');
 const System = require('../models/System');
 const User = require('../models/User');
 const moment = require('moment');
-const { Parser } = require('json2csv');
+const { NodeParser } = require('@json2csv/node'); // Updated package
 
 // Helper function to convert user ID to string for queries
 const getUserId = (req) => req.user._id.toString();
@@ -511,7 +511,7 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
 
     // --- Generate CSV --- 
     try {
-        const json2csvParser = new Parser({ fields: csvHeaders });
+        const json2csvParser = new NodeParser({ fields: csvHeaders });
         const csv = json2csvParser.parse(reportData);
 
         res.header('Content-Type', 'text/csv');

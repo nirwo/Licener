@@ -49,7 +49,7 @@
                 </td>
                 <td>
                   <div class="btn-group btn-group-sm">
-                    <a href="/licenses/view/{{_id}}" class="btn btn-info">
+                    <a href="/licenses/{{_id}}" class="btn btn-info">
                       <i class="fas fa-eye"></i>
                     </a>
                     <a href="/licenses/edit/{{_id}}" class="btn btn-warning">
@@ -104,9 +104,24 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const table = document.querySelector('table');
-    if (table) {
-      new DataTable(table, {
+    console.log('DOM Loaded, initializing DataTables...');
+    // Select all tables with the .datatable class on the page
+    const dataTables = document.querySelectorAll('.datatable');
+
+    dataTables.forEach(table => {
+      console.log('Processing table:', table);
+      // Check if the table is already initialized using jQuery DataTables API
+      if ($.fn.dataTable.isDataTable(table)) {
+        console.log('Table is already a DataTable. Destroying...');
+        // If yes, destroy the existing instance first
+        $(table).DataTable().destroy();
+      } else {
+        console.log('Table is not a DataTable.');
+      }
+
+      console.log('Initializing DataTable on table:', table);
+      // Now, initialize (or re-initialize) the DataTable using jQuery syntax
+      $(table).DataTable({
         responsive: true,
         pageLength: 10,
         lengthMenu: [5, 10, 25, 50],
@@ -114,6 +129,7 @@
           search: "Filter records:"
         }
       });
-    }
+    });
+    console.log('DataTables initialization complete.');
   });
 </script>

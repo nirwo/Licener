@@ -11,13 +11,14 @@ const License = {
   // Mongoose-like populate functionality
   populate: async (docs, path) => {
     const { System } = require('./System');
-    const { User } = require('./User');
+    const User = require('./User');
     
     if (!docs) return null;
     
     // Handle single document
     if (!Array.isArray(docs)) {
-      return License.populate([docs], path)[0];
+      // Use await to ensure proper async resolution
+      return (await License.populate([docs], path))[0];
     }
     
     // Clone the documents to avoid modifying originals
@@ -28,17 +29,23 @@ const License = {
       if (path === 'assignedSystems') {
         // Populate systems
         if (doc.assignedSystems && doc.assignedSystems.length > 0) {
-          doc.assignedSystems = doc.assignedSystems.map(systemId => {
-            const system = System.findById(systemId);
+          // Map to array of promises then await all
+          const systemPromises = doc.assignedSystems.map(async systemId => {
+            const system = await System.findById(systemId);
             return system || systemId;
           });
+          doc.assignedSystems = await Promise.all(systemPromises);
         }
       } else if (path === 'owner') {
         // Populate owner
         if (doc.owner) {
-          const owner = User.findById(doc.owner);
+          console.log(`License Populate - Attempting to find User with ID: ${doc.owner}`); // Log owner ID
+          const owner = await User.findById(doc.owner);
+          console.log(`License Populate - User.findById result: ${JSON.stringify(owner)}`); // Log result
           if (owner) {
             doc.owner = owner;
+            // Add id property for backwards compatibility
+            doc.owner.id = doc.owner._id.toString();
           }
         }
       }

@@ -5,33 +5,6 @@
 
 // Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize DataTables if tables with the class exist
-  const dataTables = document.querySelectorAll('.datatable');
-  if (dataTables.length > 0) {
-    dataTables.forEach(table => {
-      $(table).DataTable({
-        responsive: true,
-        pageLength: 10,
-        lengthChange: true,
-        ordering: true,
-        language: {
-          search: "_INPUT_",
-          searchPlaceholder: "Search...",
-          lengthMenu: "_MENU_ records per page",
-          info: "Showing _START_ to _END_ of _TOTAL_ records",
-          infoEmpty: "Showing 0 to 0 of 0 records",
-          infoFiltered: "(filtered from _MAX_ total records)"
-        },
-        drawCallback: function() {
-          // Reinitialize tooltips after table draw
-          var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-          tooltipTriggerList.map(function(tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-          });
-        }
-      });
-    });
-  }
   
   // Load notifications
   loadExpiringLicenses();

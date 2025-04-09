@@ -15,23 +15,36 @@ router.get('/', (req, res) => {
 // Dashboard
 router.get('/dashboard', ensureAuthenticated, async (req, res) => {
   try {
-    // Get counts and stats
-    const licenseCount = await License.countDocuments({ owner: req.user.id });
-    const expiringLicenses = await License.find({
-      owner: req.user.id,
-      expiryDate: {
-        $gte: new Date(),
-        $lte: moment().add(30, 'days').toDate()
-      }
-    }).sort({ expiryDate: 1 }).limit(5);
-    
-    const expiredLicenses = await License.countDocuments({
-      owner: req.user.id,
-      status: 'expired'
-    });
-    
-    const systemCount = await System.countDocuments({ managedBy: req.user.id });
-    
+    // Fetch all licenses and systems for the user
+    const allUserLicenses = await License.find({ owner: req.user.id });
+    const allUserSystems = await System.find({ managedBy: req.user.id });
+
+    // Debugging: Log user ID and fetched licenses
+    console.log(`Dashboard - Logged in User ID: ${req.user.id}`);
+    console.log(`Dashboard - Found ${allUserLicenses.length} licenses for this owner ID.`);
+    // Optional: Log the actual license objects if the count is 0 but shouldn't be
+    if (allUserLicenses.length === 0) {
+      const allLicensesInDb = await License.find({}); // Fetch all licenses regardless of owner
+      console.log('Dashboard - All licenses in DB:', JSON.stringify(allLicensesInDb, null, 2));
+    }
+
+    // Calculate counts
+    const licenseCount = allUserLicenses.length;
+    const systemCount = allUserSystems.length;
+    const expiredLicensesCount = allUserLicenses.filter(lic => lic.status === 'expired').length;
+
+    // Calculate expiring licenses (within 30 days)
+    const now = new Date();
+    const thirtyDaysFromNow = moment().add(30, 'days').toDate();
+    const expiringLicenses = allUserLicenses
+      .filter(lic => {
+        if (!lic.expiryDate) return false;
+        const expiry = new Date(lic.expiryDate);
+        return expiry >= now && expiry <= thirtyDaysFromNow;
+      })
+      .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)) // Sort by expiry date ASC
+      .slice(0, 5); // Limit to 5
+
     // Get license utilization data for chart
     const licenses = await License.find({ owner: req.user.id })
       .sort({ utilization: -1 })
@@ -47,7 +60,7 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
       user: req.user,
       licenseCount,
       systemCount,
-      expiredLicenses,
+      expiredLicenses: expiredLicensesCount, // Pass the count
       expiringLicenses,
       licenseUtilization: JSON.stringify(licenseUtilization)
     });

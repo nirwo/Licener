@@ -48,16 +48,20 @@ router.get('/', ensureAuthenticated, async (req, res) => {
     console.log('User ID for license query:', req.user._id);
     
     // Create base query
-    let query = { owner: req.user._id };
-    
+    let baseQuery = { owner: req.user._id }; // Query for all licenses owned by user
+ 
     // Filter by status if provided
+    let displayQuery = { ...baseQuery }; // Query for licenses to display (with filters)
     if (req.query.status && req.query.status !== 'all') {
-      query.status = req.query.status;
+      displayQuery.status = req.query.status;
     }
     
+    // Fetch all user licenses for distinct values first
+    const allUserLicenses = await License.find(baseQuery);
+    
     // Find matching licenses
-    console.log('License query:', query);
-    let licenses = License.find(query);
+    console.log('License display query:', displayQuery);
+    let licenses = await License.find(displayQuery); // Added await
     console.log('Found licenses:', licenses.length);
     
     // Apply manual filtering for text search (product & vendor)
@@ -82,8 +86,8 @@ router.get('/', ensureAuthenticated, async (req, res) => {
     licenses = await License.populate(licenses, 'assignedSystems');
     
     // Get unique products and vendors for filter dropdowns
-    const products = License.distinct('product', { owner: req.user._id });
-    const vendors = License.distinct('vendor', { owner: req.user._id });
+    const products = [...new Set(allUserLicenses.map(lic => lic.product).filter(Boolean))].sort();
+    const vendors = [...new Set(allUserLicenses.map(lic => lic.vendor).filter(Boolean))].sort();
     
     res.render('licenses/index', {
       title: 'Licenses',
@@ -246,17 +250,29 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
 // View license details
 router.get('/:id', ensureAuthenticated, async (req, res) => {
   try {
-    const license = await License.findById(req.params.id)
-      .populate('assignedSystems')
-      .populate('owner', 'name email');
+    let license = await License.findById(req.params.id);
     
     if (!license) {
       req.flash('error_msg', 'License not found');
       return res.redirect('/licenses');
     }
     
+    // Populate the necessary fields using the static method
+    // Ensure License.populate can handle multiple fields if needed, or call separately
+    // Assuming populate modifies the object in place or returns the populated object
+    license = await License.populate(license, 'assignedSystems'); // Populate systems
+    license = await License.populate(license, 'owner'); // Populate owner
+
+    // Debugging: Log values before authorization check
+    console.log('View License - License Object:', JSON.stringify(license, null, 2));
+    console.log('View License - license?.owner?._id:', license?.owner?._id);
+    console.log('View License - req.user.id:', req.user.id);
+    console.log('View License - req.user.role:', req.user.role);
+
     // Check if user is owner or admin
-    if (license.owner._id.toString() !== req.user.id && req.user.role !== 'admin') {
+    // Note: Accessing populated owner ID might differ slightly depending on populate implementation
+    // Add a check to ensure license and license.owner exist before accessing _id
+    if (!license || !license.owner || (license.owner._id.toString() !== req.user._id.toString() && req.user.role !== 'admin')) {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -283,7 +299,7 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user._id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -326,7 +342,7 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -446,7 +462,7 @@ router.delete('/:id', ensureAuthenticated, async (req, res) => {
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -492,7 +508,7 @@ router.post('/:id/delete', ensureAuthenticated, async (req, res) => {
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -534,7 +550,7 @@ router.delete('/:id/attachments/:attachmentId', ensureAuthenticated, async (req,
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -575,7 +591,7 @@ router.get('/renew/:id', ensureAuthenticated, async (req, res) => {
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
@@ -602,7 +618,7 @@ router.post('/renew/:id', ensureAuthenticated, upload.array('attachments', 5), a
     }
     
     // Check if user is owner or admin
-    if (license.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (license.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       req.flash('error_msg', 'Not authorized');
       return res.redirect('/licenses');
     }
