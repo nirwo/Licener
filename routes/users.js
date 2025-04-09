@@ -97,6 +97,13 @@ router.post('/login', (req, res, next) => {
   // For debugging
   console.log('Login attempt with:', { email: req.body.email });
   
+  // Validate request data
+  if (!req.body.email || !req.body.password) {
+    console.log('Login attempt with missing credentials');
+    req.flash('error_msg', 'Please provide both email and password');
+    return res.redirect('/users/login');
+  }
+  
   passport.authenticate('local', (err, user, info) => {
     if (err) {
       console.error('Login error:', err);
@@ -110,6 +117,18 @@ router.post('/login', (req, res, next) => {
       return res.redirect('/users/login');
     }
     
+    // Verify user object has required fields
+    if (!user._id) {
+      console.error('User object is missing required _id field:', user);
+      req.flash('error_msg', 'Invalid user account. Please contact support.');
+      return res.redirect('/users/login');
+    }
+    
+    // Add id property if missing (for backward compatibility)
+    if (!user.id && user._id) {
+      user.id = user._id.toString();
+    }
+    
     req.logIn(user, (err) => {
       if (err) {
         console.error('Session error:', err);
@@ -117,7 +136,14 @@ router.post('/login', (req, res, next) => {
         return res.redirect('/users/login');
       }
       
-      console.log('User logged in successfully:', user.email);
+      // Add extra logging for successful login
+      console.log('User logged in successfully:', {
+        id: user.id || user._id, 
+        email: user.email,
+        name: user.name,
+        role: user.role
+      });
+      
       req.flash('success_msg', 'Welcome! You have successfully logged in.');
       return res.redirect('/dashboard');
     });
