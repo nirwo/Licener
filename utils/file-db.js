@@ -737,14 +737,24 @@ const SYSTEM_FILE = dbFiles.systems;
 const System = {
   ...dbOperations('systems'),
   
-  // Update findById to use safeToString
+  // Fix the findById method that's causing the error
   findById: async (id) => {
     if (!id) return null;
     const idStr = safeToString(id);
     
     try {
-      const result = db.findById('systems', idStr);
-      return result;
+      // Read from systems file directly instead of using db.findById
+      if (!fs.existsSync(SYSTEM_FILE)) {
+        console.log('System file does not exist');
+        return null;
+      }
+      
+      const data = JSON.parse(fs.readFileSync(SYSTEM_FILE, 'utf8'));
+      const systems = data.data || [];
+      
+      // Find by ID with safe comparison
+      const system = systems.find(sys => safeIdCompare(sys._id, idStr));
+      return system || null;
     } catch (err) {
       console.error('Error in System.findById:', err);
       return null;
