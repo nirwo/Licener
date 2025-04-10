@@ -1,101 +1,85 @@
 const LocalStrategy = require('passport-local').Strategy;
+const { User } = require('../utils/file-db');
 const bcrypt = require('bcryptjs');
 
-// Load User model
-const User = require('../models/User');
+// Safe toString utility function
+const safeToString = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  try {
+    return String(value);
+  } catch (error) {
+    console.error("Error converting value to string:", error);
+    return '';
+  }
+};
 
 module.exports = function(passport) {
   passport.use(
-    new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
-      try {
-        console.log('Login attempt for:', email);
-        
-        // Match user using file DB with error handling
-        if (!email) {
-          console.error('Login attempt with empty email');
-          return done(null, false, { message: 'Email is required' });
-        }
-        
-        // Find user by email (case insensitive)
-        const users = User.find({ email: email.toLowerCase() });
-        const user = users.length > 0 ? users[0] : null;
-        
-        if (!user) {
-          console.error('No user found with email:', email);
-          return done(null, false, { message: 'That email is not registered' });
-        }
-
-        // Verify password is provided
-        if (!password) {
-          console.error('Login attempt with empty password for:', email);
-          return done(null, false, { message: 'Password is required' });
-        }
-
-        // Match password with better error handling
-        try {
-          const isMatch = await bcrypt.compare(password, user.password);
-          
-          if (isMatch) {
-            console.log('Successful login for:', email);
-            
-            // Update last login time
-            user.lastLogin = Date.now();
-            try {
-              User.findByIdAndUpdate(user._id.toString(), { lastLogin: Date.now() });
-            } catch (updateErr) {
-              console.error('Failed to update last login time:', updateErr);
-              // Continue with login even if last login update fails
-            }
-            
-            return done(null, user);
-          } else {
-            console.log('Password mismatch for:', email);
-            return done(null, false, { message: 'Password incorrect' });
+    new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
+      // Match user
+      User.findOne({ email: email })
+        .then(user => {
+          if (!user) {
+            return done(null, false, { message: 'That email is not registered' });
           }
-        } catch (bcryptErr) {
-          console.error('Error comparing passwords:', bcryptErr);
-          return done(null, false, { message: 'Authentication error' });
-        }
-      } catch (err) {
-        console.error('Authentication error:', err);
-        return done(err);
-      }
+
+          // Match password
+          bcrypt.compare(password, user.password, (err, isMatch) => {
+            if (err) throw err;
+            if (isMatch) {
+              return done(null, user);
+            } else {
+              return done(null, false, { message: 'Password incorrect' });
+            }
+          });
+        })
+        .catch(err => {
+          console.error('Error in LocalStrategy:', err);
+          return done(err);
+        });
     })
   );
 
-  passport.serializeUser(function(user, done) {
-    done(null, user._id);
+  passport.serializeUser((user, done) => {
+    try {
+      if (user && (user._id || user.id)) {
+        const userId = user._id || user.id;
+        console.log(`Serializing user: ${userId}`);
+        return done(null, userId);
+      }
+      console.error("Cannot serialize user - missing ID:", user);
+      return done(null, false);
+    } catch (err) {
+      console.error("Error serializing user:", err);
+      return done(err, null);
+    }
   });
 
-  passport.deserializeUser(function(id, done) {
+  passport.deserializeUser((id, done) => {
+    console.log(`Deserializing user with ID: ${id}`);
+    
     try {
-      // Add better error handling for ID
-      if (!id) {
-        console.error('Deserialize User: Invalid ID provided', id);
-        return done(null, false);
-      }
-      
-      // Make sure we're using a string ID
-      const idStr = id.toString();
-      console.log('Deserializing user with ID:', idStr);
-      
-      const user = User.findById(idStr);
-      
-      if (!user) {
-        console.error('Deserialize User: No user found with ID', idStr);
-        return done(null, false);
-      }
-      
-      // Ensure user.id is set for backward compatibility
-      user.id = user._id.toString();
-      
-      // Log successful deserialization
-      console.log('Deserialized user:', user.name || user.email);
-      
-      done(null, user);
+      User.findOne({ _id: id })
+        .then(user => {
+          if (!user) {
+            console.log(`No user found with ID: ${id}`);
+            return done(null, false);
+          }
+          
+          // Log the entire user object for debugging
+          console.log("Found user:", JSON.stringify(user, null, 2));
+          
+          // Return the user directly, avoiding any toString() operations
+          return done(null, user);
+        })
+        .catch(err => {
+          console.error('Error deserializing user:', err);
+          return done(err, null);
+        });
     } catch (err) {
-      console.error('Error deserializing user:', err);
-      done(err, null);
+      console.error('Error in deserializeUser:', err);
+      return done(err, null);
     }
   });
 };

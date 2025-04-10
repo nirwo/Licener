@@ -27,13 +27,13 @@ router.get('/register', ensureGuest, (req, res) => {
   });
 });
 
-// Register
-router.post('/register', ensureGuest, async (req, res) => {
+// Register user - POST route
+router.post('/register', async (req, res) => {
   try {
     const { name, email, password, password2 } = req.body;
-    let errors = [];
+    const errors = [];
 
-    // Validate required fields
+    // Check required fields
     if (!name || !email || !password || !password2) {
       errors.push({ msg: 'Please fill in all fields' });
     }
@@ -48,6 +48,7 @@ router.post('/register', ensureGuest, async (req, res) => {
       errors.push({ msg: 'Password should be at least 6 characters' });
     }
 
+    // If there are errors, re-render the form
     if (errors.length > 0) {
       return res.render('auth/register', {
         title: 'Register',
@@ -59,6 +60,7 @@ router.post('/register', ensureGuest, async (req, res) => {
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
+    
     if (existingUser) {
       errors.push({ msg: 'Email is already registered' });
       return res.render('auth/register', {
@@ -69,23 +71,25 @@ router.post('/register', ensureGuest, async (req, res) => {
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create new user
+    // Create new user with proper ID generation
     const newUser = {
       _id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
       name,
       email,
-      password: hashedPassword,
-      role: 'user',
+      password,
+      role: 'user', // Default role
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    await User.create(newUser);
+    // Hash password (using bcrypt)
+    const salt = await bcrypt.genSalt(10);
+    newUser.password = await bcrypt.hash(password, salt);
 
+    // Save user to database
+    const savedUser = await User.create(newUser);
+    
+    console.log('User registered successfully:', savedUser.email);
     req.flash('success_msg', 'You are now registered and can log in');
     res.redirect('/auth/login');
   } catch (err) {

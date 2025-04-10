@@ -43,6 +43,37 @@ const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 };
 
+// Safe toString helper function to avoid errors
+const safeToString = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  
+  try {
+    return String(value);
+  } catch (err) {
+    console.error('Error converting value to string:', err);
+    return '';
+  }
+};
+
+/**
+ * Safely compare two IDs which might be strings, objects with toString, etc.
+ * @param {*} id1 - First ID
+ * @param {*} id2 - Second ID
+ * @return {boolean} Whether the IDs match
+ */
+const safeIdCompare = (id1, id2) => {
+  if (id1 === id2) return true;
+  if (!id1 || !id2) return false;
+  
+  try {
+    return safeToString(id1) === safeToString(id2);
+  } catch (err) {
+    console.error('Error comparing IDs:', err);
+    return false;
+  }
+};
+
 // Define a common database utility object
 const db = {
   // Find by ID and update method for all collections
@@ -61,7 +92,7 @@ const db = {
       const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
       
       // Find the item by ID
-      const index = data.data.findIndex(item => item._id === id);
+      const index = data.data.findIndex(item => safeIdCompare(item._id, id));
       
       // If item not found, return null
       if (index === -1) {
@@ -148,8 +179,8 @@ const dbOperations = (dbName) => {
             if (Array.isArray(item[key]) && !Array.isArray(value)) {
               return item[key].some(v => {
                 // Convert both to strings for proper comparison
-                const itemValue = v ? v.toString() : '';
-                const compareValue = value ? value.toString() : '';
+                const itemValue = safeToString(v);
+                const compareValue = safeToString(value);
                 return itemValue === compareValue;
               });
             }
@@ -157,26 +188,15 @@ const dbOperations = (dbName) => {
             // Handle array vs array (at least one match)
             if (Array.isArray(item[key]) && Array.isArray(value)) {
               return item[key].some(v => value.some(val => {
-                const itemValue = v ? v.toString() : '';
-                const compareValue = val ? val.toString() : '';
+                const itemValue = safeToString(v);
+                const compareValue = safeToString(val);
                 return itemValue === compareValue;
               }));
             }
             
             // Handle ID comparisons (special case for managedBy, owner, _id)
             if (key === 'managedBy' || key === 'owner' || key === '_id') {
-              // Ensure both values exist before comparing
-              if (item[key] === undefined || value === undefined) {
-                return false;
-              }
-              
-              // Convert both to strings for proper comparison
-              const itemValue = item[key] ? item[key].toString() : '';
-              const compareValue = value ? value.toString() : '';
-              
-              console.log(`ID COMPARISON: ${key}=${itemValue} vs ${compareValue}, MATCH=${itemValue === compareValue}`);
-              
-              return itemValue === compareValue;
+              return safeIdCompare(item[key], value);
             }
             
             // Add strict logging for system lookups
@@ -215,25 +235,12 @@ const dbOperations = (dbName) => {
       if (!id) return null;
       
       // Convert id to string for comparison with error handling
-      const idStr = id.toString(); 
+      const idStr = safeToString(id); 
       console.log(`FIND BY ID: Looking for _id=${idStr} in ${dbName}`);
       
       try {
         const result = db.get('data')
-          .find(item => {
-            // Ensure item has _id before comparing
-            if (!item || !item._id) return false;
-            
-            const itemIdStr = item._id.toString();
-            const match = itemIdStr === idStr;
-            
-            // Debug logging
-            if (match) {
-              console.log(`FIND BY ID: Found matching item with _id=${itemIdStr}`);
-            }
-            
-            return match;
-          })
+          .find(item => safeIdCompare(item._id, idStr))
           .value();
         
         return result || null;
@@ -301,7 +308,7 @@ const dbOperations = (dbName) => {
         const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
         
         // Find the item by ID
-        const index = data.data.findIndex(item => item._id === id);
+        const index = data.data.findIndex(item => safeIdCompare(item._id, id));
         
         // If item not found, return null
         if (index === -1) {
@@ -346,26 +353,13 @@ const dbOperations = (dbName) => {
       if (!id) return false;
       
       // Convert id to string for comparison with error handling
-      const idStr = id.toString();
+      const idStr = safeToString(id);
       console.log(`DELETE BY ID: Looking to delete _id=${idStr} in ${dbName}`);
       
       try {
         // Find record by string ID with better error handling
         const record = db.get('data')
-          .find(item => {
-            // Ensure item has _id before comparing
-            if (!item || !item._id) return false;
-            
-            const itemIdStr = item._id.toString();
-            const match = itemIdStr === idStr;
-            
-            // Debug logging
-            if (match) {
-              console.log(`DELETE BY ID: Found matching item with _id=${itemIdStr}`);
-            }
-            
-            return match;
-          })
+          .find(item => safeIdCompare(item._id, idStr))
           .value();
         
         if (!record) {
@@ -374,11 +368,7 @@ const dbOperations = (dbName) => {
         }
         
         db.get('data')
-          .remove(item => {
-            // Ensure item has _id before comparing
-            if (!item || !item._id) return false;
-            return item._id.toString() === idStr;
-          })
+          .remove(item => safeIdCompare(item._id, idStr))
           .write();
         
         console.log(`${dbName.toUpperCase()} DB - Deleted record with ID:`, idStr);
@@ -471,16 +461,7 @@ const dbOperations = (dbName) => {
               
               // Handle ID comparisons with better error handling
               if (key === 'managedBy' || key === 'owner' || key === '_id') {
-                // Ensure both values exist before comparing
-                if (item[key] === undefined || value === undefined) {
-                  return false;
-                }
-                
-                const itemValue = item[key] ? item[key].toString() : '';
-                const compareValue = value ? value.toString() : '';
-                
-                console.log(`ID COMPARISON in updateMany: ${key}=${itemValue} vs ${compareValue}, MATCH=${itemValue === compareValue}`);
-                return itemValue === compareValue;
+                return safeIdCompare(item[key], value);
               }
               
               return item[key] === value;
@@ -552,16 +533,7 @@ const dbOperations = (dbName) => {
           return Object.entries(filter).every(([key, value]) => {
             // Handle ID comparisons with better error handling
             if (key === 'managedBy' || key === 'owner' || key === '_id') {
-              // Ensure both values exist before comparing
-              if (item[key] === undefined || value === undefined) {
-                return false;
-              }
-              
-              const itemValue = item[key] ? item[key].toString() : '';
-              const compareValue = value ? value.toString() : '';
-              
-              console.log(`ID COMPARISON in distinct: ${key}=${itemValue} vs ${compareValue}, MATCH=${itemValue === compareValue}`);
-              return itemValue === compareValue;
+              return safeIdCompare(item[key], value);
             }
             
             return item[key] === value;
@@ -603,11 +575,128 @@ const License = {
       console.error('Error updating license:', err);
       throw new Error(`Failed to update license: ${err.message}`);
     }
+  },
+  
+  // Update findById to use safeToString
+  findById: async (id) => {
+    if (!id) return null;
+    const idStr = safeToString(id);
+    
+    try {
+      const result = db.findById('licenses', idStr);
+      return result;
+    } catch (err) {
+      console.error('Error in License.findById:', err);
+      return null;
+    }
   }
 };
 
-const System = dbOperations('systems');
-const User = dbOperations('users');
+const System = {
+  ...dbOperations('systems'),
+  
+  // Update findById to use safeToString
+  findById: async (id) => {
+    if (!id) return null;
+    const idStr = safeToString(id);
+    
+    try {
+      const result = db.findById('systems', idStr);
+      return result;
+    } catch (err) {
+      console.error('Error in System.findById:', err);
+      return null;
+    }
+  }
+};
+
+const USER_FILE = dbFiles.users;
+
+const User = {
+  ...dbOperations('users'),
+  
+  // Create a new user
+  create: async (userData) => {
+    try {
+      // Read current users
+      let users = [];
+      if (fs.existsSync(USER_FILE)) {
+        const data = JSON.parse(fs.readFileSync(USER_FILE, 'utf8'));
+        users = data.data || [];
+      }
+      
+      // Add new user
+      users.push(userData);
+      
+      // Save to file
+      fs.writeFileSync(USER_FILE, JSON.stringify({ data: users }, null, 2));
+      
+      return userData;
+    } catch (err) {
+      console.error('Error creating user:', err);
+      throw err;
+    }
+  },
+  
+  // Find a user by email
+  findOne: async (query) => {
+    try {
+      console.log('Finding user with query:', query);
+      
+      // Check if file exists, create it if it doesn't
+      if (!fs.existsSync(USER_FILE)) {
+        // Initialize empty users file
+        fs.writeFileSync(USER_FILE, JSON.stringify({ data: [] }, null, 2));
+        console.log('Created new users file');
+        return null;
+      }
+      
+      // Read users from file
+      const fileContent = fs.readFileSync(USER_FILE, 'utf8');
+      const data = JSON.parse(fileContent);
+      const users = data.data || [];
+      
+      console.log(`Searching among ${users.length} users`);
+      
+      // Find by email (most common case)
+      if (query.email) {
+        const user = users.find(user => user.email === query.email);
+        console.log(`User with email ${query.email} ${user ? 'found' : 'not found'}`);
+        return user || null;
+      }
+      
+      // Find by ID
+      if (query._id) {
+        const user = users.find(user => safeIdCompare(user._id, query._id));
+        console.log(`User with ID ${query._id} ${user ? 'found' : 'not found'}`);
+        return user || null;
+      }
+      
+      // No matching criteria
+      console.log('No valid search criteria in query');
+      return null;
+    } catch (err) {
+      console.error('Error in User.findOne:', err);
+      return null; // Return null instead of throwing to prevent app crashes
+    }
+  },
+  
+  // Make sure findById exists too
+  findById: async (id) => {
+    if (!id) return null;
+    
+    try {
+      // Safe string conversion
+      const idStr = safeToString(id);
+      if (!idStr) return null;
+      
+      return await User.findOne({ _id: idStr });
+    } catch (err) {
+      console.error('Error in User.findById:', err);
+      return null;
+    }
+  }
+};
 
 // Populate initial demo user if none exists
 if (User.find().length === 0) {
@@ -624,5 +713,7 @@ module.exports = {
   License,
   System,
   User,
-  db
+  db,
+  safeToString,
+  safeIdCompare
 };

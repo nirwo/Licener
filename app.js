@@ -115,10 +115,28 @@ const criticalHelpers = {
   },
   contains: function(list, item) {
     if (!list || !Array.isArray(list)) return false;
+    if (item === undefined || item === null) return false;
+    
     return list.some(listItem => {
-      if (listItem && item && typeof listItem.toString === 'function' && typeof item.toString === 'function') {
-        return listItem.toString() === item.toString();
+      if (!listItem) return false;
+      
+      // Handle string comparison for IDs
+      if (typeof listItem === 'string' && typeof item === 'string') {
+        return listItem === item;
       }
+      
+      // Handle ObjectId comparison or objects with toString
+      try {
+        if (listItem.toString && typeof listItem.toString === 'function' &&
+            item.toString && typeof item.toString === 'function') {
+          return listItem.toString() === item.toString();
+        }
+      } catch (err) {
+        console.error('Error comparing values in contains helper:', err);
+        return false;
+      }
+      
+      // Simple equality check as fallback
       return listItem === item;
     });
   },
@@ -189,6 +207,9 @@ app.use((req, res, next) => {
 // Set static folder
 app.use(express.static(path.join(__dirname, 'static')));
 
+// Import the error handler middleware
+const errorHandlerMiddleware = require('./middleware/error-handling');
+
 // Routes
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
@@ -224,6 +245,9 @@ if (typeof vendorRoutes === 'function') {
 } else if (vendorRoutes) {
   console.warn('Warning: vendorRoutes is not a valid middleware function');
 }
+
+// Use the enhanced error handler middleware
+app.use(errorHandlerMiddleware);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
