@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const { ensureAuthenticated } = require('../middleware/auth');
+const { License, System } = require('../utils/file-db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
 const XLSX = require('xlsx');
-const { ensureAuthenticated, ensureManager } = require('../middleware/auth');
-const License = require('../models/License');
-const System = require('../models/System');
+const { ensureManager } = require('../middleware/auth');
 const Vendor = require('../models/Vendor'); // Add this line
 
 // Set up storage for file uploads
@@ -398,6 +398,50 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
     console.error('Error in edit license route:', err);
     req.flash('error_msg', 'Error loading license: ' + err.message);
     res.redirect('/licenses');
+  }
+});
+
+// Update license
+router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
+  try {
+    console.log('License update request received for ID:', req.params.id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    // Ensure License is properly defined
+    if (!License || typeof License.findById !== 'function') {
+      console.error('License model is not properly defined or imported');
+      console.error('License:', License);
+      req.flash('error_msg', 'System error: License model not available');
+      return res.redirect('/licenses');
+    }
+    
+    // Get original license first
+    const license = await License.findById(req.params.id);
+    
+    if (!license) {
+      console.error(`License not found with ID: ${req.params.id}`);
+      
+      // Debug: List all available licenses
+      try {
+        const allLicenses = await License.find({});
+        console.log(`Found ${allLicenses.length} total licenses`);
+        allLicenses.forEach((lic, i) => {
+          console.log(`${i+1}. ID: ${lic._id}, Name: ${lic.name || lic.product}`);
+        });
+      } catch (err) {
+        console.error('Error listing licenses:', err);
+      }
+      
+      req.flash('error_msg', 'License not found');
+      return res.redirect('/licenses');
+    }
+    
+    // ...existing code for updating license...
+    
+  } catch (err) {
+    console.error('Error in license update route:', err);
+    req.flash('error_msg', 'Error updating license: ' + err.message);
+    res.redirect(`/licenses/edit/${req.params.id}`);
   }
 });
 
