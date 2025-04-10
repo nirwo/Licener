@@ -486,63 +486,82 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
       console.log('WARNING: newAssignedSystems is not an array, setting to empty array');
       newAssignedSystems = [];
     } else {
+      newAssignedSystems = newAssignedSystems.filter(id => id && String(id).trim() !== '');
+    }
     
-    // Save license with updated fields
-    const savedLicense = await license.save();
+    console.log('Processed newAssignedSystems:', newAssignedSystems);
+    
+    // Get existing assigned systems as strings
+    const oldAssignedSystems = Array.isArray(license.assignedSystems) 
+      ? license.assignedSystems.map(id => id && typeof id.toString === 'function' ? id.toString() : String(id)) 
+      : [];
+    
+    console.log('Old assigned systems:', oldAssignedSystems);
+    
+    // Update license data object
+    const updatedLicenseData = {
+      name: name || product,
+      licenseKey,
+      product,
+      vendor,
+      purchaseDate,
+      expiryDate,
+      renewalDate: renewalDate || undefined,
+      totalSeats: parseInt(totalSeats) || 1,
+      usedSeats: newAssignedSystems.length,
+      cost: cost ? parseFloat(cost) : undefined,
+      currency: currency || 'USD',
+      notes,
+      status: status || 'active',
+      attachments: updatedAttachments,
+      assignedSystems: newAssignedSystems,
+      updatedAt: new Date()
+    };
+    
+    // FIX: Use findByIdAndUpdate instead of save()
+    console.log('Updating license with data:', JSON.stringify(updatedLicenseData, null, 2));
+    const updatedLicense = await License.findByIdAndUpdate(req.params.id, updatedLicenseData);
     console.log('License updated successfully');
-    logObject('Updated License', savedLicense);
-
+    
+    // Find systems to add/remove
+    const systemsToRemove = oldAssignedSystems.filter(id => !newAssignedSystems.includes(id) && id);
+    const systemsToAdd = newAssignedSystems.filter(id => !oldAssignedSystems.includes(id) && id);
+    
+    console.log('Systems to remove:', systemsToRemove);
+    console.log('Systems to add:', systemsToAdd);
+    
     // Process system updates
     const updateResults = {
       successful: [],
       failed: []
     };
     
-    // Remove license from systems
+    // Remove license from systems that are no longer assigned
     if (systemsToRemove.length > 0) {
-      console.log(`Removing license from ${systemsToRemove.length} systems`);
-      
       for (const systemId of systemsToRemove) {
         try {
           console.log(`Processing system removal for ID: ${systemId}`);
           const system = await System.findById(systemId);
           
           if (system) {
-            console.log(`Found system ${system.name || system._id} for removal`);
-            logObject('System Before Removal', system);
+            console.log(`Found system to remove license from: ${system.name || systemId}`);
             
             if (!system.licenseRequirements) {
               system.licenseRequirements = [];
-              console.log('Initialized empty licenseRequirements array');
             }
             
-            // Filter out this license
-            const licenseIdStr = license._id.toString();
-            
-            // Log current requirements
-            console.log('Current requirements:', system.licenseRequirements.map(r => ({
-              id: r.licenseId ? r.licenseId.toString() : 'undefined',
-              type: r.licenseType
-            })));
-            
-            // Remove this license
-            system.licenseRequirements = system.licenseRequirements.filter(req => {
+            // Remove this license from requirements
+            const licenseIdStr = req.params.id.toString();
+            const updatedRequirements = system.licenseRequirements.filter(req => {
               const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
-              const match = reqLicenseId !== licenseIdStr;
-              console.log(`Comparing ${reqLicenseId} with ${licenseIdStr}, keeping: ${match}`);
-              return match;
+              return reqLicenseId !== licenseIdStr;
             });
             
-            // Save updated system
-            const updatedSystem = await System.findByIdAndUpdate(
-              systemId,
-              { licenseRequirements: system.licenseRequirements },
-              { new: true }
-            );
+            await System.findByIdAndUpdate(systemId, {
+              licenseRequirements: updatedRequirements
+            });
             
-            console.log(`System ${systemId} updated after removal`);
-            logObject('System After Removal', updatedSystem);
-            
+            console.log(`Successfully removed license from system ${systemId}`);
             updateResults.successful.push(`Removed from ${system.name || systemId}`);
           } else {
             console.log(`System ${systemId} not found for removal`);
@@ -555,54 +574,40 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
       }
     }
     
-    // Add license to systems
+    // Add license to newly assigned systems
     if (systemsToAdd.length > 0) {
-      console.log(`Adding license to ${systemsToAdd.length} systems`);
-      
       for (const systemId of systemsToAdd) {
         try {
           console.log(`Processing system addition for ID: ${systemId}`);
           const system = await System.findById(systemId);
           
           if (system) {
-            console.log(`Found system ${system.name || system._id} for addition`);
-            logObject('System Before Addition', system);
+            console.log(`Found system to add license to: ${system.name || systemId}`);
             
             if (!system.licenseRequirements) {
               system.licenseRequirements = [];
-              console.log('Initialized empty licenseRequirements array');
             }
             
-            // Check if license already exists
-            const licenseIdStr = license._id.toString();
-            const existingLicense = system.licenseRequirements.find(req => {
+            // Check if this license is already in requirements
+            const licenseIdStr = req.params.id.toString();
+            const existingReq = system.licenseRequirements.find(req => {
               const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
-              const match = reqLicenseId === licenseIdStr;
-              console.log(`Checking if license exists: ${reqLicenseId} vs ${licenseIdStr}, match: ${match}`);
-              return match;
+              return reqLicenseId === licenseIdStr;
             });
             
-            if (!existingLicense) {
-              // Add new requirement
-              const newRequirement = {
-                licenseType: license.product || 'Unknown Product',
+            if (!existingReq) {
+              // Add new license requirement
+              const updatedRequirements = [...system.licenseRequirements, {
+                licenseType: product || 'Unknown',
                 quantity: 1,
-                licenseId: license._id
-              };
+                licenseId: req.params.id
+              }];
               
-              console.log('Adding new requirement:', newRequirement);
-              system.licenseRequirements.push(newRequirement);
+              await System.findByIdAndUpdate(systemId, {
+                licenseRequirements: updatedRequirements
+              });
               
-              // Save updated system
-              const updatedSystem = await System.findByIdAndUpdate(
-                systemId,
-                { licenseRequirements: system.licenseRequirements },
-                { new: true }
-              );
-              
-              console.log(`System ${systemId} updated after addition`);
-              logObject('System After Addition', updatedSystem);
-              
+              console.log(`Successfully added license to system ${systemId}`);
               updateResults.successful.push(`Added to ${system.name || systemId}`);
             } else {
               console.log(`License already exists in system ${systemId}, skipping`);
@@ -627,10 +632,9 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
       req.flash('success_msg', 'License updated successfully');
     }
     
-    console.log('============ LICENSE UPDATE - COMPLETE ============');
-    res.redirect(`/licenses/${license._id}`);
+    res.redirect(`/licenses/${req.params.id}`);
   } catch (err) {
-    console.error('ERROR updating license:', err);
+    console.error('Error updating license:', err);
     console.error(err.stack);
     req.flash('error_msg', 'Error updating license: ' + err.message);
     res.redirect(`/licenses/edit/${req.params.id}`);
