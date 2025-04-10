@@ -31,7 +31,7 @@
               <tr>
                 <td class="text-truncate-custom">{{licenseKey}}</td>
                 <td>{{product}}</td>
-                <td>{{assignedTo}}</td>
+                <td>{{#if (isArray assignedSystems)}}{{assignedSystems.length}}{{else}}0{{/if}}</td>
                 <td>
                   <span class="badge bg-{{licenseStatusClass status}}">
                     {{status}}
@@ -105,31 +105,51 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Loaded, initializing DataTables...');
-    // Select all tables with the .datatable class on the page
-    const dataTables = document.querySelectorAll('.datatable');
-
-    dataTables.forEach(table => {
-      console.log('Processing table:', table);
-      // Check if the table is already initialized using jQuery DataTables API
-      if ($.fn.dataTable.isDataTable(table)) {
-        console.log('Table is already a DataTable. Destroying...');
-        // If yes, destroy the existing instance first
-        $(table).DataTable().destroy();
-      } else {
-        console.log('Table is not a DataTable.');
+    
+    try {
+      // Make sure jQuery is available
+      if (typeof $ === 'undefined') {
+        console.error('jQuery is not available!');
+        return;
       }
-
-      console.log('Initializing DataTable on table:', table);
-      // Now, initialize (or re-initialize) the DataTable using jQuery syntax
-      $(table).DataTable({
-        responsive: true,
+      
+      // Make sure DataTables plugin is available
+      if (typeof $.fn.DataTable === 'undefined') {
+        console.error('DataTables plugin is not available!');
+        return;
+      }
+      
+      // Clean any broken DataTable instances
+      $('.datatable').each(function() {
+        try {
+          // First check if there are any elements with _DT_CellIndex set incorrectly
+          $(this).find('td').removeAttr('_DT_CellIndex');
+          
+          // If a DataTable instance exists on this element, destroy it properly
+          if ($.fn.DataTable.isDataTable(this)) {
+            $(this).DataTable().destroy();
+          }
+        } catch (err) {
+          console.error('Error cleaning up DataTable:', err);
+        }
+      });
+      
+      // Initialize DataTables with simpler configuration to avoid errors
+      $('.datatable').DataTable({
+        responsive: false, // Disable responsive for now
         pageLength: 10,
         lengthMenu: [5, 10, 25, 50],
         language: {
           search: "Filter records:"
-        }
+        },
+        ordering: true,
+        searching: true,
+        paging: true
       });
-    });
-    console.log('DataTables initialization complete.');
+      
+      console.log('DataTables initialization complete.');
+    } catch (err) {
+      console.error('Error initializing DataTables:', err);
+    }
   });
 </script>

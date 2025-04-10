@@ -42,7 +42,27 @@ router.get('/', ensureAuthenticated, async (req, res) => {
     
     // Get unique OS values for filter dropdown
     const osValues = System.distinct('os', { managedBy: req.user._id });
-    
+
+    // Fixing potential variable usage before definition
+    const now = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+    let expiringLicenses = [];
+    try {
+      expiringLicenses = await License.find({
+        owner: req.user._id,
+        expiryDate: { $gte: now, $lte: thirtyDaysFromNow }
+      });
+    } catch (err) {
+      console.error('Error loading expiring licenses:', err);
+    }
+
+    console.log('Sending to systems page:', {
+      systemCount: systems.length,
+      expiringSoon: expiringLicenses.length
+    });
+
     res.render('systems/index', {
       title: 'Systems',
       systems,

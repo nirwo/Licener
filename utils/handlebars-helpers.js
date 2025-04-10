@@ -16,6 +16,49 @@ module.exports = {
     return a && b;
   },
   
+  // Less than comparison
+  lessThan: function(a, b) {
+    return parseInt(a) < parseInt(b);
+  },
+  
+  // Greater than comparison
+  greaterThan: function(a, b) {
+    return parseInt(a) > parseInt(b);
+  },
+  
+  // Multiply two numbers
+  multiply: function(a, b) {
+    return parseFloat(a) * parseFloat(b);
+  },
+  
+  // Divide two numbers
+  divide: function(a, b) {
+    if (parseFloat(b) === 0) return 0;
+    return parseFloat(a) / parseFloat(b);
+  },
+  
+  // Add two numbers
+  add: function(a, b) {
+    return parseFloat(a) + parseFloat(b);
+  },
+  
+  // Get sum of array values
+  sumArray: function(arr) {
+    if (!Array.isArray(arr)) return 0;
+    return arr.reduce((sum, val) => sum + parseFloat(val || 0), 0).toFixed(2);
+  },
+  
+  // Get status color for badge
+  statusColor: function(status) {
+    switch(status) {
+      case 'active': return 'success';
+      case 'expired': return 'danger';
+      case 'pending': return 'warning';
+      case 'renewed': return 'primary';
+      default: return 'secondary';
+    }
+  },
+  
   // Average function
   average: function(total, count) {
     if (count === 0) return 0;
@@ -160,6 +203,11 @@ module.exports = {
   contains: function(array, item) {
     if (!Array.isArray(array)) return false;
     return array.includes(item);
+  },
+  
+  // Check if value is an array
+  isArray: function(value) {
+    return Array.isArray(value);
   },
   
   // JSON stringify for debugging and data serialization

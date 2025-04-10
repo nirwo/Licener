@@ -147,6 +147,7 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
   console.log('Request body:', req.body);
   console.log('Files:', req.files);
   console.log('User:', req.user);
+  
   try {
     console.log('License form submitted:', req.body);
     
@@ -194,48 +195,55 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
     };
     
     // Handle assignedSystems (could be string or array depending on form submission)
+    let systemsToAssign = [];
     if (assignedSystems) {
-      if (Array.isArray(assignedSystems)) {
-        licenseData.assignedSystems = assignedSystems;
-      } else if (typeof assignedSystems === 'string' && assignedSystems.trim() !== '') {
-        licenseData.assignedSystems = [assignedSystems];
-      } else {
-        licenseData.assignedSystems = [];
-      }
-    } else {
-      licenseData.assignedSystems = [];
+      // Convert to array if it's a single string value
+      systemsToAssign = Array.isArray(assignedSystems) ? assignedSystems : [assignedSystems];
+      // Filter out empty strings
+      systemsToAssign = systemsToAssign.filter(id => id && id.trim() !== '');
     }
     
+    licenseData.assignedSystems = systemsToAssign;
+    licenseData.usedSeats = systemsToAssign.length;
+    
     console.log('Creating license with data:', licenseData);
-    // Use file-db create method instead of Mongoose style
+    console.log('Systems to assign:', systemsToAssign);
+    
+    // Use file-db create method
     const newLicense = await License.create(licenseData);
     
-    // Update assigned systems with the license requirement - modified for file-db
-    if (assignedSystems && assignedSystems.length > 0) {
-      // For each system, add the license requirement
-      for (const systemId of (Array.isArray(assignedSystems) ? assignedSystems : [assignedSystems])) {
-        const system = System.findById(systemId);
+    // Update assigned systems with the license requirement
+    if (systemsToAssign.length > 0) {
+      console.log(`Updating ${systemsToAssign.length} systems with license requirement`);
+      
+      for (const systemId of systemsToAssign) {
+        const system = await System.findById(systemId);
         if (system) {
+          console.log(`Updating system ${system.name} with license requirement`);
+          
           if (!system.licenseRequirements) {
             system.licenseRequirements = [];
           }
           
-          system.licenseRequirements.push({
-            licenseType: product,
-            quantity: 1,
-            licenseId: newLicense._id
-          });
+          // Check if this license is already in requirements
+          const existingReq = system.licenseRequirements.find(
+            req => req.licenseId && req.licenseId.toString() === newLicense._id.toString()
+          );
           
-          await System.findByIdAndUpdate(systemId, {
-            licenseRequirements: system.licenseRequirements
-          });
+          if (!existingReq) {
+            system.licenseRequirements.push({
+              licenseType: product,
+              quantity: 1,
+              licenseId: newLicense._id
+            });
+            
+            await System.findByIdAndUpdate(systemId, {
+              licenseRequirements: system.licenseRequirements
+            });
+            console.log(`Added license ${product} to system ${system.name}`);
+          }
         }
       }
-      
-      // Update used seats count using file-db method
-      await License.findByIdAndUpdate(newLicense._id, {
-        usedSeats: assignedSystems.length
-      });
     }
     
     req.flash('success_msg', 'License added successfully');

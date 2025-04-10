@@ -33,10 +33,23 @@ const mongoose = {
 // Configure Passport
 require('./config/passport')(passport);
 
+// Get the handlebars helpers
+const handlebarsHelpers = require('./utils/handlebars-helpers');
+
+// Add a special JSON stringifier that's guaranteed to work
+handlebarsHelpers.safeJsonString = function(context) {
+  try {
+    return JSON.stringify(context || {});
+  } catch (e) {
+    console.error('Error stringifying JSON:', e);
+    return '{}';
+  }
+};
+
 // Handlebars Middleware
 app.engine('handlebars', engine({
   defaultLayout: 'main',
-  helpers: require('./utils/handlebars-helpers')
+  helpers: handlebarsHelpers
 }));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'templates'));

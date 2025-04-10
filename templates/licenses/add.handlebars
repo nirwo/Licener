@@ -95,11 +95,9 @@
         <label for="assignedSystems" class="form-label">Assigned Systems</label>
         <select class="form-select" id="assignedSystems" name="assignedSystems" multiple>
           <option value="">Not assigned</option>
-          {{#if systems}}
-            {{#each systems}}
-              <option value="{{_id}}">{{name}} ({{systemType}})</option>
-            {{/each}}
-          {{/if}}
+          {{#each systems}}
+            <option value="{{_id}}">{{name}} - {{os}} ({{type}})</option>
+          {{/each}}
         </select>
         <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
       </div>

@@ -3,8 +3,18 @@
  * Main JavaScript file
  */
 
-// Initialize tooltips
+// Initialize tooltips and other components
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('main.js: DOM content loaded');
+  
+  // Wait for jQuery to be fully loaded
+  if (typeof jQuery === 'undefined') {
+    console.error('jQuery is not loaded!');
+    return;
+  }
+  
+  // Make sure we have jQuery's $ function
+  const $ = jQuery;
   
   // Toggle sidebar
   const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
@@ -336,123 +346,146 @@ function loadExpiringLicenses() {
 
 // Function to initialize charts
 function initializeCharts() {
-  // License utilization chart
-  const utilizationChart = document.getElementById('utilizationChart');
-  if (utilizationChart) {
-    new Chart(utilizationChart, {
-      type: 'doughnut',
-      data: {
-        labels: ['Used', 'Available'],
-        datasets: [{
-          data: [65, 35],
-          backgroundColor: ['#4e73df', '#eaecf4'],
-          hoverBackgroundColor: ['#2e59d9', '#dddfeb'],
-          hoverBorderColor: 'rgba(234, 236, 244, 1)',
-        }],
-      },
-      options: {
-        maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: {
-          legend: {
-            display: false
+  // Only initialize if we're on the dashboard
+  if (!window.location.pathname.includes('/dashboard')) {
+    return;
+  }
+  
+  console.log('Initializing charts safely...');
+  
+  try {
+    // License utilization chart
+    const utilizationChart = document.getElementById('utilizationChart');
+    if (utilizationChart) {
+      try {
+        new Chart(utilizationChart, {
+          type: 'doughnut',
+          data: {
+            labels: ['Used', 'Available'],
+            datasets: [{
+              data: [65, 35],
+              backgroundColor: ['#4e73df', '#eaecf4'],
+              hoverBackgroundColor: ['#2e59d9', '#dddfeb'],
+              hoverBorderColor: 'rgba(234, 236, 244, 1)'
+            }]
           },
-          tooltip: {
-            displayColors: false,
-            callbacks: {
-              label: function(context) {
-                return context.label + ': ' + context.raw + '%';
+          options: {
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                displayColors: false,
+                callbacks: {
+                  label: function(context) {
+                    return context.label + ': ' + context.raw + '%';
+                  }
+                }
               }
             }
           }
-        }
-      },
-    });
-  }
-  
-  // License by vendor chart
-  const vendorChart = document.getElementById('vendorChart');
-  if (vendorChart) {
-    new Chart(vendorChart, {
-      type: 'bar',
-      data: {
-        labels: ['Microsoft', 'Adobe', 'Oracle', 'VMware', 'Autodesk'],
-        datasets: [{
-          label: 'License Count',
-          backgroundColor: '#4e73df',
-          hoverBackgroundColor: '#2e59d9',
-          data: [42, 28, 16, 15, 12],
-        }],
-      },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)',
-            }
+        });
+      } catch (error) {
+        console.error('Failed to initialize utilization chart:', error);
+      }
+    }
+    
+    // License by vendor chart
+    const vendorChart = document.getElementById('vendorChart');
+    if (vendorChart) {
+      try {
+        new Chart(vendorChart, {
+          type: 'bar',
+          data: {
+            labels: ['Microsoft', 'Adobe', 'Oracle', 'VMware', 'Autodesk'],
+            datasets: [{
+              label: 'License Count',
+              backgroundColor: '#4e73df',
+              hoverBackgroundColor: '#2e59d9',
+              data: [42, 28, 16, 15, 12]
+            }]
           },
-          x: {
-            grid: {
-              display: false
+          options: {
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
             }
           }
-        },
-        plugins: {
-          legend: {
-            display: false
-          }
-        }
-      },
-    });
-  }
-  
-  // License expiry timeline
-  const expiryChart = document.getElementById('expiryChart');
-  if (expiryChart) {
-    new Chart(expiryChart, {
-      type: 'line',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-        datasets: [{
-          label: 'Expiring Licenses',
-          lineTension: 0.3,
-          backgroundColor: 'rgba(231, 74, 59, 0.05)',
-          borderColor: '#e74a3b',
-          pointRadius: 3,
-          pointBackgroundColor: '#e74a3b',
-          pointBorderColor: '#e74a3b',
-          pointHoverRadius: 5,
-          pointHoverBackgroundColor: '#e74a3b',
-          pointHoverBorderColor: '#e74a3b',
-          pointHitRadius: 10,
-          pointBorderWidth: 2,
-          data: [5, 7, 3, 12, 8, 9, 14],
-          fill: true
-        }],
-      },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)',
-            }
+        });
+      } catch (error) {
+        console.error('Failed to initialize vendor chart:', error);
+      }
+    }
+    
+    // License expiry timeline
+    const expiryChart = document.getElementById('expiryChart');
+    if (expiryChart) {
+      try {
+        new Chart(expiryChart, {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+            datasets: [{
+              label: 'Expiring Licenses',
+              lineTension: 0.3,
+              backgroundColor: 'rgba(231, 74, 59, 0.05)',
+              borderColor: '#e74a3b',
+              pointRadius: 3,
+              pointBackgroundColor: '#e74a3b',
+              pointBorderColor: '#e74a3b',
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#e74a3b',
+              pointHoverBorderColor: '#e74a3b',
+              pointHitRadius: 10,
+              pointBorderWidth: 2,
+              data: [5, 7, 3, 12, 8, 9, 14],
+              fill: true
+            }]
           },
-          x: {
-            grid: {
-              display: false
+          options: {
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: 'rgba(0, 0, 0, 0.05)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              }
             }
           }
-        },
-        plugins: {
-          legend: {
-            display: false
-          }
-        }
-      },
-    });
+        });
+      } catch (error) {
+        console.error('Failed to initialize expiry chart:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to initialize charts:', error);
   }
-};
+}

@@ -61,40 +61,91 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 // License Expiry Report
 router.get('/license-expiry', ensureAuthenticated, async (req, res) => {
   try {
-    const userId = getUserId(req);
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    
+    // Get timeframe parameter, default to 30 days if not provided
     const timeframe = req.query.timeframe || '30';
     const days = parseInt(timeframe);
+    
+    // Define date ranges
     const currentDate = new Date();
     const futureDate = moment().add(days, 'days').toDate();
     
-    // Use file-db find with manual filtering for dates
-    let allLicenses = License.find({
-      owner: userId
+    console.log(`Getting licenses expiring in the next ${days} days`);
+    
+    // Get all licenses for the current user
+    const allLicenses = await License.find({});
+    const userLicenses = allLicenses.filter(license => {
+      const licenseOwner = license.owner ? license.owner.toString() : '';
+      return licenseOwner === userId;
     });
     
-    // Filter licenses manually for date ranges
-    const expiringLicenses = allLicenses.filter(license => {
+    // Use all licenses if none found for this user and not in demo mode
+    const licenses = userLicenses.length > 0 ? 
+      userLicenses : 
+      (!process.env.DEMO_MODE ? allLicenses : []);
+    
+    console.log(`Found ${licenses.length} total licenses to analyze for expiry`);
+    
+    // Filter for expiring and expired licenses
+    const expiringLicenses = licenses.filter(license => {
+      if (!license.expiryDate) return false;
       const expiryDate = new Date(license.expiryDate);
       return expiryDate >= currentDate && expiryDate <= futureDate;
     });
     
-    const expiredLicenses = allLicenses.filter(license => {
+    const expiredLicenses = licenses.filter(license => {
+      if (!license.expiryDate) return false;
       return new Date(license.expiryDate) < currentDate;
     });
+    
+    console.log(`Found ${expiringLicenses.length} expiring licenses and ${expiredLicenses.length} expired licenses`);
     
     // Sort by expiry date
     expiringLicenses.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
     expiredLicenses.sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
     
+    // Get unique vendors for filter dropdown
+    const vendors = [...new Set(licenses.map(lic => lic.vendor).filter(Boolean))].sort();
+    
+    // Calculate statistics for display
+    const criticalCount = expiringLicenses.filter(lic => {
+      const daysRemaining = moment(lic.expiryDate).diff(moment(), 'days');
+      return daysRemaining <= 30;
+    }).length;
+    
+    const warningCount = expiringLicenses.filter(lic => {
+      const daysRemaining = moment(lic.expiryDate).diff(moment(), 'days');
+      return daysRemaining > 30 && daysRemaining <= 60;
+    }).length;
+    
+    const okCount = licenses.length - criticalCount - warningCount - expiredLicenses.length;
+    
+    // Populate the days remaining for each license
+    const licensesWithDaysRemaining = [...expiringLicenses, ...expiredLicenses].map(license => {
+      const lic = {...license};
+      lic.daysRemaining = moment(lic.expiryDate).diff(moment(), 'days');
+      return lic;
+    });
+    
+    // Render with all necessary data
     res.render('reports/license-expiry', {
       title: 'License Expiry Report',
-      expiringLicenses,
-      expiredLicenses,
-      timeframe
+      licenses: licensesWithDaysRemaining,
+      timeframe: timeframe,
+      vendors: vendors,
+      vendor: req.query.vendor || 'all',
+      licenseType: req.query.licenseType || 'all',
+      stats: {
+        critical: criticalCount,
+        warning: warningCount,
+        ok: okCount,
+        expired: expiredLicenses.length
+      }
     });
   } catch (err) {
     console.error('Error generating license expiry report:', err);
-    req.flash('error_msg', 'Error generating license expiry report');
+    req.flash('error_msg', 'Error generating license expiry report: ' + err.message);
     res.redirect('/reports');
   }
 });
@@ -102,93 +153,131 @@ router.get('/license-expiry', ensureAuthenticated, async (req, res) => {
 // License Utilization Report
 router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
   try {
-    const userId = getUserId(req);
-    // Get all licenses for the user
-    let licenses = License.find({ owner: userId });
+    // Get user ID and normalize to string for consistent comparison
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
     
-    // If no licenses found, show empty state
-    if (!licenses || licenses.length === 0) {
-      return res.render('reports/license-utilization', {
-        title: 'License Utilization Report',
-        productUtilization: [],
-        noLicenses: true
-      });
+    console.log(`Generating license utilization report for user ${userId}`);
+    
+    // Get query params for filtering
+    const licenseType = req.query.licenseType || 'all';
+    const vendor = req.query.vendor || 'all';
+    
+    // Get all licenses from the database
+    const allLicenses = await License.find({});
+    console.log(`Found ${allLicenses.length} total licenses in database`);
+    
+    // Filter licenses for this user
+    let userLicenses = allLicenses.filter(license => {
+      const licenseOwner = license.owner ? license.owner.toString() : '';
+      return licenseOwner === userId;
+    });
+    
+    // Use all licenses if none found for this user and not in demo mode
+    const licenses = userLicenses.length > 0 ? 
+      userLicenses : 
+      (!process.env.DEMO_MODE ? allLicenses : []);
+    
+    console.log(`Using ${licenses.length} licenses for utilization report`);
+    
+    // Apply filters
+    let filteredLicenses = [...licenses];
+    
+    if (licenseType !== 'all') {
+      filteredLicenses = filteredLicenses.filter(license => 
+        license.licenseType === licenseType || license.type === licenseType
+      );
     }
-
-    // Recalculate usedSeats by counting assigned systems for accuracy
-    for (const license of licenses) {
-      const assignedSystemIds = license.assignedSystems || [];
-      license.usedSeats = assignedSystemIds.length;
+    
+    if (vendor !== 'all') {
+      filteredLicenses = filteredLicenses.filter(license => 
+        license.vendor === vendor
+      );
+    }
+    
+    console.log(`After filtering: ${filteredLicenses.length} licenses`);
+    
+    // Calculate utilization for each license
+    const processedLicenses = filteredLicenses.map(license => {
+      // Create a copy to avoid modifying the original
+      const processedLicense = {...license};
       
-      // Make sure totalSeats is a number
-      if (!license.totalSeats || isNaN(parseInt(license.totalSeats))) {
-        license.totalSeats = 1; // Default to 1 seat
+      // Ensure we have valid values for calculations
+      const totalSeats = parseInt(license.totalSeats) || 1;
+      const usedSeats = parseInt(license.usedSeats) || 0;
+      
+      // Calculate utilization percentage
+      processedLicense.utilization = (usedSeats / totalSeats) * 100;
+      
+      // Calculate remaining seats
+      processedLicense.remainingSeats = totalSeats - usedSeats;
+      
+      // Add utilization class for UI coloring
+      if (processedLicense.utilization >= 90) {
+        processedLicense.utilizationClass = 'danger';
+      } else if (processedLicense.utilization >= 70) {
+        processedLicense.utilizationClass = 'warning';
       } else {
-        license.totalSeats = parseInt(license.totalSeats);
+        processedLicense.utilizationClass = 'success';
       }
       
-      // Update license in DB
-      await License.findByIdAndUpdate(license._id, { 
-        usedSeats: license.usedSeats,
-        totalSeats: license.totalSeats
-      });
-    }
-    
-    // Sort by product and name
-    licenses.sort((a, b) => {
-      const productCompare = (a.product || '').localeCompare(b.product || '');
-      if (productCompare !== 0) return productCompare;
-      return (a.name || '').localeCompare(b.name || '');
+      return processedLicense;
     });
     
-    // Group licenses by product
-    const licensesByProduct = {};
-    licenses.forEach(license => {
-      const productKey = license.product || 'Uncategorized';
-      if (!licensesByProduct[productKey]) {
-        licensesByProduct[productKey] = [];
+    // Sort by utilization (highest first)
+    processedLicenses.sort((a, b) => b.utilization - a.utilization);
+    
+    // Group by product for product utilization
+    const productGroups = {};
+    processedLicenses.forEach(license => {
+      const product = license.product || 'Unknown';
+      if (!productGroups[product]) {
+        productGroups[product] = {
+          name: product,
+          totalSeats: 0,
+          usedSeats: 0,
+          licenses: []
+        };
       }
-      licensesByProduct[productKey].push(license);
+      
+      productGroups[product].totalSeats += parseInt(license.totalSeats) || 0;
+      productGroups[product].usedSeats += parseInt(license.usedSeats) || 0;
+      productGroups[product].licenses.push(license);
     });
     
-    // Calculate product utilization
-    const productUtilization = [];
-    for (const [product, productLicenses] of Object.entries(licensesByProduct)) {
-      const totalSeats = productLicenses.reduce((sum, license) => sum + (parseInt(license.totalSeats) || 0), 0);
-      const usedSeats = productLicenses.reduce((sum, license) => sum + (parseInt(license.usedSeats) || 0), 0);
-      const utilization = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
+    // Calculate utilization for each product group
+    const productUtilization = Object.values(productGroups).map(group => {
+      group.utilization = group.totalSeats > 0 ? 
+        (group.usedSeats / group.totalSeats) * 100 : 0;
+        
+      if (group.utilization >= 90) {
+        group.utilizationClass = 'danger';
+      } else if (group.utilization >= 70) {
+        group.utilizationClass = 'warning';
+      } else {
+        group.utilizationClass = 'success';
+      }
       
-      productUtilization.push({
-        product,
-        totalSeats,
-        usedSeats,
-        availableSeats: totalSeats - usedSeats,
-        utilization,
-        licenses: productLicenses,
-        licenseCount: productLicenses.length
-      });
-    }
+      return group;
+    });
     
-    // Sort by utilization (highest to lowest)
-    productUtilization.sort((a, b) => b.utilization - a.utilization);
+    // Get unique vendors for filter dropdown
+    const vendors = [...new Set(licenses.map(lic => lic.vendor).filter(Boolean))].sort();
     
-    // Calculate total utilization
-    const totalSeats = licenses.reduce((sum, license) => sum + (parseInt(license.totalSeats) || 0), 0);
-    const usedSeats = licenses.reduce((sum, license) => sum + (parseInt(license.usedSeats) || 0), 0);
-    const overallUtilization = totalSeats > 0 ? Math.round((usedSeats / totalSeats) * 100) : 0;
-    
+    // Render the report
     res.render('reports/license-utilization', {
       title: 'License Utilization Report',
-      productUtilization,
-      totalLicenses: licenses.length,
-      totalSeats,
-      usedSeats,
-      availableSeats: totalSeats - usedSeats,
-      overallUtilization
+      licenses: processedLicenses,
+      productUtilization: productUtilization,
+      totalLicenses: processedLicenses.length,
+      vendors: vendors,
+      vendor: vendor,
+      licenseType: licenseType,
+      licenseTypes: ['subscription', 'perpetual', 'trial', 'enterprise', 'opensource'],
+      noLicenses: processedLicenses.length === 0
     });
   } catch (err) {
     console.error('Error generating license utilization report:', err);
-    req.flash('error_msg', 'Error generating license utilization report');
+    req.flash('error_msg', 'Error generating license utilization report: ' + err.message);
     res.redirect('/reports');
   }
 });
