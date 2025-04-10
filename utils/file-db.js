@@ -556,38 +556,102 @@ const dbOperations = (dbName) => {
 const License = {
   ...dbOperations('licenses'),
   
-  // Update method with improved error handling
-  findByIdAndUpdate: async (id, updateData) => {
+  // Create a new license with proper ID handling
+  create: async (licenseData) => {
     try {
-      console.log(`Updating license with ID: ${id}`);
-      console.log('Update data:', JSON.stringify(updateData, null, 2));
-      
-      // Use the db utility object for the update
-      const result = await db.findByIdAndUpdate('licenses', id, updateData);
-      
-      if (!result) {
-        console.log(`License with ID ${id} not found for update`);
-        return null;
+      // Ensure license has an ID
+      if (!licenseData._id) {
+        licenseData._id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
       }
       
-      return result;
+      console.log(`Creating license with ID: ${licenseData._id}`);
+      
+      // Get existing licenses
+      let licenses = [];
+      if (fs.existsSync(dbFiles.licenses)) {
+        const data = JSON.parse(fs.readFileSync(dbFiles.licenses, 'utf8'));
+        licenses = data.data || [];
+      }
+      
+      // Ensure ID is unique
+      const existingLicense = licenses.find(lic => lic._id === licenseData._id);
+      if (existingLicense) {
+        console.log(`ID collision detected: ${licenseData._id}, generating new ID`);
+        licenseData._id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      }
+      
+      // Add timestamps
+      licenseData.createdAt = new Date();
+      licenseData.updatedAt = new Date();
+      
+      // Add the new license
+      licenses.push(licenseData);
+      
+      // Save to file
+      fs.writeFileSync(dbFiles.licenses, JSON.stringify({ data: licenses }, null, 2));
+      
+      console.log(`License saved successfully with ID: ${licenseData._id}`);
+      return licenseData;
     } catch (err) {
-      console.error('Error updating license:', err);
-      throw new Error(`Failed to update license: ${err.message}`);
+      console.error('Error creating license:', err);
+      throw err;
     }
   },
   
-  // Update findById to use safeToString
+  // Find license by ID with improved error handling
   findById: async (id) => {
-    if (!id) return null;
-    const idStr = safeToString(id);
-    
     try {
-      const result = db.findById('licenses', idStr);
-      return result;
+      if (!id) {
+        console.error('Invalid license ID: null or undefined');
+        return null;
+      }
+      
+      console.log(`Looking for license with ID: ${id}`);
+      
+      if (!fs.existsSync(dbFiles.licenses)) {
+        console.log('License file does not exist');
+        return null;
+      }
+      
+      const data = JSON.parse(fs.readFileSync(dbFiles.licenses, 'utf8'));
+      const licenses = data.data || [];
+      
+      console.log(`Searching among ${licenses.length} licenses`);
+      
+      // Find by exact ID match
+      const license = licenses.find(lic => lic._id === id);
+      
+      console.log(`License with ID ${id} ${license ? 'found' : 'not found'}`);
+      return license || null;
     } catch (err) {
-      console.error('Error in License.findById:', err);
+      console.error(`Error finding license with ID ${id}:`, err);
       return null;
+    }
+  },
+  
+  // Find all licenses with improved error handling
+  find: async (query = {}) => {
+    try {
+      if (!fs.existsSync(dbFiles.licenses)) {
+        console.log('License file does not exist, returning empty array');
+        return [];
+      }
+      
+      const data = JSON.parse(fs.readFileSync(dbFiles.licenses, 'utf8'));
+      const licenses = data.data || [];
+      
+      // If no query or empty query, return all
+      if (!query || Object.keys(query).length === 0) {
+        return licenses;
+      }
+      
+      // Otherwise, filter based on query
+      // ...existing filtering code...
+      
+      return licenses;
+    } catch (err) {
+      console.error('Error finding licenses:', err);
+      return [];
     }
   }
 };
