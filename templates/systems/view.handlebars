@@ -1,0 +1,223 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">System Details</h1>
+  <div>
+    <a href="/systems/edit/{{system._id}}" class="btn btn-warning">
+      <i class="fas fa-edit me-1"></i> Edit
+    </a>
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteSystemModal">
+      <i class="fas fa-trash me-1"></i> Delete
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">System Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Name:</strong>
+          </div>
+          <div class="col-md-8">
+            {{system.name}}
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Type:</strong>
+          </div>
+          <div class="col-md-8">
+            {{system.type}}
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Operating System:</strong>
+          </div>
+          <div class="col-md-8">
+            {{system.os}} {{#if system.osVersion}}({{system.osVersion}}){{/if}}
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Location:</strong>
+          </div>
+          <div class="col-md-8">
+            {{system.location}}
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>IP Address:</strong>
+          </div>
+          <div class="col-md-8">
+            {{system.ip}}
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Department:</strong>
+          </div>
+          <div class="col-md-8">
+            {{system.department}}
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <strong>Status:</strong>
+          </div>
+          <div class="col-md-8">
+            <span class="badge bg-{{#if (eq system.status 'active')}}success{{else}}secondary{{/if}}">
+              {{system.status}}
+            </span>
+          </div>
+        </div>
+        
+        {{#if system.notes}}
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <strong>Notes:</strong>
+            </div>
+            <div class="col-md-8">
+              {{{nl2br system.notes}}}
+            </div>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    
+    {{#if system.installedSoftware}}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Installed Software</h5>
+        </div>
+        <div class="card-body">
+          {{#if system.installedSoftware.length}}
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Version</th>
+                    <th>Install Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{#each system.installedSoftware}}
+                    <tr>
+                      <td>{{name}}</td>
+                      <td>{{version}}</td>
+                      <td>{{formattedInstallDate}}</td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            </div>
+          {{else}}
+            <p class="text-muted mb-0">No software information available</p>
+          {{/if}}
+        </div>
+      </div>
+    {{/if}}
+  </div>
+  
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Associated Licenses</h5>
+      </div>
+      <div class="card-body">
+        {{#if associatedLicenses.length}}
+          <div class="list-group">
+            {{#each associatedLicenses}}
+              <a href="/licenses/{{_id}}" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">{{product}}</h6>
+                  <span class="badge bg-{{licenseStatusClass status}}">{{status}}</span>
+                </div>
+                <p class="mb-1">{{vendor}}</p>
+                {{#if expiryDate}}
+                  <small>Expires: {{formatDate expiryDate "MMM DD, YYYY"}}</small>
+                {{/if}}
+              </a>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="text-muted mb-0">No licenses associated with this system</p>
+          <div class="text-center mt-3">
+            <a href="/licenses/add" class="btn btn-sm btn-primary">Add License</a>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">System Metadata</h5>
+      </div>
+      <div class="card-body">
+        <div class="row mb-2">
+          <div class="col-md-5">
+            <strong>System ID:</strong>
+          </div>
+          <div class="col-md-7">
+            <code>{{system._id}}</code>
+          </div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-md-5">
+            <strong>Created:</strong>
+          </div>
+          <div class="col-md-7">
+            {{formatDate system.createdAt "MMM DD, YYYY"}}
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-5">
+            <strong>Last Updated:</strong>
+          </div>
+          <div class="col-md-7">
+            {{formatDate system.updatedAt "MMM DD, YYYY"}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete System Modal -->
+<div class="modal fade" id="deleteSystemModal" tabindex="-1" aria-labelledby="deleteSystemModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteSystemModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong>{{system.name}}</strong>?</p>
+        {{#if associatedLicenses.length}}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            This system has {{associatedLicenses.length}} license(s) associated with it. Deleting this system will remove these associations.
+          </div>
+        {{/if}}
+        <p class="text-danger">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form action="/systems/{{system._id}}?_method=DELETE" method="POST">
+          <button type="submit" class="btn btn-danger">Delete System</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

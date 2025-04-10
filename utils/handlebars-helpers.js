@@ -1,6 +1,14 @@
 const moment = require('moment');
 
 module.exports = {
+  // String comparison helpers
+  startsWith: function(str, prefix) {
+    if (typeof str !== 'string') {
+      return false;
+    }
+    return str.startsWith(prefix);
+  },
+  
   // Simple equality comparison
   eq: function(a, b) {
     return a === b;
@@ -67,12 +75,16 @@ module.exports = {
   
   // Format date using moment.js
   formatDate: function(date, format) {
+    if (!date) return '';
     return moment(date).format(format);
   },
   
   // Check if a date is in the past
   isPast: function(date) {
-    return moment(date).isBefore(moment());
+    if (!date) return false;
+    const compareDate = new Date(date);
+    const now = new Date();
+    return compareDate < now;
   },
   
   // Calculate days between two dates
@@ -82,7 +94,10 @@ module.exports = {
   
   // Calculate days from now
   daysFromNow: function(date) {
-    return moment(date).diff(moment(), 'days');
+    if (!date) return '';
+    const now = moment();
+    const targetDate = moment(date);
+    return targetDate.diff(now, 'days');
   },
   
   // Format number as currency
@@ -123,9 +138,11 @@ module.exports = {
   
   // Get appropriate CSS class based on days remaining
   daysRemainingClass: function(days) {
-    if (days < 0) return 'danger';
-    if (days <= 30) return 'warning';
-    return 'success';
+    if (days < 0) return 'danger'; // Already expired
+    if (days < 10) return 'danger'; // Less than 10 days
+    if (days < 30) return 'warning'; // Less than 30 days
+    if (days < 60) return 'info'; // Less than 60 days
+    return 'success'; // 60+ days remaining
   },
   
   // Get appropriate CSS class based on license status
@@ -152,7 +169,10 @@ module.exports = {
   
   // Conditional if equal
   ifEqual: function(a, b, options) {
-    return a === b ? options.fn(this) : options.inverse(this);
+    if (a === b) {
+      return options.fn(this);
+    }
+    return options.inverse(this);
   },
   
   // Conditional if not equal
@@ -201,8 +221,9 @@ module.exports = {
   
   // Check if an array contains an item
   contains: function(array, item) {
-    if (!Array.isArray(array)) return false;
-    return array.includes(item);
+    if (!array) return false;
+    if (typeof array === 'string') return array.includes(item);
+    return Array.isArray(array) && array.includes(item);
   },
   
   // Check if value is an array

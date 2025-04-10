@@ -130,22 +130,34 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
       
     console.log(`Found ${expiringLicenses.length} licenses expiring within 30 days`);
     
-    // Get license utilization data for chart
+    // Get license utilization data for chart with improved calculation
     const utilizationLicenses = allUserLicenses
-      .filter(license => license.utilization || (license.usedSeats && license.totalSeats))
-      .sort((a, b) => {
-        // Calculate utilization if not set directly
-        const aUtil = a.utilization || (a.usedSeats ? (a.usedSeats / a.totalSeats * 100) : 0);
-        const bUtil = b.utilization || (b.usedSeats ? (b.usedSeats / b.totalSeats * 100) : 0);
-        return bUtil - aUtil; // Sort DESC
+      .filter(license => license.totalSeats > 0) // Only include licenses with seats
+      .map(license => {
+        // Ensure proper utilization calculation
+        const totalSeats = parseInt(license.totalSeats) || 1;
+        const usedSeats = license.assignedSystems ? license.assignedSystems.length : (license.usedSeats || 0);
+        const utilization = Math.min(100, (usedSeats / totalSeats) * 100);
+        
+        return {
+          ...license,
+          calculatedUtilization: parseFloat(utilization.toFixed(2))
+        };
       })
+      .sort((a, b) => b.calculatedUtilization - a.calculatedUtilization) // Sort DESC
       .slice(0, 5); // Limit to 5
     
     const licenseUtilization = {
       labels: utilizationLicenses.map(license => license.name || license.product || 'Unknown'),
-      data: utilizationLicenses.map(license => license.utilization || 
-        (license.usedSeats ? (license.usedSeats / license.totalSeats * 100) : 0))
+      data: utilizationLicenses.map(license => license.calculatedUtilization)
     };
+    
+    console.log('License utilization data:', {
+      licenseCount: utilizationLicenses.length,
+      utilizationData: utilizationLicenses.map(l => 
+        `${l.name || l.product}: ${l.calculatedUtilization}% (${l.assignedSystems ? l.assignedSystems.length : 0}/${l.totalSeats})`
+      )
+    });
 
     // Prepare data for charts
     const activeLicensesCount = allUserLicenses.filter(lic => lic.status === 'active').length;
@@ -307,6 +319,14 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
         }
       ];
       
+      // Update demo data with utilization information
+      demoLicenses.forEach(license => {
+        const totalSeats = license.totalSeats || 1;
+        const usedSeats = license.assignedTo || 0;
+        license.usedSeats = usedSeats;
+        license.utilization = Math.min(100, (usedSeats / totalSeats) * 100);
+      });
+
       // Set demo data
       allUserLicenses = demoLicenses;
       recentLicenses = demoLicenses;

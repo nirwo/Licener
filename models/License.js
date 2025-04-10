@@ -3,6 +3,65 @@
  * File-based implementation using LowDB
  */
 const { License: FileDBLicense } = require('../utils/file-db');
+const fs = require('fs');
+const path = require('path');
+
+// Define path to data directory
+const dataDir = path.join(__dirname, '..', 'data');
+
+// Define database utilities
+const db = {
+  findByIdAndUpdate: async (collection, id, updates) => {
+    try {
+      console.log(`UPDATE BY ID: Looking to update _id=${id} in ${collection}`);
+      const collectionPath = path.join(dataDir, `${collection}.json`);
+      
+      // Make sure the file exists
+      if (!fs.existsSync(collectionPath)) {
+        console.log(`UPDATE BY ID: Collection file not found for ${collection}`);
+        return null;
+      }
+      
+      // Read the collection data
+      const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+      
+      // Find the item by ID
+      const index = data.data.findIndex(item => item._id === id);
+      
+      // If item not found, return null
+      if (index === -1) {
+        console.log(`UPDATE BY ID: No matching item with _id=${id} in ${collection}`);
+        return null;
+      }
+      
+      console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
+      
+      // Get the existing item
+      const existingItem = data.data[index];
+      
+      // Create updated item by merging existing with updates
+      const updatedItem = {
+        ...existingItem,
+        ...updates,
+        updatedAt: new Date()
+      };
+      
+      // Replace the old item with the updated one
+      data.data[index] = updatedItem;
+      
+      // Write the updated data back to the file
+      fs.writeFileSync(collectionPath, JSON.stringify(data, null, 2), 'utf8');
+      
+      console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${collection}`);
+      
+      // Return the updated item
+      return updatedItem;
+    } catch (err) {
+      console.error(`Error in findByIdAndUpdate for ${collection}:`, err);
+      throw err;
+    }
+  }
+};
 
 // This is a wrapper around the file DB to maintain API compatibility
 const License = {

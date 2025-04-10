@@ -196,20 +196,22 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
     
     console.log(`After filtering: ${filteredLicenses.length} licenses`);
     
-    // Calculate utilization for each license
+    // Calculate utilization for each license with improved accuracy
     const processedLicenses = filteredLicenses.map(license => {
       // Create a copy to avoid modifying the original
       const processedLicense = {...license};
       
       // Ensure we have valid values for calculations
       const totalSeats = parseInt(license.totalSeats) || 1;
-      const usedSeats = parseInt(license.usedSeats) || 0;
+      const usedSeats = license.assignedSystems ? license.assignedSystems.length : (parseInt(license.usedSeats) || 0);
       
       // Calculate utilization percentage
-      processedLicense.utilization = (usedSeats / totalSeats) * 100;
+      processedLicense.usedSeats = usedSeats;
+      processedLicense.totalSeats = totalSeats;
+      processedLicense.utilization = Math.min(100, (usedSeats / totalSeats) * 100);
       
       // Calculate remaining seats
-      processedLicense.remainingSeats = totalSeats - usedSeats;
+      processedLicense.remainingSeats = Math.max(0, totalSeats - usedSeats);
       
       // Add utilization class for UI coloring
       if (processedLicense.utilization >= 90) {
@@ -226,7 +228,7 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
     // Sort by utilization (highest first)
     processedLicenses.sort((a, b) => b.utilization - a.utilization);
     
-    // Group by product for product utilization
+    // Group by product for product utilization with improved calculation
     const productGroups = {};
     processedLicenses.forEach(license => {
       const product = license.product || 'Unknown';
@@ -247,7 +249,7 @@ router.get('/license-utilization', ensureAuthenticated, async (req, res) => {
     // Calculate utilization for each product group
     const productUtilization = Object.values(productGroups).map(group => {
       group.utilization = group.totalSeats > 0 ? 
-        (group.usedSeats / group.totalSeats) * 100 : 0;
+        Math.min(100, (group.usedSeats / group.totalSeats) * 100) : 0;
         
       if (group.utilization >= 90) {
         group.utilizationClass = 'danger';

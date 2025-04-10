@@ -1,1 +1,17 @@
-{"data":[]}
+{
+  "data": [
+    {
+      "name": "Microsoft",
+      "website": "",
+      "contactPerson": "",
+      "email": "",
+      "phone": "",
+      "address": "",
+      "notes": "",
+      "owner": "m8rdc2uoam52f",
+      "_id": "m9bmsf05qqaqy",
+      "createdAt": "2025-04-10T17:27:36.437Z",
+      "updatedAt": "2025-04-10T17:27:36.437Z"
+    }
+  ]
+}

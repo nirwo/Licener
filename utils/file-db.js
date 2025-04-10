@@ -43,6 +43,62 @@ const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 };
 
+// Define a common database utility object
+const db = {
+  // Find by ID and update method for all collections
+  findByIdAndUpdate: async (collection, id, updates) => {
+    try {
+      console.log(`UPDATE BY ID: Looking to update _id=${id} in ${collection}`);
+      const collectionPath = path.join(dataDir, `${collection}.json`);
+      
+      // Make sure the file exists
+      if (!fs.existsSync(collectionPath)) {
+        console.log(`UPDATE BY ID: Collection file not found for ${collection}`);
+        return null;
+      }
+      
+      // Read the collection data
+      const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+      
+      // Find the item by ID
+      const index = data.data.findIndex(item => item._id === id);
+      
+      // If item not found, return null
+      if (index === -1) {
+        console.log(`UPDATE BY ID: No matching item with _id=${id} in ${collection}`);
+        return null;
+      }
+      
+      console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
+      
+      // Get the existing item
+      const existingItem = data.data[index];
+      
+      // Create updated item by merging existing with updates
+      const updatedItem = {
+        ...existingItem,
+        ...updates,
+        updatedAt: new Date()
+      };
+      
+      // Replace the old item with the updated one
+      data.data[index] = updatedItem;
+      
+      // Write the updated data back to the file
+      fs.writeFileSync(collectionPath, JSON.stringify(data, null, 2), 'utf8');
+      
+      console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${collection}`);
+      
+      // Return the updated item
+      return updatedItem;
+    } catch (err) {
+      console.error(`Error in findByIdAndUpdate for ${collection}:`, err);
+      throw err;
+    }
+  }
+  // ...other db methods...
+};
+
 /**
  * Generic database operations
  */
@@ -525,7 +581,31 @@ const dbOperations = (dbName) => {
 };
 
 // Create models
-const License = dbOperations('licenses');
+const License = {
+  ...dbOperations('licenses'),
+  
+  // Update method with improved error handling
+  findByIdAndUpdate: async (id, updateData) => {
+    try {
+      console.log(`Updating license with ID: ${id}`);
+      console.log('Update data:', JSON.stringify(updateData, null, 2));
+      
+      // Use the db utility object for the update
+      const result = await db.findByIdAndUpdate('licenses', id, updateData);
+      
+      if (!result) {
+        console.log(`License with ID ${id} not found for update`);
+        return null;
+      }
+      
+      return result;
+    } catch (err) {
+      console.error('Error updating license:', err);
+      throw new Error(`Failed to update license: ${err.message}`);
+    }
+  }
+};
+
 const System = dbOperations('systems');
 const User = dbOperations('users');
 
@@ -543,5 +623,6 @@ if (User.find().length === 0) {
 module.exports = {
   License,
   System,
-  User
+  User,
+  db
 };

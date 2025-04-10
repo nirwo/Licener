@@ -242,6 +242,67 @@ router.get('/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// View system details
+router.get('/view/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    console.log(`Loading system details for ID: ${req.params.id}`);
+    
+    // Get system by ID
+    const system = await System.findById(req.params.id);
+    
+    if (!system) {
+      req.flash('error_msg', 'System not found');
+      return res.redirect('/systems');
+    }
+    
+    // Check if user is authorized to view this system
+    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
+    const currentUserId = req.user._id ? req.user._id.toString() : '';
+    
+    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
+      req.flash('error_msg', 'Not authorized to view this system');
+      return res.redirect('/systems');
+    }
+    
+    // Get licenses associated with this system
+    let associatedLicenses = [];
+    if (system.licenseRequirements && system.licenseRequirements.length > 0) {
+      // Get license IDs from requirements
+      const licenseIds = system.licenseRequirements
+        .filter(req => req.licenseId)
+        .map(req => req.licenseId);
+      
+      // Find all those licenses
+      if (licenseIds.length > 0) {
+        const allLicenses = await License.find({});
+        associatedLicenses = allLicenses.filter(license => 
+          licenseIds.includes(license._id)
+        );
+      }
+    }
+    
+    // Format installed software dates if present
+    if (system.installedSoftware && system.installedSoftware.length > 0) {
+      system.installedSoftware.forEach(software => {
+        if (software.installDate) {
+          software.formattedInstallDate = new Date(software.installDate).toLocaleDateString();
+        }
+      });
+    }
+    
+    // Render the system details page
+    res.render('systems/view', {
+      title: system.name,
+      system,
+      associatedLicenses
+    });
+  } catch (err) {
+    console.error('Error loading system details:', err);
+    req.flash('error_msg', 'Error loading system details');
+    res.redirect('/systems');
+  }
+});
+
 // Edit system form
 router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
   try {

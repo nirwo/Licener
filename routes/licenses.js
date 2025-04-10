@@ -246,8 +246,18 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       console.log('Parsed systemsToAssign:', systemsToAssign);
     }
     
+    // Calculate utilization metrics
+    const usedSeats = systemsToAssign.length;
+    const parsedTotalSeats = parseInt(totalSeats) || 1;
+    const utilization = Math.min(100, (usedSeats / parsedTotalSeats) * 100);
+    
+    console.log(`License utilization: ${usedSeats}/${parsedTotalSeats} seats (${utilization.toFixed(2)}%)`);
+    
+    // Add utilization to license data
     licenseData.assignedSystems = systemsToAssign;
-    licenseData.usedSeats = systemsToAssign.length;
+    licenseData.usedSeats = usedSeats;
+    licenseData.totalSeats = parsedTotalSeats;
+    licenseData.utilization = parseFloat(utilization.toFixed(2));
     
     // Create license
     console.log('Creating license with data:', {
@@ -412,6 +422,13 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
     
     console.log('Old assigned systems:', oldAssignedSystems);
     
+    // Calculate utilization based on assigned systems
+    const usedSeats = newAssignedSystems.length;
+    const parsedTotalSeats = parseInt(totalSeats) || 1;
+    const utilization = Math.min(100, (usedSeats / parsedTotalSeats) * 100);
+    
+    console.log(`License utilization: ${usedSeats}/${parsedTotalSeats} seats (${utilization.toFixed(2)}%)`);
+    
     // Prepare update data
     const updatedLicenseData = {
       name: name || product,
@@ -421,8 +438,9 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
       purchaseDate,
       expiryDate,
       renewalDate: renewalDate || undefined,
-      totalSeats: parseInt(totalSeats) || 1,
-      usedSeats: newAssignedSystems.length,
+      totalSeats: parsedTotalSeats,
+      usedSeats: usedSeats,
+      utilization: parseFloat(utilization.toFixed(2)),
       cost: cost ? parseFloat(cost) : undefined,
       currency: currency || 'USD',
       notes,

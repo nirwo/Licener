@@ -109,6 +109,62 @@
       </div>
     </div>
     
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">License Utilization</h5>
+      </div>
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <div class="license-utilization-stats">
+              <div class="mb-3">
+                <h6>Total Seats: {{license.totalSeats}}</h6>
+                <h6>Used Seats: {{license.usedSeats}}</h6>
+                <h6>Available Seats: {{subtract license.totalSeats license.usedSeats}}</h6>
+              </div>
+              
+              {{#if license.assignedSystems}}
+                <p><strong>Assigned Systems:</strong> {{license.assignedSystems.length}}</p>
+                <div class="list-group mb-3">
+                  {{#each assignedSystems}}
+                    <div class="list-group-item">
+                      <strong>{{name}}</strong>
+                      {{#if os}}<span class="badge bg-secondary ms-2">{{os}}</span>{{/if}}
+                      {{#if type}}<span class="badge bg-info ms-1">{{type}}</span>{{/if}}
+                    </div>
+                  {{/each}}
+                </div>
+              {{else}}
+                <p>No systems assigned to this license</p>
+              {{/if}}
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="utilization-chart-container" style="height: 200px;">
+              <canvas id="utilizationChart"></canvas>
+            </div>
+            
+            <div class="text-center mt-3">
+              {{#if (gte (divide license.usedSeats license.totalSeats) 0.9)}}
+                <div class="alert alert-danger">
+                  <i class="fas fa-exclamation-triangle me-2"></i> License is at high utilization
+                </div>
+              {{else if (gte (divide license.usedSeats license.totalSeats) 0.7)}}
+                <div class="alert alert-warning">
+                  <i class="fas fa-exclamation-circle me-2"></i> License is at moderate utilization
+                </div>
+              {{else}}
+                <div class="alert alert-success">
+                  <i class="fas fa-check-circle me-2"></i> License has available capacity
+                </div>
+              {{/if}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     {{#if license.assignedSystems.length}}
       <div class="card mb-4">
         <div class="card-header">
@@ -258,6 +314,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Generate QR code
@@ -283,6 +340,47 @@
         }
       });
     }
+
+    // Utilization chart
+    const utilizationCtx = document.getElementById('utilizationChart').getContext('2d');
+    const usedSeats = {{license.usedSeats}};
+    const totalSeats = {{license.totalSeats}};
+    const availableSeats = totalSeats - usedSeats;
+    
+    new Chart(utilizationCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Used Seats', 'Available Seats'],
+        datasets: [{
+          data: [usedSeats, availableSeats],
+          backgroundColor: [
+            availableSeats === 0 ? '#e74a3b' : '#4e73df',
+            '#1cc88a'
+          ],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw || 0;
+                const percentage = Math.round((value / totalSeats) * 100);
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
+          },
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
   });
   
   // Copy to clipboard function
