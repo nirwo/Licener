@@ -7,6 +7,7 @@ const flash = require('connect-flash');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const { displayBanner } = require('./utils/banner');
+const moment = require('moment'); // Add moment as a dependency for the helpers
 
 // Load environment variables
 dotenv.config();
@@ -46,10 +47,84 @@ handlebarsHelpers.safeJsonString = function(context) {
   }
 };
 
+// Add the missing startsWith helper
+handlebarsHelpers.startsWith = function(str, prefix) {
+  if (typeof str !== 'string') {
+    return false;
+  }
+  return str.startsWith(prefix);
+};
+
 // Handlebars Middleware
 app.engine('handlebars', engine({
   defaultLayout: 'main',
-  helpers: handlebarsHelpers
+  helpers: {
+    // Add the missing isArray helper
+    isArray: function(value) {
+      return Array.isArray(value);
+    },
+    // Add the missing startsWith helper
+    startsWith: function(str, prefix) {
+      if (typeof str !== 'string') {
+        return false;
+      }
+      return str.startsWith(prefix);
+    },
+    // Add the missing ifEqual helper
+    ifEqual: function(a, b, options) {
+      if (a === b) {
+        return options.fn(this);
+      }
+      return options.inverse(this);
+    },
+    // Fix the formatDate helper to use the moment module
+    formatDate: function(date, format) {
+      if (!date) return '';
+      return moment(date).format(format);
+    },
+    // Add the missing isPast helper
+    isPast: function(date) {
+      if (!date) return false;
+      const compareDate = new Date(date);
+      const now = new Date();
+      return compareDate < now;
+    },
+    // Add the missing daysFromNow helper
+    daysFromNow: function(date) {
+      if (!date) return '';
+      const now = moment();
+      const targetDate = moment(date);
+      return targetDate.diff(now, 'days');
+    },
+    // Other existing helpers
+    eq: function(a, b) {
+      return a === b;
+    },
+    json: function(context) {
+      return JSON.stringify(context);
+    },
+    contains: function(array, value) {
+      if (!array) return false;
+      if (typeof array === 'string') return array.includes(value);
+      return Array.isArray(array) && array.includes(value);
+    },
+    licenseStatusClass: function(status) {
+      switch(status) {
+        case 'active': return 'success';
+        case 'expired': return 'danger';
+        case 'pending': return 'warning';
+        case 'renewed': return 'info';
+        default: return 'secondary';
+      }
+    },
+    divide: function(a, b) {
+      return a / b;
+    },
+    nl2br: function(text) {
+      if (!text) return '';
+      return text.replace(/\n/g, '<br>');
+    }
+  }
 }));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'templates'));
@@ -115,7 +190,20 @@ const licenseRoutes = require('./routes/licenses');
 const systemRoutes = require('./routes/systems');
 const reportRoutes = require('./routes/reports');
 const apiRoutes = require('./routes/api');
-const vendorRoutes = require('./routes/vendors'); // Add this line
+const vendorRoutes = require('./routes/vendors'); // If you added this line
+
+// Add redirects for common auth paths
+app.get('/users/login', (req, res) => {
+  res.redirect('/auth/login');
+});
+
+app.get('/users/register', (req, res) => {
+  res.redirect('/auth/register');
+});
+
+app.get('/users/logout', (req, res) => {
+  res.redirect('/auth/logout');
+});
 
 // Use routes
 app.use('/', indexRoutes);
@@ -124,7 +212,12 @@ app.use('/licenses', licenseRoutes);
 app.use('/systems', systemRoutes);
 app.use('/reports', reportRoutes);
 app.use('/api', apiRoutes);
-app.use('/vendors', vendorRoutes); // Add this line
+// Fix the vendors route if it exists
+if (typeof vendorRoutes === 'function') {
+  app.use('/vendors', vendorRoutes);
+} else if (vendorRoutes) {
+  console.warn('Warning: vendorRoutes is not a valid middleware function');
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {

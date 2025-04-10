@@ -230,7 +230,7 @@ const dbOperations = (dbName) => {
      * @param {Object} data - Data to update
      * @returns {Object|null} Updated record or null
      */
-    findByIdAndUpdate: (id, data) => {
+    findByIdAndUpdate: async (id, updates) => {
       try {
         console.log(`UPDATE BY ID: Looking to update _id=${id} in ${dbName}`);
         const collectionPath = path.join(dataDir, `${dbName}.json`);
@@ -242,10 +242,10 @@ const dbOperations = (dbName) => {
         }
         
         // Read the collection data
-        const fileData = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+        const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
         
         // Find the item by ID
-        const index = fileData.data.findIndex(item => item._id === id);
+        const index = data.data.findIndex(item => item._id === id);
         
         // If item not found, return null
         if (index === -1) {
@@ -256,20 +256,20 @@ const dbOperations = (dbName) => {
         console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
         
         // Get the existing item
-        const existingItem = fileData.data[index];
+        const existingItem = data.data[index];
         
         // Create updated item by merging existing with updates
         const updatedItem = {
           ...existingItem,
-          ...data,
+          ...updates,
           updatedAt: new Date()
         };
         
         // Replace the old item with the updated one
-        fileData.data[index] = updatedItem;
+        data.data[index] = updatedItem;
         
         // Write the updated data back to the file
-        fs.writeFileSync(collectionPath, JSON.stringify(fileData, null, 2), 'utf8');
+        fs.writeFileSync(collectionPath, JSON.stringify(data, null, 2), 'utf8');
         
         console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${dbName}`);
         
