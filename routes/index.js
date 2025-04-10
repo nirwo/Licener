@@ -15,6 +15,11 @@ router.get('/', (req, res) => {
 // Dashboard
 router.get('/dashboard', ensureAuthenticated, async (req, res) => {
   try {
+    // Initialize variables that will be reassigned later
+    let recentLicenses = [];
+    let expiringLicenses = [];
+    let chartData = {};
+    
     // Extract user ID and normalize to string for consistent comparison
     const userId = req.user._id ? req.user._id.toString() : req.user._id;
     
@@ -58,14 +63,14 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
     }
 
     // Make sure to pass a proper array even if no data exists
-    const recentLicenses = allUserLicenses.length > 0 
+    recentLicenses = allUserLicenses.length > 0 
       ? allUserLicenses.slice(0, 5) 
       : [];
 
     // Debug the actual data being passed to the template
     console.log('Sending to dashboard:', {
       licenseCount: recentLicenses.length,
-      expiringCount: expiringLicenses.length
+      expiringCount: expiringLicenses ? expiringLicenses.length : 0
     });
 
     // If no licenses found and this isn't the demo user, show all licenses
@@ -114,7 +119,7 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
       }
     });
     
-    const expiringLicenses = allUserLicenses
+    expiringLicenses = allUserLicenses
       .filter(lic => {
         if (!lic.expiryDate) return false;
         const expiry = new Date(lic.expiryDate);
@@ -207,7 +212,7 @@ router.get('/dashboard', ensureAuthenticated, async (req, res) => {
     const chartColors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#5a5c69'];
     
     // Prepare chart data object with fallback values if empty
-    const chartData = {
+    chartData = {
       expiryTimeline: {
         labels: expiryTimelineData.labels.length > 0 ? expiryTimelineData.labels : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
         data: expiryTimelineData.data.length > 0 ? expiryTimelineData.data : [0, 0, 0, 0, 0, 0],

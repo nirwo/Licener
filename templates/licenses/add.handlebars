@@ -92,14 +92,38 @@
       </div>
 
       <div class="mb-3">
-        <label for="assignedSystems" class="form-label">Assigned Systems</label>
-        <select class="form-select" id="assignedSystems" name="assignedSystems" multiple>
-          <option value="">Not assigned</option>
-          {{#each systems}}
-            <option value="{{_id}}">{{name}} - {{os}} ({{type}})</option>
-          {{/each}}
-        </select>
-        <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+        <label class="form-label">Assigned Systems</label>
+        <div class="system-selection-container">
+          <div class="row">
+            {{#each systems}}
+              <div class="col-md-4 mb-3">
+                <div class="card system-card h-100">
+                  <div class="card-body">
+                    <div class="form-check">
+                      <input class="form-check-input system-checkbox" type="checkbox" name="assignedSystems" value="{{_id}}" id="system-{{_id}}">
+                      <label class="form-check-label w-100" for="system-{{_id}}">
+                        <h6 class="mb-1">{{name}}</h6>
+                        <div class="small text-muted mb-2">
+                          {{#if os}}<span class="badge bg-secondary me-1">{{os}}</span>{{/if}}
+                          {{#if type}}<span class="badge bg-info">{{type}}</span>{{/if}}
+                        </div>
+                        {{#if department}}<div class="small"><strong>Dept:</strong> {{department}}</div>{{/if}}
+                        {{#if location}}<div class="small"><strong>Location:</strong> {{location}}</div>{{/if}}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {{else}}
+              <div class="col-12">
+                <div class="alert alert-info">
+                  No systems available for assignment. <a href="/systems/add">Add a system</a> first.
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+        <small class="text-muted d-block mt-2">Check multiple systems to assign this license to them</small>
       </div>
 
       <div class="mb-3">

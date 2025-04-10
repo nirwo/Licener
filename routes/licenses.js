@@ -42,6 +42,29 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
+// Helper function to safely convert IDs to strings for comparison
+function safeIdToString(id) {
+  if (!id) return '';
+  return typeof id === 'object' && id.toString ? id.toString() : String(id);
+}
+
+// Helper function for debugging
+function logObject(label, obj) {
+  console.log(`=== ${label} ===`);
+  if (typeof obj === 'undefined') {
+    console.log('UNDEFINED');
+  } else if (obj === null) {
+    console.log('NULL');
+  } else {
+    console.log(JSON.stringify(obj, (key, value) => 
+      typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 20
+        ? '[Object with many properties]'
+        : value
+    , 2));
+  }
+  console.log(`=== END ${label} ===`);
+}
+
 // Get all licenses
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
@@ -143,10 +166,10 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
 
 // Add license
 router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
-  console.log('License POST request received - START');
-  console.log('Request body:', req.body);
-  console.log('Files:', req.files);
-  console.log('User:', req.user);
+  console.log('============ LICENSE ADD - START ============');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Files:', req.files ? req.files.length : 'none');
+  console.log('User:', req.user._id);
   
   try {
     console.log('License form submitted:', req.body);
@@ -194,63 +217,112 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       owner: req.user._id
     };
     
-    // Handle assignedSystems (could be string or array depending on form submission)
+    // VERBOSE: Log assigned systems data
+    console.log('Raw assignedSystems from form:', req.body.assignedSystems);
+    
+    // Handle assignedSystems properly - extract from form data
     let systemsToAssign = [];
-    if (assignedSystems) {
-      // Convert to array if it's a single string value
-      systemsToAssign = Array.isArray(assignedSystems) ? assignedSystems : [assignedSystems];
-      // Filter out empty strings
-      systemsToAssign = systemsToAssign.filter(id => id && id.trim() !== '');
+    
+    if (req.body.assignedSystems) {
+      // Convert to array if needed
+      if (Array.isArray(req.body.assignedSystems)) {
+        systemsToAssign = [...req.body.assignedSystems];
+      } else if (typeof req.body.assignedSystems === 'string') {
+        systemsToAssign = [req.body.assignedSystems];
+      } else if (typeof req.body.assignedSystems === 'object') {
+        systemsToAssign = Object.values(req.body.assignedSystems);
+      }
+      
+      // Filter out empty values
+      systemsToAssign = systemsToAssign.filter(id => id && String(id).trim() !== '');
+      
+      console.log('Parsed systemsToAssign:', systemsToAssign);
     }
     
     licenseData.assignedSystems = systemsToAssign;
     licenseData.usedSeats = systemsToAssign.length;
     
-    console.log('Creating license with data:', licenseData);
-    console.log('Systems to assign:', systemsToAssign);
+    // Create license
+    console.log('Creating license with data:', {
+      ...licenseData,
+      attachments: licenseData.attachments ? `${licenseData.attachments.length} files` : 'None',
+      assignedSystems: `${systemsToAssign.length} systems`
+    });
     
-    // Use file-db create method
     const newLicense = await License.create(licenseData);
+    console.log('License created with ID:', newLicense._id);
+    logObject('New License Object', newLicense);
     
-    // Update assigned systems with the license requirement
+    // Update systems with license requirements
     if (systemsToAssign.length > 0) {
       console.log(`Updating ${systemsToAssign.length} systems with license requirement`);
       
       for (const systemId of systemsToAssign) {
-        const system = await System.findById(systemId);
-        if (system) {
-          console.log(`Updating system ${system.name} with license requirement`);
+        try {
+          console.log(`Processing system ID: ${systemId}`);
+          const system = await System.findById(systemId);
           
-          if (!system.licenseRequirements) {
-            system.licenseRequirements = [];
-          }
-          
-          // Check if this license is already in requirements
-          const existingReq = system.licenseRequirements.find(
-            req => req.licenseId && req.licenseId.toString() === newLicense._id.toString()
-          );
-          
-          if (!existingReq) {
-            system.licenseRequirements.push({
-              licenseType: product,
-              quantity: 1,
-              licenseId: newLicense._id
+          if (system) {
+            console.log(`Found system: ${system.name || system._id}`);
+            logObject('System Object Before Update', system);
+            
+            // Ensure licenseRequirements exists
+            if (!system.licenseRequirements) {
+              system.licenseRequirements = [];
+              console.log('Initialized empty licenseRequirements array');
+            }
+            
+            // Check if license already exists in requirements
+            const licenseExists = system.licenseRequirements.some(req => {
+              const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
+              const newLicenseId = newLicense._id ? newLicense._id.toString() : '';
+              const match = reqLicenseId === newLicenseId;
+              console.log(`License comparison: ${reqLicenseId} vs ${newLicenseId}, match: ${match}`);
+              return match;
             });
             
-            await System.findByIdAndUpdate(systemId, {
-              licenseRequirements: system.licenseRequirements
-            });
-            console.log(`Added license ${product} to system ${system.name}`);
+            if (!licenseExists) {
+              console.log(`Adding license ${newLicense._id} to system ${system._id}`);
+              
+              // Create new requirement
+              const newRequirement = {
+                licenseType: product || 'Unknown Product',
+                quantity: 1,
+                licenseId: newLicense._id
+              };
+              console.log('New requirement:', newRequirement);
+              
+              // Push to array
+              system.licenseRequirements.push(newRequirement);
+              
+              // Save updated system
+              const updatedSystem = await System.findByIdAndUpdate(
+                systemId, 
+                { licenseRequirements: system.licenseRequirements },
+                { new: true }
+              );
+              
+              console.log(`System ${system._id} updated successfully`);
+              logObject('System Object After Update', updatedSystem);
+            } else {
+              console.log(`License already exists in system ${system._id}, skipping`);
+            }
+          } else {
+            console.log(`WARNING: System with ID ${systemId} not found`);
           }
+        } catch (sysErr) {
+          console.error(`ERROR updating system ${systemId}:`, sysErr);
+          // Continue with other systems
         }
       }
     }
     
+    console.log('============ LICENSE ADD - COMPLETE ============');
     req.flash('success_msg', 'License added successfully');
     res.redirect('/licenses');
   } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error adding license');
+    console.error('ERROR adding license:', err);
+    req.flash('error_msg', 'Error adding license: ' + err.message);
     res.redirect('/licenses/add');
   }
 });
@@ -345,6 +417,9 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
 // Update license
 router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
   try {
+    console.log('License update request received for ID:', req.params.id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const license = await License.findById(req.params.id);
     
     if (!license) {
@@ -377,6 +452,7 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
     } = req.body;
     
     // Add new attachments if files were uploaded
+    let updatedAttachments = license.attachments || [];
     if (req.files && req.files.length > 0) {
       const newAttachments = req.files.map(file => ({
         filename: file.originalname,
@@ -384,77 +460,179 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
         uploadDate: Date.now()
       }));
       
-      license.attachments = [...license.attachments, ...newAttachments];
+      updatedAttachments = [...updatedAttachments, ...newAttachments];
     }
     
-    // Update license fields
-    license.name = name;
-    license.licenseKey = licenseKey;
-    license.product = product;
-    license.vendor = vendor;
-    license.purchaseDate = purchaseDate;
-    license.expiryDate = expiryDate;
-    license.renewalDate = renewalDate || undefined;
-    license.totalSeats = totalSeats;
-    license.cost = cost || undefined;
-    license.currency = currency || 'USD';
-    license.notes = notes;
+    // CRITICAL FIX: Proper handling of assigned systems
+    console.log('Raw assignedSystems from form:', req.body.assignedSystems);
     
-    if (status) {
-      license.status = status;
+    // Initialize array for assigned systems
+    let newAssignedSystems = [];
+    
+    if (assignedSystems) {
+      if (Array.isArray(assignedSystems)) {
+        newAssignedSystems = [...assignedSystems];
+      } else if (typeof assignedSystems === 'string') {
+        if (assignedSystems.trim() !== '') {
+          newAssignedSystems = [assignedSystems.trim()];
+        }
+      } else if (typeof assignedSystems === 'object' && assignedSystems !== null) {
+        newAssignedSystems = Object.values(assignedSystems);
+      }
     }
     
-    // Handle assigned systems
-    const oldAssignedSystems = license.assignedSystems.map(system => system.toString());
-    const newAssignedSystems = assignedSystems || [];
+    // Ensure it's an array and filter out invalid values
+    if (!Array.isArray(newAssignedSystems)) {
+      console.log('WARNING: newAssignedSystems is not an array, setting to empty array');
+      newAssignedSystems = [];
+    } else {
     
-    // Systems to remove
-    const systemsToRemove = oldAssignedSystems.filter(system => !newAssignedSystems.includes(system));
+    // Save license with updated fields
+    const savedLicense = await license.save();
+    console.log('License updated successfully');
+    logObject('Updated License', savedLicense);
+
+    // Process system updates
+    const updateResults = {
+      successful: [],
+      failed: []
+    };
     
-    // Systems to add
-    const systemsToAdd = newAssignedSystems.filter(system => !oldAssignedSystems.includes(system));
-    
-    // Update license with new assigned systems
-    license.assignedSystems = newAssignedSystems;
-    license.usedSeats = newAssignedSystems.length;
-    
-    await license.save();
-    
-    // Remove license from systems that are no longer assigned
+    // Remove license from systems
     if (systemsToRemove.length > 0) {
-      await System.updateMany(
-        { _id: { $in: systemsToRemove } },
-        { 
-          $pull: { 
-            licenseRequirements: {
-              licenseId: license._id
+      console.log(`Removing license from ${systemsToRemove.length} systems`);
+      
+      for (const systemId of systemsToRemove) {
+        try {
+          console.log(`Processing system removal for ID: ${systemId}`);
+          const system = await System.findById(systemId);
+          
+          if (system) {
+            console.log(`Found system ${system.name || system._id} for removal`);
+            logObject('System Before Removal', system);
+            
+            if (!system.licenseRequirements) {
+              system.licenseRequirements = [];
+              console.log('Initialized empty licenseRequirements array');
             }
+            
+            // Filter out this license
+            const licenseIdStr = license._id.toString();
+            
+            // Log current requirements
+            console.log('Current requirements:', system.licenseRequirements.map(r => ({
+              id: r.licenseId ? r.licenseId.toString() : 'undefined',
+              type: r.licenseType
+            })));
+            
+            // Remove this license
+            system.licenseRequirements = system.licenseRequirements.filter(req => {
+              const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
+              const match = reqLicenseId !== licenseIdStr;
+              console.log(`Comparing ${reqLicenseId} with ${licenseIdStr}, keeping: ${match}`);
+              return match;
+            });
+            
+            // Save updated system
+            const updatedSystem = await System.findByIdAndUpdate(
+              systemId,
+              { licenseRequirements: system.licenseRequirements },
+              { new: true }
+            );
+            
+            console.log(`System ${systemId} updated after removal`);
+            logObject('System After Removal', updatedSystem);
+            
+            updateResults.successful.push(`Removed from ${system.name || systemId}`);
+          } else {
+            console.log(`System ${systemId} not found for removal`);
+            updateResults.failed.push(`System ${systemId} not found`);
           }
+        } catch (err) {
+          console.error(`Error removing license from system ${systemId}:`, err);
+          updateResults.failed.push(`Failed to remove from ${systemId}: ${err.message}`);
         }
-      );
+      }
     }
     
-    // Add license to newly assigned systems
+    // Add license to systems
     if (systemsToAdd.length > 0) {
-      await System.updateMany(
-        { _id: { $in: systemsToAdd } },
-        { 
-          $push: { 
-            licenseRequirements: {
-              licenseType: product,
-              quantity: 1,
-              licenseId: license._id
+      console.log(`Adding license to ${systemsToAdd.length} systems`);
+      
+      for (const systemId of systemsToAdd) {
+        try {
+          console.log(`Processing system addition for ID: ${systemId}`);
+          const system = await System.findById(systemId);
+          
+          if (system) {
+            console.log(`Found system ${system.name || system._id} for addition`);
+            logObject('System Before Addition', system);
+            
+            if (!system.licenseRequirements) {
+              system.licenseRequirements = [];
+              console.log('Initialized empty licenseRequirements array');
             }
+            
+            // Check if license already exists
+            const licenseIdStr = license._id.toString();
+            const existingLicense = system.licenseRequirements.find(req => {
+              const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
+              const match = reqLicenseId === licenseIdStr;
+              console.log(`Checking if license exists: ${reqLicenseId} vs ${licenseIdStr}, match: ${match}`);
+              return match;
+            });
+            
+            if (!existingLicense) {
+              // Add new requirement
+              const newRequirement = {
+                licenseType: license.product || 'Unknown Product',
+                quantity: 1,
+                licenseId: license._id
+              };
+              
+              console.log('Adding new requirement:', newRequirement);
+              system.licenseRequirements.push(newRequirement);
+              
+              // Save updated system
+              const updatedSystem = await System.findByIdAndUpdate(
+                systemId,
+                { licenseRequirements: system.licenseRequirements },
+                { new: true }
+              );
+              
+              console.log(`System ${systemId} updated after addition`);
+              logObject('System After Addition', updatedSystem);
+              
+              updateResults.successful.push(`Added to ${system.name || systemId}`);
+            } else {
+              console.log(`License already exists in system ${systemId}, skipping`);
+            }
+          } else {
+            console.log(`System ${systemId} not found for addition`);
+            updateResults.failed.push(`System ${systemId} not found`);
           }
+        } catch (err) {
+          console.error(`Error adding license to system ${systemId}:`, err);
+          updateResults.failed.push(`Failed to add to ${systemId}: ${err.message}`);
         }
-      );
+      }
     }
     
-    req.flash('success_msg', 'License updated successfully');
+    // Report results
+    console.log('Update results:', updateResults);
+    
+    if (updateResults.failed.length > 0) {
+      req.flash('warning_msg', `License updated but had issues with ${updateResults.failed.length} system(s)`);
+    } else {
+      req.flash('success_msg', 'License updated successfully');
+    }
+    
+    console.log('============ LICENSE UPDATE - COMPLETE ============');
     res.redirect(`/licenses/${license._id}`);
   } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error updating license');
+    console.error('ERROR updating license:', err);
+    console.error(err.stack);
+    req.flash('error_msg', 'Error updating license: ' + err.message);
     res.redirect(`/licenses/edit/${req.params.id}`);
   }
 });
