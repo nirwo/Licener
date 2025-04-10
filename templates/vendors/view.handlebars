@@ -1,0 +1,146 @@
+<h1 class="h3 mb-4">Vendor Details</h1>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{vendor.name}}</h5>
+        <div>
+          <a href="/vendors/edit/{{vendor._id}}" class="btn btn-sm btn-warning">
+            <i class="fas fa-edit me-1"></i> Edit
+          </a>
+          {{#if licenses.length}}
+            <button type="button" class="btn btn-sm btn-danger disabled" data-bs-toggle="tooltip" title="Cannot delete vendor with active licenses">
+              <i class="fas fa-trash-alt me-1"></i> Delete
+            </button>
+          {{else}}
+            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+              <i class="fas fa-trash-alt me-1"></i> Delete
+            </button>
+          {{/if}}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="vendor-details">
+          {{#if vendor.website}}
+            <div class="mb-3">
+              <span class="label">Website</span>
+              <p><a href="{{vendor.website}}" target="_blank">{{vendor.website}} <i class="fas fa-external-link-alt fa-sm"></i></a></p>
+            </div>
+          {{/if}}
+          
+          {{#if vendor.contactPerson}}
+            <div class="mb-3">
+              <span class="label">Contact Person</span>
+              <p>{{vendor.contactPerson}}</p>
+            </div>
+          {{/if}}
+          
+          {{#if vendor.email}}
+            <div class="mb-3">
+              <span class="label">Email</span>
+              <p><a href="mailto:{{vendor.email}}">{{vendor.email}}</a></p>
+            </div>
+          {{/if}}
+          
+          {{#if vendor.phone}}
+            <div class="mb-3">
+              <span class="label">Phone</span>
+              <p><a href="tel:{{vendor.phone}}">{{vendor.phone}}</a></p>
+            </div>
+          {{/if}}
+          
+          {{#if vendor.address}}
+            <div class="mb-3">
+              <span class="label">Address</span>
+              <p>{{vendor.address}}</p>
+            </div>
+          {{/if}}
+          
+          {{#if vendor.notes}}
+            <div class="mb-3">
+              <span class="label">Notes</span>
+              <div class="mt-2 p-3 bg-light rounded">
+                {{{nl2br vendor.notes}}}
+              </div>
+            </div>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Licenses ({{licenses.length}})</h5>
+        <a href="/licenses/add?vendor={{vendor.name}}" class="btn btn-sm btn-primary">
+          <i class="fas fa-plus-circle me-1"></i> Add License
+        </a>
+      </div>
+      <div class="card-body">
+        {{#if licenses.length}}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Expiry Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each licenses}}
+                  <tr>
+                    <td>{{product}}</td>
+                    <td>{{formatDate expiryDate "MMM D, YYYY"}}</td>
+                    <td>
+                      <span class="badge bg-{{licenseStatusClass status}}">
+                        {{status}}
+                      </span>
+                    </td>
+                    <td>
+                      <a href="/licenses/view/{{_id}}" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i>
+                      </a>
+                    </td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        {{else}}
+          <div class="text-center py-4">
+            <p class="mb-3">No licenses found for this vendor</p>
+            <a href="/licenses/add?vendor={{vendor.name}}" class="btn btn-primary">
+              <i class="fas fa-plus-circle me-1"></i> Add License
+            </a>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete vendor <strong>{{vendor.name}}</strong>?</p>
+        <p class="text-danger">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form action="/vendors/{{vendor._id}}?_method=DELETE" method="POST">
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
