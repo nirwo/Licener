@@ -57,6 +57,73 @@ const criticalHelpers = {
   },
   gte: function(a, b) {
     return a >= b;
+  },
+  // New helpers for license management
+  daysFromNow: function(date) {
+    if (!date) return 0;
+    const now = moment();
+    const futureDate = moment(date);
+    return Math.max(0, futureDate.diff(now, 'days'));
+  },
+  isPast: function(date) {
+    if (!date) return false;
+    return moment(date).isBefore(moment());
+  },
+  daysRemainingClass: function(days) {
+    if (days <= 7) return 'danger';
+    if (days <= 30) return 'warning';
+    return 'success';
+  },
+  licenseStatusClass: function(status) {
+    if (!status) return 'secondary';
+    switch(status.toLowerCase()) {
+      case 'active': return 'success';
+      case 'pending': return 'warning';
+      case 'expired': return 'danger';
+      case 'renewed': return 'info';
+      default: return 'secondary';
+    }
+  },
+  percentage: function(numerator, denominator) {
+    if (!denominator || denominator == 0) return 0;
+    return Math.round((numerator / denominator) * 100);
+  },
+  percentageClass: function(percent) {
+    if (percent >= 90) return 'danger';
+    if (percent >= 70) return 'warning';
+    return 'success';
+  },
+  formatCurrency: function(amount, currency) {
+    if (amount === undefined || amount === null) return '';
+    try {
+      const currencySymbol = currency === 'EUR' ? '€' : '$';
+      return currencySymbol + parseFloat(amount).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    } catch(e) {
+      return amount;
+    }
+  },
+  divide: function(a, b) {
+    if (!b || b == 0) return 0;
+    return a / b;
+  },
+  nl2br: function(text) {
+    if (!text) return '';
+    return text.replace(/\n/g, '<br>');
+  },
+  contains: function(list, item) {
+    if (!list || !Array.isArray(list)) return false;
+    return list.some(listItem => {
+      if (listItem && item && typeof listItem.toString === 'function' && typeof item.toString === 'function') {
+        return listItem.toString() === item.toString();
+      }
+      return listItem === item;
+    });
+  },
+  isArray: function(obj) {
+    return Array.isArray(obj);
   }
 };
 
