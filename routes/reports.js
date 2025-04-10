@@ -503,6 +503,92 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// License Forecast Report
+router.get('/forecast', ensureAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user._id ? req.user._id.toString() : req.user.id;
+    
+    // Get all licenses
+    const allLicenses = await License.find({});
+    
+    // Filter for user's licenses
+    const userLicenses = allLicenses.filter(license => {
+      const licenseOwner = license.owner ? license.owner.toString() : '';
+      return licenseOwner === userId;
+    });
+    
+    // Use all licenses if none found for this user
+    const licenses = userLicenses.length > 0 ? userLicenses : allLicenses;
+    
+    // Get the forecast period (default to 12 months)
+    const period = req.query.period ? parseInt(req.query.period) : 12;
+    
+    // Calculate forecast data for each month
+    const forecastData = [];
+    const costLabels = [];
+    const costData = [];
+    const licenseCountData = [];
+    
+    const today = new Date();
+    
+    for (let i = 0; i < period; i++) {
+      const monthStart = moment(today).add(i, 'months').startOf('month');
+      const monthEnd = moment(today).add(i, 'months').endOf('month');
+      const monthLabel = monthStart.format('MMM YYYY');
+      
+      // Calculate licenses expiring this month
+      const expiringThisMonth = licenses.filter(license => {
+        if (!license.expiryDate) return false;
+        const expiryDate = moment(license.expiryDate);
+        return expiryDate.isBetween(monthStart, monthEnd, null, '[]');
+      });
+      
+      // Calculate total cost for renewals
+      const totalCost = expiringThisMonth.reduce((sum, license) => {
+        const cost = parseFloat(license.cost) || 0;
+        const seats = parseInt(license.totalSeats) || 1;
+        return sum + (cost * seats);
+      }, 0);
+      
+      forecastData.push({
+        month: monthLabel,
+        count: expiringThisMonth.length,
+        cost: totalCost,
+        licenses: expiringThisMonth
+      });
+      
+      costLabels.push(monthLabel);
+      costData.push(totalCost);
+      licenseCountData.push(expiringThisMonth.length);
+    }
+    
+    // Calculate total cost
+    const totalForecastCost = forecastData.reduce((sum, month) => sum + month.cost, 0);
+    
+    // Get vendors for the filter dropdown
+    const vendors = [...new Set(licenses.map(lic => lic.vendor).filter(Boolean))].sort();
+    
+    // Render the forecast report
+    res.render('reports/forecast', {
+      title: 'License Renewal Forecast',
+      forecastData,
+      period,
+      vendors,
+      vendor: req.query.vendor || 'all',
+      chartData: {
+        labels: costLabels,
+        costData,
+        licenseCountData
+      },
+      totalForecastCost
+    });
+  } catch (err) {
+    console.error('Error generating forecast report:', err);
+    req.flash('error_msg', 'Error generating forecast report: ' + err.message);
+    res.redirect('/reports');
+  }
+});
+
 // Custom report builder
 router.get('/custom', ensureAuthenticated, async (req, res) => {
   try {

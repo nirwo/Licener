@@ -8,6 +8,7 @@ const XLSX = require('xlsx');
 const { ensureAuthenticated, ensureManager } = require('../middleware/auth');
 const License = require('../models/License');
 const System = require('../models/System');
+const Vendor = require('../models/Vendor'); // Add this line
 
 // Set up storage for file uploads
 const storage = multer.diskStorage({
@@ -144,6 +145,9 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
       systems = await System.findByManager(req.user._id);
     }
     
+    // Get all vendors
+    const vendors = await Vendor.find({});
+    
     // Sort systems by name
     systems.sort((a, b) => {
       const nameA = a.name || '';
@@ -152,14 +156,17 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
     });
     
     console.log(`Found ${systems.length} systems for user ${req.user._id}`);
+    console.log(`Found ${vendors.length} vendors`);
     
     res.render('licenses/add', {
       title: 'Add License',
-      systems
+      systems,
+      vendors,
+      selectedVendor: req.query.vendor || ''
     });
   } catch (err) {
     console.error('Error in /licenses/add route:', err);
-    req.flash('error_msg', 'Error loading systems');
+    req.flash('error_msg', 'Error loading systems and vendors');
     res.redirect('/licenses');
   }
 });
@@ -327,6 +334,136 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
   }
 });
 
+// Update license
+router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
+  try {
+    console.log('License update request received for ID:', req.params.id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    // Get original license first
+    const license = await License.findById(req.params.id);
+    
+    if (!license) {
+      req.flash('error_msg', 'License not found');
+      return res.redirect('/licenses');
+    }
+    
+    // Check if user is owner or admin
+    const licenseOwnerId = license.owner ? license.owner.toString() : '';
+    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
+    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
+      req.flash('error_msg', 'Not authorized');
+      return res.redirect('/licenses');
+    }
+    
+    // Extract form data
+    const {
+      name,
+      licenseKey,
+      product,
+      vendor,
+      purchaseDate,
+      expiryDate,
+      renewalDate,
+      totalSeats,
+      cost,
+      currency,
+      notes,
+      assignedSystems,
+      status,
+      licenseType
+    } = req.body;
+    
+    // Process attachments
+    let updatedAttachments = license.attachments || [];
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(file => ({
+        filename: file.originalname,
+        path: file.path,
+        uploadDate: Date.now()
+      }));
+      updatedAttachments = [...updatedAttachments, ...newAttachments];
+    }
+    
+    // Process assigned systems
+    console.log('Raw assignedSystems from form:', req.body.assignedSystems);
+    let newAssignedSystems = [];
+    
+    if (assignedSystems) {
+      if (Array.isArray(assignedSystems)) {
+        newAssignedSystems = [...assignedSystems];
+      } else if (typeof assignedSystems === 'string') {
+        if (assignedSystems.trim() !== '') {
+          newAssignedSystems = [assignedSystems.trim()];
+        }
+      } else if (typeof assignedSystems === 'object' && assignedSystems !== null) {
+        newAssignedSystems = Object.values(assignedSystems);
+      }
+    }
+    
+    // Filter out invalid values
+    newAssignedSystems = newAssignedSystems.filter(id => id && String(id).trim() !== '');
+    console.log('Processed newAssignedSystems:', newAssignedSystems);
+    
+    // Get existing assigned systems
+    const oldAssignedSystems = Array.isArray(license.assignedSystems) 
+      ? license.assignedSystems.map(id => id && typeof id.toString === 'function' ? id.toString() : String(id)) 
+      : [];
+    
+    console.log('Old assigned systems:', oldAssignedSystems);
+    
+    // Prepare update data
+    const updatedLicenseData = {
+      name: name || product,
+      licenseKey,
+      product,
+      vendor,
+      purchaseDate,
+      expiryDate,
+      renewalDate: renewalDate || undefined,
+      totalSeats: parseInt(totalSeats) || 1,
+      usedSeats: newAssignedSystems.length,
+      cost: cost ? parseFloat(cost) : undefined,
+      currency: currency || 'USD',
+      notes,
+      status: status || 'active',
+      attachments: updatedAttachments,
+      assignedSystems: newAssignedSystems,
+      updatedAt: new Date(),
+      licenseType: licenseType || license.licenseType || 'perpetual'
+    };
+    
+    // Update the license
+    console.log('Updating license with data:', JSON.stringify(updatedLicenseData, null, 2));
+    
+    try {
+      const updatedLicense = await License.findByIdAndUpdate(req.params.id, updatedLicenseData);
+      console.log('License updated successfully');
+      
+      // Find systems to add/remove
+      const systemsToRemove = oldAssignedSystems.filter(id => !newAssignedSystems.includes(id) && id);
+      const systemsToAdd = newAssignedSystems.filter(id => !oldAssignedSystems.includes(id) && id);
+      
+      console.log('Systems to remove:', systemsToRemove);
+      console.log('Systems to add:', systemsToAdd);
+      
+      // Handle system updates separately
+      // ...existing code for updating systems...
+      
+      req.flash('success_msg', 'License updated successfully');
+      res.redirect(`/licenses/${req.params.id}`);
+    } catch (updateErr) {
+      console.error('Error updating license:', updateErr);
+      req.flash('error_msg', 'Error updating license: ' + updateErr.message);
+      res.redirect(`/licenses/edit/${req.params.id}`);
+    }
+  } catch (err) {
+    console.error('Error in license update route:', err);
+    req.flash('error_msg', 'Error updating license: ' + err.message);
+    res.redirect(`/licenses/edit/${req.params.id}`);
+  }
+});
+
 // View license details
 router.get('/:id', ensureAuthenticated, async (req, res) => {
   try {
@@ -395,6 +532,9 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
       systems = await System.findByManager(req.user._id);
     }
     
+    // Get all vendors
+    const vendors = await Vendor.find({});
+    
     // Sort systems by name
     systems.sort((a, b) => {
       const nameA = a.name || '';
@@ -405,239 +545,13 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
     res.render('licenses/edit', {
       title: 'Edit License',
       license,
-      systems
+      systems,
+      vendors
     });
   } catch (err) {
     console.error('Error in edit license route:', err);
     req.flash('error_msg', 'Error loading license');
     res.redirect('/licenses');
-  }
-});
-
-// Update license
-router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
-  try {
-    console.log('License update request received for ID:', req.params.id);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    
-    const license = await License.findById(req.params.id);
-    
-    if (!license) {
-      req.flash('error_msg', 'License not found');
-      return res.redirect('/licenses');
-    }
-    
-    // Check if user is owner or admin with better error handling
-    const licenseOwnerId = license.owner ? license.owner.toString() : '';
-    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
-    if (licenseOwnerId !== currentUserId && req.user.role !== 'admin') {
-      req.flash('error_msg', 'Not authorized');
-      return res.redirect('/licenses');
-    }
-    
-    const {
-      name,
-      licenseKey,
-      product,
-      vendor,
-      purchaseDate,
-      expiryDate,
-      renewalDate,
-      totalSeats,
-      cost,
-      currency,
-      notes,
-      assignedSystems,
-      status
-    } = req.body;
-    
-    // Add new attachments if files were uploaded
-    let updatedAttachments = license.attachments || [];
-    if (req.files && req.files.length > 0) {
-      const newAttachments = req.files.map(file => ({
-        filename: file.originalname,
-        path: file.path,
-        uploadDate: Date.now()
-      }));
-      
-      updatedAttachments = [...updatedAttachments, ...newAttachments];
-    }
-    
-    // CRITICAL FIX: Proper handling of assigned systems
-    console.log('Raw assignedSystems from form:', req.body.assignedSystems);
-    
-    // Initialize array for assigned systems
-    let newAssignedSystems = [];
-    
-    if (assignedSystems) {
-      if (Array.isArray(assignedSystems)) {
-        newAssignedSystems = [...assignedSystems];
-      } else if (typeof assignedSystems === 'string') {
-        if (assignedSystems.trim() !== '') {
-          newAssignedSystems = [assignedSystems.trim()];
-        }
-      } else if (typeof assignedSystems === 'object' && assignedSystems !== null) {
-        newAssignedSystems = Object.values(assignedSystems);
-      }
-    }
-    
-    // Ensure it's an array and filter out invalid values
-    if (!Array.isArray(newAssignedSystems)) {
-      console.log('WARNING: newAssignedSystems is not an array, setting to empty array');
-      newAssignedSystems = [];
-    } else {
-      newAssignedSystems = newAssignedSystems.filter(id => id && String(id).trim() !== '');
-    }
-    
-    console.log('Processed newAssignedSystems:', newAssignedSystems);
-    
-    // Get existing assigned systems as strings
-    const oldAssignedSystems = Array.isArray(license.assignedSystems) 
-      ? license.assignedSystems.map(id => id && typeof id.toString === 'function' ? id.toString() : String(id)) 
-      : [];
-    
-    console.log('Old assigned systems:', oldAssignedSystems);
-    
-    // Update license data object
-    const updatedLicenseData = {
-      name: name || product,
-      licenseKey,
-      product,
-      vendor,
-      purchaseDate,
-      expiryDate,
-      renewalDate: renewalDate || undefined,
-      totalSeats: parseInt(totalSeats) || 1,
-      usedSeats: newAssignedSystems.length,
-      cost: cost ? parseFloat(cost) : undefined,
-      currency: currency || 'USD',
-      notes,
-      status: status || 'active',
-      attachments: updatedAttachments,
-      assignedSystems: newAssignedSystems,
-      updatedAt: new Date()
-    };
-    
-    // FIX: Use findByIdAndUpdate instead of save()
-    console.log('Updating license with data:', JSON.stringify(updatedLicenseData, null, 2));
-    const updatedLicense = await License.findByIdAndUpdate(req.params.id, updatedLicenseData);
-    console.log('License updated successfully');
-    
-    // Find systems to add/remove
-    const systemsToRemove = oldAssignedSystems.filter(id => !newAssignedSystems.includes(id) && id);
-    const systemsToAdd = newAssignedSystems.filter(id => !oldAssignedSystems.includes(id) && id);
-    
-    console.log('Systems to remove:', systemsToRemove);
-    console.log('Systems to add:', systemsToAdd);
-    
-    // Process system updates
-    const updateResults = {
-      successful: [],
-      failed: []
-    };
-    
-    // Remove license from systems that are no longer assigned
-    if (systemsToRemove.length > 0) {
-      for (const systemId of systemsToRemove) {
-        try {
-          console.log(`Processing system removal for ID: ${systemId}`);
-          const system = await System.findById(systemId);
-          
-          if (system) {
-            console.log(`Found system to remove license from: ${system.name || systemId}`);
-            
-            if (!system.licenseRequirements) {
-              system.licenseRequirements = [];
-            }
-            
-            // Remove this license from requirements
-            const licenseIdStr = req.params.id.toString();
-            const updatedRequirements = system.licenseRequirements.filter(req => {
-              const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
-              return reqLicenseId !== licenseIdStr;
-            });
-            
-            await System.findByIdAndUpdate(systemId, {
-              licenseRequirements: updatedRequirements
-            });
-            
-            console.log(`Successfully removed license from system ${systemId}`);
-            updateResults.successful.push(`Removed from ${system.name || systemId}`);
-          } else {
-            console.log(`System ${systemId} not found for removal`);
-            updateResults.failed.push(`System ${systemId} not found`);
-          }
-        } catch (err) {
-          console.error(`Error removing license from system ${systemId}:`, err);
-          updateResults.failed.push(`Failed to remove from ${systemId}: ${err.message}`);
-        }
-      }
-    }
-    
-    // Add license to newly assigned systems
-    if (systemsToAdd.length > 0) {
-      for (const systemId of systemsToAdd) {
-        try {
-          console.log(`Processing system addition for ID: ${systemId}`);
-          const system = await System.findById(systemId);
-          
-          if (system) {
-            console.log(`Found system to add license to: ${system.name || systemId}`);
-            
-            if (!system.licenseRequirements) {
-              system.licenseRequirements = [];
-            }
-            
-            // Check if this license is already in requirements
-            const licenseIdStr = req.params.id.toString();
-            const existingReq = system.licenseRequirements.find(req => {
-              const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
-              return reqLicenseId === licenseIdStr;
-            });
-            
-            if (!existingReq) {
-              // Add new license requirement
-              const updatedRequirements = [...system.licenseRequirements, {
-                licenseType: product || 'Unknown',
-                quantity: 1,
-                licenseId: req.params.id
-              }];
-              
-              await System.findByIdAndUpdate(systemId, {
-                licenseRequirements: updatedRequirements
-              });
-              
-              console.log(`Successfully added license to system ${systemId}`);
-              updateResults.successful.push(`Added to ${system.name || systemId}`);
-            } else {
-              console.log(`License already exists in system ${systemId}, skipping`);
-            }
-          } else {
-            console.log(`System ${systemId} not found for addition`);
-            updateResults.failed.push(`System ${systemId} not found`);
-          }
-        } catch (err) {
-          console.error(`Error adding license to system ${systemId}:`, err);
-          updateResults.failed.push(`Failed to add to ${systemId}: ${err.message}`);
-        }
-      }
-    }
-    
-    // Report results
-    console.log('Update results:', updateResults);
-    
-    if (updateResults.failed.length > 0) {
-      req.flash('warning_msg', `License updated but had issues with ${updateResults.failed.length} system(s)`);
-    } else {
-      req.flash('success_msg', 'License updated successfully');
-    }
-    
-    res.redirect(`/licenses/${req.params.id}`);
-  } catch (err) {
-    console.error('Error updating license:', err);
-    console.error(err.stack);
-    req.flash('error_msg', 'Error updating license: ' + err.message);
-    res.redirect(`/licenses/edit/${req.params.id}`);
   }
 });
 

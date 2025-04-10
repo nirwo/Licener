@@ -231,61 +231,53 @@ const dbOperations = (dbName) => {
      * @returns {Object|null} Updated record or null
      */
     findByIdAndUpdate: (id, data) => {
-      if (!id) return null;
-      
-      // Convert id to string for comparison with error handling
-      const idStr = id.toString();
-      console.log(`UPDATE BY ID: Looking to update _id=${idStr} in ${dbName}`);
-      
       try {
-        // Find record by string ID with better error handling
-        const record = db.get('data')
-          .find(item => {
-            // Ensure item has _id before comparing
-            if (!item || !item._id) return false;
-            
-            const itemIdStr = item._id.toString();
-            const match = itemIdStr === idStr;
-            
-            // Debug logging
-            if (match) {
-              console.log(`UPDATE BY ID: Found matching item with _id=${itemIdStr}`);
-            }
-            
-            return match;
-          })
-          .value();
+        console.log(`UPDATE BY ID: Looking to update _id=${id} in ${dbName}`);
+        const collectionPath = path.join(dataDir, `${dbName}.json`);
         
-        if (!record) {
-          console.warn(`${dbName.toUpperCase()} DB - Update failed: Record with ID ${idStr} not found`);
+        // Make sure the file exists
+        if (!fs.existsSync(collectionPath)) {
+          console.log(`UPDATE BY ID: Collection file not found for ${dbName}`);
           return null;
         }
+        
+        // Read the collection data
+        const fileData = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
+        
+        // Find the item by ID
+        const index = fileData.data.findIndex(item => item._id === id);
+        
+        // If item not found, return null
+        if (index === -1) {
+          console.log(`UPDATE BY ID: No matching item with _id=${id} in ${dbName}`);
+          return null;
+        }
+        
+        console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
+        
+        // Get the existing item
+        const existingItem = fileData.data[index];
+        
+        // Create updated item by merging existing with updates
+        const updatedItem = {
+          ...existingItem,
+          ...data,
+          updatedAt: new Date()
+        };
+        
+        // Replace the old item with the updated one
+        fileData.data[index] = updatedItem;
+        
+        // Write the updated data back to the file
+        fs.writeFileSync(collectionPath, JSON.stringify(fileData, null, 2), 'utf8');
+        
+        console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${dbName}`);
+        
+        // Return the updated item
+        return updatedItem;
       } catch (err) {
         console.error(`Error in findByIdAndUpdate for ${dbName}:`, err);
-        return null;
-      }
-      
-      const updatedRecord = { 
-        ...record, 
-        ...data,
-        updatedAt: new Date()
-      };
-      
-      try {
-        db.get('data')
-          .find(item => {
-            // Ensure item has _id before comparing
-            if (!item || !item._id) return false;
-            return item._id.toString() === idStr;
-          })
-          .assign(updatedRecord)
-          .write();
-        
-        console.log(`${dbName.toUpperCase()} DB - Updated record:`, updatedRecord._id);
-        return updatedRecord;
-      } catch (error) {
-        console.error(`${dbName.toUpperCase()} DB - Error updating record:`, error);
-        throw error;
+        throw err;
       }
     },
     

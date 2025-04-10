@@ -109,12 +109,22 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname, 'static')));
 
 // Routes
-app.use('/', require('./routes/index'));
-app.use('/users', require('./routes/users'));
-app.use('/licenses', require('./routes/licenses'));
-app.use('/systems', require('./routes/systems'));
-app.use('/reports', require('./routes/reports'));
-app.use('/api', require('./routes/api'));
+const indexRoutes = require('./routes/index');
+const authRoutes = require('./routes/auth');
+const licenseRoutes = require('./routes/licenses');
+const systemRoutes = require('./routes/systems');
+const reportRoutes = require('./routes/reports');
+const apiRoutes = require('./routes/api');
+const vendorRoutes = require('./routes/vendors'); // Add this line
+
+// Use routes
+app.use('/', indexRoutes);
+app.use('/auth', authRoutes);
+app.use('/licenses', licenseRoutes);
+app.use('/systems', systemRoutes);
+app.use('/reports', reportRoutes);
+app.use('/api', apiRoutes);
+app.use('/vendors', vendorRoutes); // Add this line
 
 // Error handling middleware
 app.use((err, req, res, next) => {

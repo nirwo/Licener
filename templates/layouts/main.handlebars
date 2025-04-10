@@ -26,6 +26,31 @@
     {{> _navbar}}
     <div class="sidebar-wrapper" id="sidebarWrapper">
       {{> _sidebar}}
+      <ul class="nav flex-column">
+        <!-- Nav Item - Licenses -->
+        <li class="nav-item {{#if (startsWith currentUrl '/licenses')}}active{{/if}}">
+          <a class="nav-link" href="/licenses">
+            <i class="fas fa-key"></i>
+            <span>Licenses</span>
+          </a>
+        </li>
+
+        <!-- Nav Item - Vendors -->
+        <li class="nav-item {{#if (startsWith currentUrl '/vendors')}}active{{/if}}">
+          <a class="nav-link" href="/vendors">
+            <i class="fas fa-building"></i>
+            <span>Vendors</span>
+          </a>
+        </li>
+
+        <!-- Nav Item - Systems -->
+        <li class="nav-item {{#if (startsWith currentUrl '/systems')}}active{{/if}}">
+          <a class="nav-link" href="/systems">
+            <i class="fas fa-server"></i>
+            <span>Systems</span>
+          </a>
+        </li>
+      </ul>
     </div>
     <div class="content-wrapper">
       <main>

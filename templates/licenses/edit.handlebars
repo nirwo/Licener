@@ -16,7 +16,18 @@
         <div class="col-md-6">
           <div class="mb-3">
             <label for="vendor" class="form-label">Vendor</label>
-            <input type="text" class="form-control" id="vendor" name="vendor" value="{{license.vendor}}" required>
+            <div class="input-group">
+              <select class="form-select" id="vendor" name="vendor">
+                <option value="">Select a vendor</option>
+                {{#each vendors}}
+                  <option value="{{name}}" {{#if (eq ../license.vendor name)}}selected{{/if}}>{{name}}</option>
+                {{/each}}
+              </select>
+              <a href="/vendors/add" class="btn btn-primary" target="_blank">
+                <i class="fas fa-plus"></i>
+              </a>
+            </div>
+            <small class="text-muted">Or <a href="/vendors/add" target="_blank">create a new vendor</a></small>
           </div>
         </div>
       </div>

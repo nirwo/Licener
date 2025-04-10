@@ -97,6 +97,25 @@ const License = {
     }
     
     return clonedDocs;
+  },
+
+  // Update a license by ID with better error handling
+  findByIdAndUpdate: async (id, updateData) => {
+    console.log(`Updating license with ID: ${id}`);
+    console.log('Update data:', JSON.stringify(updateData, null, 2));
+    
+    try {
+      // Use the fixed db function to update the license
+      const result = await db.findByIdAndUpdate('licenses', id, updateData);
+      if (!result) {
+        console.log(`License with ID ${id} not found for update`);
+        return null;
+      }
+      return result;
+    } catch (err) {
+      console.error('Error updating license:', err);
+      throw new Error(`Failed to update license: ${err.message}`);
+    }
   }
 };
 
