@@ -37,94 +37,33 @@ require('./config/passport')(passport);
 // Get the handlebars helpers
 const handlebarsHelpers = require('./utils/handlebars-helpers');
 
-// Add a special JSON stringifier that's guaranteed to work
-handlebarsHelpers.safeJsonString = function(context) {
-  try {
-    return JSON.stringify(context || {});
-  } catch (e) {
-    console.error('Error stringifying JSON:', e);
-    return '{}';
+// Add a fallback inline definition of critical helpers just to be sure
+const criticalHelpers = {
+  startsWith: function(str, prefix) {
+    if (typeof str !== 'string') {
+      return false;
+    }
+    return str.startsWith(prefix);
+  },
+  eq: function(a, b) {
+    return a === b;
+  },
+  formatDate: function(date, format) {
+    if (!date) return '';
+    return moment(date).format(format);
+  },
+  subtract: function(a, b) {
+    return a - b;
+  },
+  gte: function(a, b) {
+    return a >= b;
   }
-};
-
-// Add the missing startsWith helper
-handlebarsHelpers.startsWith = function(str, prefix) {
-  if (typeof str !== 'string') {
-    return false;
-  }
-  return str.startsWith(prefix);
 };
 
 // Handlebars Middleware
 app.engine('handlebars', engine({
   defaultLayout: 'main',
-  helpers: {
-    // Add the missing isArray helper
-    isArray: function(value) {
-      return Array.isArray(value);
-    },
-    // Add the missing startsWith helper
-    startsWith: function(str, prefix) {
-      if (typeof str !== 'string') {
-        return false;
-      }
-      return str.startsWith(prefix);
-    },
-    // Add the missing ifEqual helper
-    ifEqual: function(a, b, options) {
-      if (a === b) {
-        return options.fn(this);
-      }
-      return options.inverse(this);
-    },
-    // Fix the formatDate helper to use the moment module
-    formatDate: function(date, format) {
-      if (!date) return '';
-      return moment(date).format(format);
-    },
-    // Add the missing isPast helper
-    isPast: function(date) {
-      if (!date) return false;
-      const compareDate = new Date(date);
-      const now = new Date();
-      return compareDate < now;
-    },
-    // Add the missing daysFromNow helper
-    daysFromNow: function(date) {
-      if (!date) return '';
-      const now = moment();
-      const targetDate = moment(date);
-      return targetDate.diff(now, 'days');
-    },
-    // Other existing helpers
-    eq: function(a, b) {
-      return a === b;
-    },
-    json: function(context) {
-      return JSON.stringify(context);
-    },
-    contains: function(array, value) {
-      if (!array) return false;
-      if (typeof array === 'string') return array.includes(value);
-      return Array.isArray(array) && array.includes(value);
-    },
-    licenseStatusClass: function(status) {
-      switch(status) {
-        case 'active': return 'success';
-        case 'expired': return 'danger';
-        case 'pending': return 'warning';
-        case 'renewed': return 'info';
-        default: return 'secondary';
-      }
-    },
-    divide: function(a, b) {
-      return a / b;
-    },
-    nl2br: function(text) {
-      if (!text) return '';
-      return text.replace(/\n/g, '<br>');
-    }
-  }
+  helpers: { ...handlebarsHelpers, ...criticalHelpers }
 }));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'templates'));
