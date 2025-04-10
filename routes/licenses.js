@@ -401,6 +401,65 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// View license details
+router.get('/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    let license = await License.findById(req.params.id);
+    
+    if (!license) {
+      req.flash('error_msg', 'License not found');
+      return res.redirect('/licenses');
+    }
+    
+    // Fix: Use static License.populate method instead of license.populate
+    // Populate assigned systems
+    console.log('Populating license data for ID:', license._id);
+    
+    if (typeof License.populate === 'function') {
+      // First populate assigned systems
+      license = await License.populate(license, 'assignedSystems');
+      // Then populate owner
+      license = await License.populate(license, 'owner');
+      
+      console.log('License populated successfully');
+    } else {
+      console.error('License.populate is not a function, check file-db implementation');
+      // Fallback: Try to get system details manually
+      if (license.assignedSystems && Array.isArray(license.assignedSystems)) {
+        const populatedSystems = [];
+        for (const sysId of license.assignedSystems) {
+          try {
+            const system = await System.findById(sysId);
+            if (system) populatedSystems.push(system);
+          } catch (err) {
+            console.error(`Error fetching system ${sysId}:`, err);
+          }
+        }
+        license.assignedSystems = populatedSystems;
+      }
+      
+      // Try to get owner details manually
+      if (license.owner) {
+        try {
+          const owner = await User.findById(license.owner);
+          if (owner) license.owner = owner;
+        } catch (err) {
+          console.error(`Error fetching owner ${license.owner}:`, err);
+        }
+      }
+    }
+    
+    res.render('licenses/view', {
+      title: license.name,
+      license
+    });
+  } catch (err) {
+    console.error('Error viewing license:', err);
+    req.flash('error_msg', 'Error loading license: ' + err.message);
+    res.redirect('/licenses');
+  }
+});
+
 // Update license
 router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (req, res) => {
   try {

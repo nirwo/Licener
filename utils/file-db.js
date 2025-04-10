@@ -556,6 +556,35 @@ const dbOperations = (dbName) => {
 const License = {
   ...dbOperations('licenses'),
   
+  /**
+   * Populate references in license document(s)
+   * @param {Object|Array} docs - License document or array of documents
+   * @param {String} path - Path to populate ('assignedSystems' or 'owner')
+   * @return {Object|Array} Populated document(s)
+   */
+  populate: async (docs, path) => {
+    console.log(`Populating ${path} for license(s)`);
+    
+    if (!docs) {
+      console.log('No documents to populate');
+      return null;
+    }
+    
+    // Handle single document
+    if (!Array.isArray(docs)) {
+      return await populateSingleDocument(docs, path);
+    }
+    
+    // Handle array of documents
+    const populatedDocs = [];
+    for (const doc of docs) {
+      const populated = await populateSingleDocument(doc, path);
+      populatedDocs.push(populated);
+    }
+    
+    return populatedDocs;
+  },
+  
   // Create a new license with proper ID handling
   create: async (licenseData) => {
     try {
@@ -655,6 +684,53 @@ const License = {
     }
   }
 };
+
+/**
+ * Helper function to populate a single document
+ * @param {Object} doc - The document to populate
+ * @param {String} path - Path to populate
+ * @return {Object} Populated document
+ */
+async function populateSingleDocument(doc, path) {
+  // Clone the document to avoid modifying the original
+  const clonedDoc = JSON.parse(JSON.stringify(doc));
+  
+  if (path === 'assignedSystems') {
+    // Populate systems
+    if (clonedDoc.assignedSystems && Array.isArray(clonedDoc.assignedSystems)) {
+      const populatedSystems = [];
+      
+      for (const systemId of clonedDoc.assignedSystems) {
+        if (!systemId) continue;
+        
+        try {
+          const system = await System.findById(systemId);
+          if (system) {
+            populatedSystems.push(system);
+          }
+        } catch (err) {
+          console.error(`Error populating system ${systemId}:`, err);
+        }
+      }
+      
+      clonedDoc.assignedSystems = populatedSystems;
+    }
+  } else if (path === 'owner') {
+    // Populate owner
+    if (clonedDoc.owner) {
+      try {
+        const owner = await User.findById(clonedDoc.owner);
+        if (owner) {
+          clonedDoc.owner = owner;
+        }
+      } catch (err) {
+        console.error(`Error populating owner ${clonedDoc.owner}:`, err);
+      }
+    }
+  }
+  
+  return clonedDoc;
+}
 
 const System = {
   ...dbOperations('systems'),
