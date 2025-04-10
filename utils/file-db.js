@@ -732,6 +732,8 @@ async function populateSingleDocument(doc, path) {
   return clonedDoc;
 }
 
+const SYSTEM_FILE = dbFiles.systems;
+
 const System = {
   ...dbOperations('systems'),
   
@@ -746,6 +748,52 @@ const System = {
     } catch (err) {
       console.error('Error in System.findById:', err);
       return null;
+    }
+  },
+
+  /**
+   * Find systems managed by a specific user
+   * @param {string} managerId - ID of the manager/user
+   * @return {Array} Array of systems managed by the user
+   */
+  findByManager: async (managerId) => {
+    try {
+      console.log(`Finding systems managed by user ID: ${managerId}`);
+      
+      if (!managerId) {
+        console.warn('No manager ID provided to findByManager');
+        return [];
+      }
+      
+      // Check if system file exists
+      if (!fs.existsSync(SYSTEM_FILE)) {
+        console.log('System file does not exist, returning empty array');
+        return [];
+      }
+      
+      // Read systems from file
+      const data = JSON.parse(fs.readFileSync(SYSTEM_FILE, 'utf8'));
+      const systems = data.data || [];
+      
+      // Filter by manager ID
+      const managedSystems = systems.filter(system => {
+        // Check if managedBy exists and matches the provided ID
+        if (!system.managedBy) return false;
+        
+        // Convert IDs to strings for comparison
+        const systemManagerId = typeof system.managedBy === 'string' ? 
+          system.managedBy : system.managedBy.toString();
+        const requestedManagerId = typeof managerId === 'string' ? 
+          managerId : managerId.toString();
+          
+        return systemManagerId === requestedManagerId;
+      });
+      
+      console.log(`Found ${managedSystems.length} systems managed by user ${managerId}`);
+      return managedSystems;
+    } catch (err) {
+      console.error(`Error finding systems managed by ${managerId}:`, err);
+      return [];
     }
   }
 };
