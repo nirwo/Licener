@@ -1,0 +1,238 @@
+<!-- Web Researcher Results -->
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Web Research Results: "{{query}}"</h5>
+            <div>
+                <a href="/web-researcher" class="btn btn-sm btn-outline-light">Back to Search</a>
+                <button class="btn btn-sm btn-success ml-2" id="saveAllBtn">Save All Selected</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="search-meta mb-3">
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">Search performed on {{formatDate searchDate "MMMM D, YYYY"}} using sources: {{sources}}</small>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <span class="badge badge-info">{{results.length}} results found</span>
+                    </div>
+                </div>
+            </div>
+
+            {{#if results.length}}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="5%"><input type="checkbox" id="selectAll"></th>
+                            <th width="20%">Vendor/Product</th>
+                            <th width="15%">License Type</th>
+                            <th width="15%">Price</th>
+                            <th width="25%">Description</th>
+                            <th width="10%">Source</th>
+                            <th width="10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each results}}
+                        <tr>
+                            <td><input type="checkbox" class="result-checkbox" data-id="{{id}}"></td>
+                            <td>
+                                <strong>{{vendorName}}</strong>
+                                {{#if productName}}<br><span class="text-muted">{{productName}}</span>{{/if}}
+                            </td>
+                            <td>{{licenseType}}</td>
+                            <td>
+                                {{#if price}}
+                                <span class="font-weight-bold">{{price}}</span>
+                                {{#if pricePeriod}} / {{pricePeriod}}{{/if}}
+                                {{else}}
+                                <span class="text-muted">Not available</span>
+                                {{/if}}
+                            </td>
+                            <td>
+                                <div class="description-truncate">{{description}}</div>
+                                {{#if fullDescription}}
+                                <a href="#" class="show-more-link" data-toggle="modal" data-target="#descriptionModal{{id}}">Show more</a>
+                                {{/if}}
+                            </td>
+                            <td><a href="{{sourceUrl}}" target="_blank" class="badge badge-secondary">{{source}} <i class="fas fa-external-link-alt"></i></a></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary save-result" data-id="{{id}}"><i class="fas fa-save"></i></button>
+                                <button class="btn btn-sm btn-outline-danger ignore-result" data-id="{{id}}"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                        {{#if fullDescription}}
+                        <!-- Modal for full description -->
+                        <div class="modal fade" id="descriptionModal{{id}}" tabindex="-1" role="dialog" aria-labelledby="descriptionModalLabel{{id}}" aria-hidden="true">
+                            <div class="modal-dialog modal-lg" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="descriptionModalLabel{{id}}">{{vendorName}} - {{productName}}</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>{{fullDescription}}</p>
+                                        {{#if sourceUrl}}
+                                        <div class="mt-3">
+                                            <a href="{{sourceUrl}}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                View Source <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                        </div>
+                                        {{/if}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {{/if}}
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle mr-2"></i> No results found for your search query. Try broadening your search terms or check different sources.
+            </div>
+            {{/if}}
+        </div>
+    </div>
+</div>
+
+<!-- Include jQuery if not already loaded -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+<script>
+    $(document).ready(function() {
+        // Select all functionality
+        $('#selectAll').change(function() {
+            $('.result-checkbox').prop('checked', $(this).prop('checked'));
+        });
+        
+        // Save individual result
+        $('.save-result').click(function() {
+            const resultId = $(this).data('id');
+            saveResult(resultId);
+        });
+        
+        // Save all selected results
+        $('#saveAllBtn').click(function() {
+            const selectedIds = [];
+            $('.result-checkbox:checked').each(function() {
+                selectedIds.push($(this).data('id'));
+            });
+            
+            if (selectedIds.length === 0) {
+                alert('Please select at least one result to save');
+                return;
+            }
+            
+            saveMultipleResults(selectedIds);
+        });
+        
+        // Ignore result
+        $('.ignore-result').click(function() {
+            const resultId = $(this).data('id');
+            $(this).closest('tr').fadeOut();
+        });
+        
+        function saveResult(id) {
+            console.log('Saving result with ID:', id);
+            $.ajax({
+                url: '/web-researcher/save-result',
+                type: 'POST',
+                data: { resultId: id },
+                success: function(response) {
+                    console.log('Save response:', response);
+                    if (response.success) {
+                        $(`[data-id="${id}"]`).closest('tr').addClass('table-success').fadeOut(2000);
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Save error:', error, xhr.responseText);
+                    alert('An error occurred while saving the result');
+                }
+            });
+        }
+        
+        function saveMultipleResults(ids) {
+            $.ajax({
+                url: '/web-researcher/save-multiple',
+                type: 'POST',
+                data: { resultIds: ids },
+                success: function(response) {
+                    if (response.success) {
+                        ids.forEach(id => {
+                            $(`[data-id="${id}"]`).closest('tr').addClass('table-success').fadeOut(2000);
+                        });
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('An error occurred while saving the results');
+                }
+            });
+        }
+        
+        // Check if DataTables is available
+        if ($.fn.DataTable) {
+            try {
+                // First make sure there are no existing DataTable instances
+                if ($.fn.DataTable.isDataTable('table')) {
+                    $('table').DataTable().destroy();
+                }
+                
+                // Initialize DataTables with the correct column count
+                $('table').DataTable({
+                    responsive: false,
+                    pageLength: 10,
+                    lengthMenu: [5, 10, 25, 50],
+                    language: {
+                        search: "Filter results:"
+                    },
+                    columnDefs: [
+                        // Disable sorting on checkbox column
+                        { orderable: false, targets: 0 },
+                        // Disable sorting on actions column
+                        { orderable: false, targets: 6 }
+                    ],
+                    // Make sure we have the right number of columns
+                    columns: [
+                        { data: null }, // Checkbox
+                        { data: null }, // Vendor/Product
+                        { data: null }, // License Type
+                        { data: null }, // Price
+                        { data: null }, // Description
+                        { data: null }, // Source
+                        { data: null }  // Actions
+                    ]
+                });
+                console.log('DataTables initialization complete for search results.');
+            } catch (err) {
+                console.error('Error initializing DataTables:', err);
+            }
+        } else {
+            console.warn('DataTables not available');
+        }
+    });
+</script>
+
+<style>
+    .description-truncate {
+        max-height: 3.6em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+    
+    .show-more-link {
+        font-size: 0.8rem;
+        color: #007bff;
+    }
+</style> 

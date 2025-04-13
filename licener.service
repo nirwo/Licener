@@ -1,0 +1,20 @@
+[Unit]
+Description=Licener License Management System
+After=network.target
+Requires=mongodb.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/licener
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /var/www/licener/app.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=licener
+
+[Install]
+WantedBy=multi-user.target 

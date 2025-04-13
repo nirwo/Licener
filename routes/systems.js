@@ -82,9 +82,9 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
     console.log('Getting licenses for user ID:', req.user._id);
     
     // Find licenses owned by user
-    let licenses = License.find({ owner: req.user._id });
+    let licenses = await License.find({ owner: req.user._id }).lean();
     
-    // Sort by name
+    // Sort licenses after fetching the data
     licenses.sort((a, b) => {
       const nameA = a.name || '';
       const nameB = b.name || '';
@@ -585,6 +585,54 @@ router.get('/:id/licenses', ensureAuthenticated, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// Network scan form
+router.get('/scan', ensureAuthenticated, (req, res) => {
+  res.render('systems/scan', {
+    title: 'Network Scan'
+  });
+});
+
+// Process network scan
+router.post('/scan', ensureAuthenticated, async (req, res) => {
+  try {
+    const { ipAddress, hostname, username, password, scanType } = req.body;
+    
+    if (!ipAddress) {
+      req.flash('error_msg', 'IP address is required');
+      return res.redirect('/systems/scan');
+    }
+    
+    console.log(`Initiating scan for IP: ${ipAddress}`);
+    
+    // This is where you would implement the actual scanning logic
+    // For this example, we'll create a placeholder system with the provided IP
+    const systemData = {
+      name: hostname || `System-${ipAddress.replace(/\./g, '-')}`,
+      systemType: 'unknown',
+      environment: 'production',
+      status: 'active',
+      os: 'Unknown', // Would be detected by scan
+      ip: ipAddress,
+      hostname: hostname || '',
+      location: '',
+      department: '',
+      managedBy: req.user._id,
+      notes: `Auto-discovered on ${new Date().toLocaleDateString()}`,
+      licenseRequirements: []
+    };
+    
+    // Create the system
+    const newSystem = await System.create(systemData);
+    
+    req.flash('success_msg', `System ${systemData.name} added successfully from IP ${ipAddress}`);
+    res.redirect(`/systems/view/${newSystem._id}`);
+  } catch (err) {
+    console.error('Error scanning system:', err);
+    req.flash('error_msg', `Error scanning system: ${err.message}`);
+    res.redirect('/systems/scan');
   }
 });
 

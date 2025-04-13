@@ -8,34 +8,40 @@ const passport = require('passport');
 const dotenv = require('dotenv');
 const { displayBanner } = require('./utils/banner');
 const moment = require('moment'); // Add moment as a dependency for the helpers
+const { connectDB, checkConnection } = require('./config/database'); // Import MongoDB connection
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Initialize file-based database
-const { License, System, User } = require('./utils/file-db');
-console.log('File-based database initialized');
+// Connect to MongoDB with improved error handling
+connectDB()
+  .then(result => {
+    if (result) {
+      console.log('MongoDB connected successfully');
+    } else {
+      console.log('Using file-based database fallback');
+    }
+    
+    // Check and log connection status
+    const status = checkConnection();
+    console.log(`Database connection status: ${status.stateDescription}`);
+  })
+  .catch(err => {
+    console.error('Database initialization error:', err);
+    console.log('Falling back to file-based storage');
+  });
 
-// Display file database banner
-displayBanner(false, 'FILE-DB');
-
-// For backwards compatibility with any code expecting mongoose
-const mongoose = {
-  connect: () => console.log('Using file-based database, MongoDB not required'),
-  disconnect: () => console.log('Disconnecting from file-based database'),
-  connection: {
-    on: () => {},
-    once: () => {}
-  }
-};
+// Display banner
+displayBanner(false, 'LICENER');
 
 // Configure Passport
 require('./config/passport')(passport);
 
 // Get the handlebars helpers
-const handlebarsHelpers = require('./utils/handlebars-helpers');
+const handlebarsHelpers = require('./helpers/handlebars-helpers');
+const utilsHelpers = require('./utils/handlebars-helpers');
 
 // Add a fallback inline definition of critical helpers just to be sure
 const criticalHelpers = {
@@ -50,7 +56,12 @@ const criticalHelpers = {
   },
   formatDate: function(date, format) {
     if (!date) return '';
-    return moment(date).format(format);
+    const momentDate = moment(date);
+    if (!momentDate.isValid()) {
+      console.log(`Invalid date encountered: ${date}`);
+      return 'Invalid date';
+    }
+    return momentDate.format(format || 'YYYY-MM-DD');
   },
   subtract: function(a, b) {
     return a - b;
@@ -58,7 +69,7 @@ const criticalHelpers = {
   gte: function(a, b) {
     return a >= b;
   },
-  // New helpers for license management
+  // New helpers for subscription management
   daysFromNow: function(date) {
     if (!date) return 0;
     const now = moment();
@@ -74,6 +85,17 @@ const criticalHelpers = {
     if (days <= 30) return 'warning';
     return 'success';
   },
+  subscriptionStatusClass: function(status) {
+    if (!status) return 'secondary';
+    switch(status.toLowerCase()) {
+      case 'active': return 'success';
+      case 'pending': return 'warning';
+      case 'expired': return 'danger';
+      case 'renewed': return 'info';
+      default: return 'secondary';
+    }
+  },
+  // Backward compatibility
   licenseStatusClass: function(status) {
     if (!status) return 'secondary';
     switch(status.toLowerCase()) {
@@ -148,7 +170,7 @@ const criticalHelpers = {
 // Handlebars Middleware
 app.engine('handlebars', engine({
   defaultLayout: 'main',
-  helpers: { ...handlebarsHelpers, ...criticalHelpers }
+  helpers: { ...handlebarsHelpers, ...utilsHelpers, ...criticalHelpers }
 }));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'templates'));
@@ -175,9 +197,14 @@ app.use(methodOverride('_method')); // Also keep the default for redundancy
 
 // Express session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'secret',
-  resave: true,
-  saveUninitialized: true
+  secret: process.env.SESSION_SECRET || 'licensing-app-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true,
+    secure: false // set to true in production with HTTPS
+  }
 }));
 
 // Passport middleware
@@ -189,23 +216,33 @@ app.use(flash());
 
 // Global variables
 app.use((req, res, next) => {
+  // Set flash messages
   res.locals.success_msg = req.flash('success_msg');
   res.locals.error_msg = req.flash('error_msg');
   res.locals.error = req.flash('error');
+  res.locals.success = req.flash('success');
+  
+  // Set user
   res.locals.user = req.user || null;
   
   // For debugging
-  console.log('Session data:', {
-    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : 'function not available',
-    user: req.user ? `User ID: ${req.user._id}` : 'Not logged in',
-    session: req.session ? 'Session exists' : 'No session'
-  });
+  if (req.method === 'POST' && req.path.includes('login')) {
+    console.log('Login request received:', {
+      email: req.body.email,
+      passwordLength: req.body.password ? req.body.password.length : 0
+    });
+  }
+  
+  console.log(`[${req.method}] ${req.path} - Auth: ${req.isAuthenticated ? req.isAuthenticated() : 'N/A'}`);
   
   next();
 });
 
-// Set static folder
-app.use(express.static(path.join(__dirname, 'static')));
+// Import static files middleware
+const staticFiles = require('./middleware/static-files');
+
+// Set static folder with proper MIME type handling
+app.use('/static', staticFiles);
 
 // Import the error handler middleware
 const errorHandlerMiddleware = require('./middleware/error-handling');
@@ -213,11 +250,13 @@ const errorHandlerMiddleware = require('./middleware/error-handling');
 // Routes
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
-const licenseRoutes = require('./routes/licenses');
+const subscriptionRoutes = require('./routes/subscriptions');
 const systemRoutes = require('./routes/systems');
 const reportRoutes = require('./routes/reports');
 const apiRoutes = require('./routes/api');
-const vendorRoutes = require('./routes/vendors'); // If you added this line
+const vendorRoutes = require('./routes/vendors');
+const dashboardRoutes = require('./routes/dashboard');
+const webResearcherRoutes = require('./routes/web-researcher');
 
 // Add redirects for common auth paths
 app.get('/users/login', (req, res) => {
@@ -232,13 +271,36 @@ app.get('/users/logout', (req, res) => {
   res.redirect('/auth/logout');
 });
 
+// Redirect old license routes to subscription routes for backward compatibility
+app.get('/licenses', (req, res) => {
+  res.redirect('/subscriptions');
+});
+
+app.get('/licenses/add', (req, res) => {
+  res.redirect('/subscriptions/add');
+});
+
+app.get('/licenses/view/:id', (req, res) => {
+  res.redirect(`/subscriptions/view/${req.params.id}`);
+});
+
+app.get('/licenses/edit/:id', (req, res) => {
+  res.redirect(`/subscriptions/edit/${req.params.id}`);
+});
+
+app.get('/licenses/demo1', (req, res) => {
+  res.redirect('/subscriptions/demo1');
+});
+
 // Use routes
 app.use('/', indexRoutes);
 app.use('/auth', authRoutes);
-app.use('/licenses', licenseRoutes);
+app.use('/subscriptions', subscriptionRoutes);
 app.use('/systems', systemRoutes);
 app.use('/reports', reportRoutes);
 app.use('/api', apiRoutes);
+app.use('/dashboard', dashboardRoutes);
+app.use('/web-researcher', webResearcherRoutes);
 // Fix the vendors route if it exists
 if (typeof vendorRoutes === 'function') {
   app.use('/vendors', vendorRoutes);

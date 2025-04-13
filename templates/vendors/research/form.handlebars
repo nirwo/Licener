@@ -1,0 +1,54 @@
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h4 mb-0">Vendor Research</h2>
+        </div>
+        <div class="card-body">
+            <p class="lead">Research vendor information from external sources</p>
+            
+            <form action="/vendors/research/search" method="POST">
+                <div class="form-group mb-3">
+                    <label for="searchTerm">Search Term</label>
+                    <input type="text" class="form-control" id="searchTerm" name="searchTerm" 
+                        placeholder="Enter company name, domain, or keyword" required>
+                    <small class="form-text text-muted">More specific terms will yield better results</small>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="source">Data Source</label>
+                    <select class="form-select" id="source" name="source">
+                        <option value="web" selected>Web Search</option>
+                        <option value="crunchbase">Crunchbase (Premium)</option>
+                        <option value="linkedin">LinkedIn (Premium)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i> Search Vendors
+                </button>
+                <a href="/vendors" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card shadow mt-4">
+        <div class="card-header bg-info text-white">
+            <h3 class="h5 mb-0">About this tool</h3>
+        </div>
+        <div class="card-body">
+            <p>The vendor research tool helps you discover information about software vendors and their licensing options without manual research.</p>
+            
+            <h4 class="h6 mt-3">Available Sources:</h4>
+            <ul>
+                <li><strong>Web Search</strong> - General information from across the web</li>
+                <li><strong>Crunchbase</strong> - Detailed company data (requires premium subscription)</li>
+                <li><strong>LinkedIn</strong> - Professional company profiles (requires premium subscription)</li>
+            </ul>
+            
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Results from web searches are for reference only. Always verify information with the vendor directly.
+            </div>
+        </div>
+    </div>
+</div> 

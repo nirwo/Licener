@@ -1,0 +1,222 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-0">Renew Subscription</h1>
+    <p class="text-muted mb-0">Update subscription renewal information</p>
+  </div>
+  <div>
+    <a href="/subscriptions/view/{{subscription._id}}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Subscription
+    </a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">Subscription Renewal Details</h5>
+      </div>
+      <div class="card-body">
+        <form action="/subscriptions/renew/{{subscription._id}}" method="POST" enctype="multipart/form-data">
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="small text-muted d-block">Current Subscription</label>
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle bg-primary bg-opacity-10 me-2">
+                    <i class="fas fa-calendar-alt text-primary"></i>
+                  </div>
+                  <div>
+                    <span class="fw-bold">{{subscription.product}}</span>
+                    <div class="small text-muted">{{subscription.name}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="small text-muted d-block">Current Status</label>
+                <span class="badge bg-{{#if (eq subscription.status 'active')}}success{{else if (eq subscription.status 'expired')}}danger{{else}}warning{{/if}}">
+                  {{subscription.status}}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+              <label for="currentRenewalDate" class="form-label">Current Renewal Date</label>
+              <input type="date" class="form-control" id="currentRenewalDate" value="{{formatDate subscription.renewalDate 'YYYY-MM-DD'}}" disabled>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="newRenewalDate" class="form-label">New Renewal Date*</label>
+              <input type="date" class="form-control" id="newRenewalDate" name="renewalDate" required>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+              <label for="currentCost" class="form-label">Current Cost</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="currentCost" value="{{subscription.cost}}" disabled>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="newCost" class="form-label">New Cost</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="newCost" name="cost" step="0.01" value="{{subscription.cost}}">
+              </div>
+              <div class="form-text">Leave unchanged if cost remains the same</div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6 mb-3">
+              <label for="currentSeats" class="form-label">Current Seats</label>
+              <input type="number" class="form-control" id="currentSeats" value="{{subscription.seats}}" disabled>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="newSeats" class="form-label">New Seats</label>
+              <input type="number" class="form-control" id="newSeats" name="seats" min="1" value="{{subscription.seats}}">
+              <div class="form-text">Update seat count if changed during renewal</div>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <label for="attachments" class="form-label">Renewal Documentation</label>
+            <input class="form-control" type="file" id="attachments" name="attachments" multiple>
+            <div class="form-text">Upload renewal agreements, invoices, or other related documents</div>
+          </div>
+          
+          <div class="mb-4">
+            <label for="notes" class="form-label">Renewal Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            <div class="form-text">Add any relevant notes about this renewal (changes, negotiations, etc.)</div>
+          </div>
+          
+          <div class="d-flex justify-content-between">
+            <a href="/subscriptions/view/{{subscription._id}}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-sync-alt me-1"></i> Complete Renewal
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">Renewal Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info mb-3">
+          <i class="fas fa-info-circle me-2"></i>
+          <span>Completing this form will update the subscription with new renewal details. The original subscription data will be preserved in the renewal history.</span>
+        </div>
+        
+        <div class="mb-3">
+          <label class="small text-muted d-block">Renewal Process</label>
+          <ol class="ps-3 mb-0">
+            <li>Verify current subscription details</li>
+            <li>Enter new renewal date</li>
+            <li>Update cost if changed</li>
+            <li>Update seat count if changed</li>
+            <li>Attach renewal documentation</li>
+            <li>Submit to complete the renewal</li>
+          </ol>
+        </div>
+        
+        <div class="mb-0">
+          <label class="small text-muted d-block">Benefits</label>
+          <ul class="ps-3 mb-0">
+            <li>Tracks renewal history</li>
+            <li>Documents cost changes</li>
+            <li>Maintain accurate subscription data</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    {{#if subscription.renewalHistory.length}}
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Previous Renewals</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {{#each subscription.renewalHistory}}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold">{{formatDate this.date 'MMM D, YYYY'}}</span>
+                  <span class="badge bg-secondary">{{formatCurrency this.cost}}</span>
+                </div>
+                <div class="small">
+                  {{#if this.notes}}
+                    {{this.notes}}
+                  {{else}}
+                    No notes provided.
+                  {{/if}}
+                </div>
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Default new renewal date to 1 year from current renewal date
+    const currentRenewalDateInput = document.getElementById('currentRenewalDate');
+    const newRenewalDateInput = document.getElementById('newRenewalDate');
+    
+    if (currentRenewalDateInput.value) {
+      const currentDate = new Date(currentRenewalDateInput.value);
+      const nextYear = new Date(currentDate);
+      nextYear.setFullYear(currentDate.getFullYear() + 1);
+      
+      // Format date as YYYY-MM-DD for date input
+      const formattedDate = nextYear.toISOString().split('T')[0];
+      newRenewalDateInput.value = formattedDate;
+    } else {
+      // If no current renewal date, default to 1 year from today
+      const today = new Date();
+      today.setFullYear(today.getFullYear() + 1);
+      newRenewalDateInput.value = today.toISOString().split('T')[0];
+    }
+    
+    // Calculate and display cost change
+    const currentCostInput = document.getElementById('currentCost');
+    const newCostInput = document.getElementById('newCost');
+    
+    newCostInput.addEventListener('input', function() {
+      const currentCost = parseFloat(currentCostInput.value) || 0;
+      const newCost = parseFloat(this.value) || 0;
+      const difference = newCost - currentCost;
+      const percentChange = currentCost !== 0 ? (difference / currentCost) * 100 : 0;
+      
+      const changeFeedback = document.getElementById('costChangeFeedback');
+      if (!changeFeedback) {
+        const feedback = document.createElement('div');
+        feedback.id = 'costChangeFeedback';
+        feedback.className = difference > 0 ? 'text-danger mt-1' : 'text-success mt-1';
+        feedback.innerHTML = difference !== 0 ? 
+          `${difference > 0 ? '+' : ''}${difference.toFixed(2)} (${percentChange.toFixed(1)}%)` : '';
+        newCostInput.parentNode.parentNode.appendChild(feedback);
+      } else {
+        changeFeedback.className = difference > 0 ? 'text-danger mt-1' : 'text-success mt-1';
+        changeFeedback.innerHTML = difference !== 0 ? 
+          `${difference > 0 ? '+' : ''}${difference.toFixed(2)} (${percentChange.toFixed(1)}%)` : '';
+      }
+    });
+  });
+</script> 

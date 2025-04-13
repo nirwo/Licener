@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Licener - Subscription Management System</title>
+    <!-- Use the CSS from static folder, the content is already optimized in the main styles -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            display: block;
+        }
+        
+        .landing-page {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .hero-section {
+            background: linear-gradient(135deg, #4a00e0, #8e2de2);
+            color: white;
+            padding: 80px 0;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .feature-section {
+            padding: 80px 0;
+            background-color: #f8f9fa;
+            width: 100%;
+        }
+        
+        .feature-card {
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            height: 100%;
+            background-color: white;
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #4a00e0;
+        }
+        
+        .cta-section {
+            background-color: #4a00e0;
+            color: white;
+            padding: 60px 0;
+            width: 100%;
+        }
+        
+        .btn-cta {
+            background-color: white;
+            color: #4a00e0;
+            padding: 10px 25px;
+            font-weight: bold;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-cta:hover {
+            background-color: #f8f9fa;
+            transform: scale(1.05);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .row {
+            width: 100%;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        section {
+            width: 100%;
+            display: block;
+            position: relative;
+        }
+        
+        footer {
+            width: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body class="landing-page">
+    <!-- Hero Section -->
+    <section class="hero-section py-5 py-md-6">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <h1 class="display-4 fw-bold mb-4">Simplify Your Subscription Management</h1>
+                    <p class="lead mb-4">Track, manage, and optimize your software subscriptions all in one place. Save costs and stay compliant.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="/auth/register" class="btn btn-primary btn-lg">Get Started</a>
+                        <a href="/auth/login" class="btn btn-light btn-lg">Sign In</a>
+                    </div>
+                </div>
+                <div class="col-lg-6 d-flex justify-content-center">
+                    <img src="/static/img/subscription-dashboard.svg" alt="Dashboard Preview" class="img-fluid rounded shadow" style="max-width: 90%;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature Section -->
+    <section class="feature-section py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Why Choose Licener?</h2>
+                <p class="lead">Our platform offers everything you need to manage your subscriptions effectively</p>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class="fas fa-clipboard-list feature-icon"></i>
+                        <h3>Track Subscriptions</h3>
+                        <p>Keep all your subscriptions in one place with detailed information about each one.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class="fas fa-bell feature-icon"></i>
+                        <h3>Renewal Alerts</h3>
+                        <p>Get notified before your subscriptions expire so you never miss a renewal date.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <i class="fas fa-chart-pie feature-icon"></i>
+                        <h3>Usage Analytics</h3>
+                        <p>Gain insights into your subscription usage and optimize your software spending.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section py-5">
+        <div class="container text-center text-white">
+            <h2 class="fw-bold mb-4">Ready to streamline your subscription management?</h2>
+            <p class="lead mb-4">Join thousands of companies that trust Licener for their subscription management needs.</p>
+            <a href="/auth/register" class="btn btn-cta">Start Free Trial</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-4 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>Licener</h5>
+                    <p class="text-muted">Simplify your subscription management</p>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <!-- Footer links -->
+                </div>
+                <div class="col-md-4">
+                    <!-- Contact info -->
+                </div>
+            </div>
+            <hr>
+            <p class="small">&copy; 2023 Licener. All rights reserved.</p>
+            <p class="small">Comprehensive software subscription management system</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

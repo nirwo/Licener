@@ -255,11 +255,13 @@ document.addEventListener('DOMContentLoaded', function() {
   const exportButtons = document.querySelectorAll('.export-data');
   exportButtons.forEach(button => {
     button.addEventListener('click', function(e) {
-      const format = this.dataset.format;
+      const format = this.dataset.format || '';
       const url = new URL(this.dataset.url, window.location.origin);
       
       // Add format parameter to URL
-      url.searchParams.set('format', format);
+      if (format && typeof format === 'string') {
+        url.searchParams.set('format', format);
+      }
       
       // Get all filter parameters from the form
       const filterForm = document.querySelector('.filter-form');
@@ -279,6 +281,58 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize any chart.js charts
   initializeCharts();
+
+  // Fix welcome section padding
+  const welcomeSection = document.querySelector('.welcome-section');
+  if (welcomeSection) {
+    welcomeSection.style.paddingTop = '60px';
+  }
+
+  // Fix table overflow
+  const tableResponsives = document.querySelectorAll('.table-responsive');
+  tableResponsives.forEach(tableResponsive => {
+    tableResponsive.style.width = '100%';
+    tableResponsive.style.overflowX = 'auto';
+  });
+
+  // Set proper padding for content on mobile
+  const adjustForMobile = () => {
+    const contentWrapper = document.querySelector('.content-wrapper');
+    const dashboardContainer = document.querySelector('.dashboard-container');
+    
+    if (window.innerWidth < 768) {
+      if (contentWrapper) {
+        contentWrapper.style.padding = '0.5rem';
+      }
+      if (dashboardContainer) {
+        dashboardContainer.style.padding = '0.5rem';
+      }
+    } else {
+      if (contentWrapper) {
+        contentWrapper.style.padding = '1.5rem 0';
+      }
+      if (dashboardContainer) {
+        dashboardContainer.style.padding = '1rem';
+      }
+    }
+  };
+
+  // Call on load
+  adjustForMobile();
+  // Call on resize
+  window.addEventListener('resize', adjustForMobile);
+
+  // Initialize DataTables with responsive configuration if available
+  if (typeof $.fn.DataTable !== 'undefined') {
+    $('.datatable').DataTable({
+      responsive: true,
+      lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+      language: {
+        search: "",
+        searchPlaceholder: "Search..."
+      }
+    });
+  }
 });
 
 // Function to load expiring licenses

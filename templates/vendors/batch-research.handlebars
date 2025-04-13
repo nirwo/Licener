@@ -1,0 +1,84 @@
+{{> header}}
+
+<div class="container-fluid">
+  <div class="row">
+    {{> sidebar}}
+    
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Batch Research</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+          <div class="btn-group me-2">
+            <a href="/vendors/research" class="btn btn-sm btn-outline-secondary">
+              <i class="fas fa-arrow-left"></i> Back to Research
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">Batch Research Tool</h5>
+            </div>
+            <div class="card-body">
+              <p class="card-text">
+                This tool allows you to research multiple vendors at once. Enter one vendor name per line.
+              </p>
+              
+              <form action="/vendors/research/batch" method="POST">
+                <div class="mb-3">
+                  <label for="vendorList" class="form-label">Vendor List</label>
+                  <textarea class="form-control" id="vendorList" name="vendorList" rows="8" placeholder="Microsoft&#10;Adobe&#10;AWS&#10;Google&#10;Oracle" required></textarea>
+                  <div class="form-text">Enter one vendor name per line. The system will research each vendor in sequence.</div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-search"></i> Start Batch Research
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header bg-info text-white">
+              <h5 class="mb-0">Information</h5>
+            </div>
+            <div class="card-body">
+              <h6>Batch Processing</h6>
+              <p>The system will process each vendor in the list and:</p>
+              <ul>
+                <li>Find vendor information online</li>
+                <li>Extract license types and pricing data</li>
+                <li>Update your database with the findings</li>
+              </ul>
+              
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> Batch processing may take several minutes depending on the number of vendors.
+              </div>
+            </div>
+          </div>
+          
+          <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+              <h5 class="mb-0">Tips</h5>
+            </div>
+            <div class="card-body">
+              <ul>
+                <li>Enter the official name of each vendor</li>
+                <li>Include the parent company name for subsidiaries</li>
+                <li>Keep the list to 10 vendors or fewer per batch</li>
+                <li>Check results after each batch run</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+{{> footer}} 

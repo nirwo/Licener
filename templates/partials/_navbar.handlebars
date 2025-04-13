@@ -1,71 +1,75 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-  <div class="container-fluid px-3">
-    <button id="sidebarToggleBtn" class="btn btn-link text-white me-2 px-1">
-      <i class="fas fa-bars"></i>
-    </button>
-    <a class="navbar-brand" href="/dashboard">
-      <i class="fas fa-key me-2"></i>Licener
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" style="background-color: #343a40 !important; color: white !important; border: none !important;">
+  <div class="container-fluid px-3" style="background-color: #343a40 !important;">
+    <a class="navbar-brand" href="/dashboard" style="color: white !important;">
+      <i class="fas fa-key me-2" style="color: white !important;"></i>Licener
     </a>
     <div class="d-flex d-lg-none ms-auto me-2">
-      <span class="badge bg-danger me-2 notification-badge" id="expiry-badge">0</span>
-      <a href="#" class="text-white position-relative" data-bs-toggle="offcanvas" data-bs-target="#notificationsOffcanvas" aria-controls="notificationsOffcanvas">
-        <i class="fas fa-bell"></i>
+      <a href="#" class="text-white position-relative" data-bs-toggle="offcanvas" data-bs-target="#notificationsOffcanvas" aria-controls="notificationsOffcanvas" style="color: white !important;">
+        <i class="fas fa-bell" style="color: white !important;"></i>
+        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle notification-badge" id="expiry-badge">0</span>
       </a>
     </div>
     
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation" style="color: white !important; border-color: rgba(255,255,255,0.5) !important;">
+      <span class="navbar-toggler-icon" style="background-image: url('data:image/svg+xml,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 30 30\'%3e%3cpath stroke=\'rgba%28255, 255, 255, 0.8%29\' stroke-linecap=\'round\' stroke-miterlimit=\'10\' stroke-width=\'2\' d=\'M4 7h22M4 15h22M4 23h22\'/%3e%3c/svg%3e') !important;"></span>
     </button>
     
-    <div class="collapse navbar-collapse" id="navbarNav">
+    <div class="collapse navbar-collapse" id="navbarNav" style="background-color: #343a40 !important;">
       <!-- Main navigation items -->
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link {{#if (eq active 'dashboard')}}active{{/if}}" href="/dashboard">
-            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+      <ul class="navbar-nav" style="background-color: #343a40 !important;">
+        <li class="nav-item" style="background-color: #343a40 !important;">
+          <a class="nav-link {{#if (eq active 'dashboard')}}active{{/if}}" href="/dashboard" style="color: white !important; background-color: #343a40 !important;">
+            <i class="fas fa-tachometer-alt me-1" style="color: white !important;"></i> Dashboard
           </a>
         </li>
         
         <!-- Licenses Dropdown -->
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" style="background-color: #343a40 !important;">
           <a class="nav-link dropdown-toggle {{#if (eq active 'licenses')}}active{{/if}}" href="#" 
-             id="licensesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-file-contract me-1"></i> Licenses
+             id="licensesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: white !important; background-color: #343a40 !important;">
+            <i class="fas fa-file-contract me-1" style="color: white !important;"></i> Subscriptions
           </a>
-          <ul class="dropdown-menu" aria-labelledby="licensesDropdown">
-            <li><a class="dropdown-item" href="/licenses"><i class="fas fa-list me-1"></i> All Licenses</a></li>
-            <li><a class="dropdown-item" href="/licenses/add"><i class="fas fa-plus me-1"></i> Add License</a></li>
-            <li><a class="dropdown-item" href="/licenses/import"><i class="fas fa-file-import me-1"></i> Import Licenses</a></li>
+          <ul class="dropdown-menu" aria-labelledby="licensesDropdown" style="background-color: white !important; border: none !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+            <li><a class="dropdown-item" href="/licenses" style="color: #3a3b45 !important;"><i class="fas fa-list me-1" style="color: #4e73df !important;"></i> All Subscriptions</a></li>
+            <li><a class="dropdown-item" href="/licenses/add" style="color: #3a3b45 !important;"><i class="fas fa-plus me-1" style="color: #4e73df !important;"></i> Add Subscription</a></li>
+            <li><a class="dropdown-item" href="/licenses/import" style="color: #3a3b45 !important;"><i class="fas fa-file-import me-1" style="color: #4e73df !important;"></i> Import Subscriptions</a></li>
           </ul>
         </li>
         
         <!-- Systems Dropdown -->
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" style="background-color: #343a40 !important;">
           <a class="nav-link dropdown-toggle {{#if (eq active 'systems')}}active{{/if}}" href="#" 
-             id="systemsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-server me-1"></i> Systems
+             id="systemsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: white !important; background-color: #343a40 !important;">
+            <i class="fas fa-server me-1" style="color: white !important;"></i> Systems
           </a>
-          <ul class="dropdown-menu" aria-labelledby="systemsDropdown">
-            <li><a class="dropdown-item" href="/systems"><i class="fas fa-list me-1"></i> All Systems</a></li>
-            <li><a class="dropdown-item" href="/systems/add"><i class="fas fa-plus me-1"></i> Add System</a></li>
-            <li><a class="dropdown-item" href="/systems/import"><i class="fas fa-file-import me-1"></i> Import Systems</a></li>
+          <ul class="dropdown-menu" aria-labelledby="systemsDropdown" style="background-color: white !important; border: none !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+            <li><a class="dropdown-item" href="/systems" style="color: #3a3b45 !important;"><i class="fas fa-list me-1" style="color: #4e73df !important;"></i> All Systems</a></li>
+            <li><a class="dropdown-item" href="/systems/add" style="color: #3a3b45 !important;"><i class="fas fa-plus me-1" style="color: #4e73df !important;"></i> Add System</a></li>
+            <li><a class="dropdown-item" href="/systems/import" style="color: #3a3b45 !important;"><i class="fas fa-file-import me-1" style="color: #4e73df !important;"></i> Import Systems</a></li>
           </ul>
         </li>
         
         <!-- Reports Dropdown -->
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown" style="background-color: #343a40 !important;">
           <a class="nav-link dropdown-toggle {{#if (eq active 'reports')}}active{{/if}}" href="#" 
-             id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-chart-bar me-1"></i> Reports
+             id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: white !important; background-color: #343a40 !important;">
+            <i class="fas fa-chart-bar me-1" style="color: white !important;"></i> Reports
           </a>
-          <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-            <li><a class="dropdown-item" href="/reports/license-expiry"><i class="fas fa-calendar-times me-1"></i> License Expiry</a></li>
-            <li><a class="dropdown-item" href="/reports/license-utilization"><i class="fas fa-chart-pie me-1"></i> License Utilization</a></li>
-            <li><a class="dropdown-item" href="/reports/cost-analysis"><i class="fas fa-dollar-sign me-1"></i> Cost Analysis</a></li>
-            <li><a class="dropdown-item" href="/reports/compliance"><i class="fas fa-check-circle me-1"></i> Compliance</a></li>
-            <li><a class="dropdown-item" href="/reports/renewal-forecast"><i class="fas fa-business-time me-1"></i> Renewal Forecast</a></li>
-            <li><a class="dropdown-item" href="/reports/custom"><i class="fas fa-tools me-1"></i> Custom Report</a></li>
+          <ul class="dropdown-menu" aria-labelledby="reportsDropdown" style="background-color: white !important; border: none !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+            <li><a class="dropdown-item" href="/reports/license-expiry" style="color: #3a3b45 !important;"><i class="fas fa-calendar-times me-1" style="color: #4e73df !important;"></i> Subscription Expiry</a></li>
+            <li><a class="dropdown-item" href="/reports/license-utilization" style="color: #3a3b45 !important;"><i class="fas fa-chart-pie me-1" style="color: #4e73df !important;"></i> Subscription Utilization</a></li>
+            <li><a class="dropdown-item" href="/reports/cost-analysis" style="color: #3a3b45 !important;"><i class="fas fa-dollar-sign me-1" style="color: #4e73df !important;"></i> Cost Analysis</a></li>
+            <li><a class="dropdown-item" href="/reports/compliance" style="color: #3a3b45 !important;"><i class="fas fa-check-circle me-1" style="color: #4e73df !important;"></i> Compliance</a></li>
+            <li><a class="dropdown-item" href="/reports/renewal-forecast" style="color: #3a3b45 !important;"><i class="fas fa-business-time me-1" style="color: #4e73df !important;"></i> Renewal Forecast</a></li>
+            <li><a class="dropdown-item" href="/reports/custom" style="color: #3a3b45 !important;"><i class="fas fa-tools me-1" style="color: #4e73df !important;"></i> Custom Report</a></li>
           </ul>
+        </li>
+        
+        <!-- Web Researcher Tool -->
+        <li class="nav-item" style="background-color: #343a40 !important;">
+          <a class="nav-link {{#if (eq active 'web-researcher')}}active{{/if}}" href="/web-researcher" style="color: white !important; background-color: #343a40 !important;">
+            <i class="fas fa-search me-1" style="color: white !important;"></i> Web Researcher
+          </a>
         </li>
       </ul>
       
@@ -78,16 +82,20 @@
           </a>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-user-circle me-1"></i> {{user.name}}
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: white !important;">
+            <i class="fas fa-user-circle me-1" style="color: white !important;"></i> {{user.name}}
           </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-            <li><a class="dropdown-item" href="/users/profile"><i class="fas fa-id-card me-1"></i> My Profile</a></li>
-            {{#ifEqual user.role 'admin'}}
-              <li><a class="dropdown-item" href="/users/manage"><i class="fas fa-users-cog me-1"></i> User Management</a></li>
-            {{/ifEqual}}
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" style="background-color: white !important; border: none !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+            <li><a class="dropdown-item" href="/users/profile" style="color: #3a3b45 !important;"><i class="fas fa-id-card me-1" style="color: #4e73df !important;"></i> My Profile</a></li>
+            {{#if (eq user.role 'admin')}}
+              <li><a class="dropdown-item" href="/users/manage" style="color: #3a3b45 !important;"><i class="fas fa-users-cog me-1" style="color: #4e73df !important;"></i> User Management</a></li>
+            {{else}}
+              {{#ifEqual user.role 'admin'}}
+                <li><a class="dropdown-item" href="/users/manage" style="color: #3a3b45 !important;"><i class="fas fa-users-cog me-1" style="color: #4e73df !important;"></i> User Management</a></li>
+              {{/ifEqual}}
+            {{/if}}
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="/users/logout"><i class="fas fa-sign-out-alt me-1"></i> Logout</a></li>
+            <li><a class="dropdown-item" href="/auth/logout" style="color: #3a3b45 !important;"><i class="fas fa-sign-out-alt me-1" style="color: #4e73df !important;"></i> Logout</a></li>
           </ul>
         </li>
       </ul>
@@ -104,7 +112,7 @@
   <div class="offcanvas-body">
     <div class="notifications-container">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0">Expiring Licenses</h6>
+        <h6 class="mb-0">Expiring Subscriptions</h6>
         <a href="/reports/license-expiry" class="btn btn-sm btn-outline-primary">View All</a>
       </div>
       <div id="expiring-licenses-list">

@@ -5,10 +5,24 @@ const License = require('../models/License');
 const System = require('../models/System');
 const moment = require('moment');
 
-// Welcome Page
+// Home page
 router.get('/', (req, res) => {
-  res.render('welcome', {
-    title: 'Welcome to Licener'
+  // If user is authenticated, redirect to dashboard
+  if (req.isAuthenticated()) {
+    return res.redirect('/dashboard');
+  }
+  
+  // Otherwise show landing page - no layout needed as the landing page includes its own complete HTML
+  res.render('landing', {
+    title: 'Welcome to Licener',
+    layout: false // Don't use any layout, the landing page is self-contained
+  });
+});
+
+// About page
+router.get('/about', (req, res) => {
+  res.render('about', {
+    title: 'About Licener'
   });
 });
 

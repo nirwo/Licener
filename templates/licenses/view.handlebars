@@ -9,12 +9,9 @@
           <a href="/licenses/edit/{{license._id}}" class="btn btn-sm btn-warning">
             <i class="fas fa-edit me-1"></i> Edit
           </a>
-          <a href="/licenses/renew/{{license._id}}" class="btn btn-sm btn-success">
-            <i class="fas fa-sync-alt me-1"></i> Renew
+          <a href="/licenses" class="btn btn-sm btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back
           </a>
-          <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-            <i class="fas fa-trash-alt me-1"></i> Delete
-          </button>
         </div>
       </div>
       <div class="card-body">
@@ -37,17 +34,12 @@
             
             <div class="mb-3">
               <span class="label">Status</span>
-              <p><span class="badge bg-{{licenseStatusClass license.status}}">{{license.status}}</span></p>
+              <p><span class="badge bg-success">{{license.status}}</span></p>
             </div>
             
             <div class="mb-3">
               <span class="label">Purchase Date</span>
-              <p>{{formatDate license.purchaseDate "MMMM D, YYYY"}}</p>
-            </div>
-            
-            <div class="mb-3">
-              <span class="label">License Type</span>
-              <p>{{license.licenseType}}</p>
+              <p>{{license.purchaseDate}}</p>
             </div>
           </div>
           
@@ -55,20 +47,16 @@
             <div class="mb-3">
               <span class="label">Expiry Date</span>
               <p>
-                {{formatDate license.expiryDate "MMMM D, YYYY"}}
-                {{#if (isPast license.expiryDate)}}
-                  <span class="badge bg-danger ms-2">Expired</span>
-                {{else}}
-                  <span class="badge bg-{{daysRemainingClass (daysFromNow license.expiryDate)}} ms-2">
-                    {{daysFromNow license.expiryDate}} days remaining
-                  </span>
-                {{/if}}
+                {{license.expiryDate}}
+                <span class="badge bg-warning ms-2">
+                  30 days remaining
+                </span>
               </p>
             </div>
             
             <div class="mb-3">
               <span class="label">Cost</span>
-              <p>{{#if license.cost}}{{formatCurrency license.cost license.currency}}{{else}}Not specified{{/if}}</p>
+              <p>{{#if license.cost}}{{license.cost}} {{license.currency}}{{else}}Not specified{{/if}}</p>
             </div>
             
             <div class="mb-3">
@@ -76,24 +64,14 @@
               <p>
                 {{license.usedSeats}} / {{license.totalSeats}} used
                 <div class="progress mt-1" style="height: 6px;">
-                  <div class="progress-bar bg-{{percentageClass (percentage license.usedSeats license.totalSeats)}}" 
+                  <div class="progress-bar bg-success" 
                     role="progressbar" 
-                    style="width: {{percentage license.usedSeats license.totalSeats}}%" 
-                    aria-valuenow="{{percentage license.usedSeats license.totalSeats}}" 
+                    style="width: 40%" 
+                    aria-valuenow="40" 
                     aria-valuemin="0" 
                     aria-valuemax="100"></div>
                 </div>
               </p>
-            </div>
-            
-            <div class="mb-3">
-              <span class="label">Renewal Date</span>
-              <p>{{#if license.renewalDate}}{{formatDate license.renewalDate "MMMM D, YYYY"}}{{else}}Not specified{{/if}}</p>
-            </div>
-            
-            <div class="mb-3">
-              <span class="label">Owner</span>
-              <p>{{license.owner.name}}</p>
             </div>
           </div>
         </div>
@@ -102,319 +80,41 @@
           <div class="mt-3">
             <span class="label">Notes</span>
             <div class="mt-2 p-3 bg-light rounded">
-              {{{nl2br license.notes}}}
+              {{license.notes}}
             </div>
           </div>
         {{/if}}
       </div>
     </div>
-    
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="mb-0">License Utilization</h5>
-      </div>
-      <div class="card-body">
-        <div class="row align-items-center">
-          <div class="col-md-6">
-            <div class="license-utilization-stats">
-              <div class="mb-3">
-                <h6>Total Seats: {{license.totalSeats}}</h6>
-                <h6>Used Seats: {{license.usedSeats}}</h6>
-                <h6>Available Seats: {{subtract license.totalSeats license.usedSeats}}</h6>
-              </div>
-              
-              {{#if license.assignedSystems}}
-                <p><strong>Assigned Systems:</strong> {{license.assignedSystems.length}}</p>
-                <div class="list-group mb-3">
-                  {{#each assignedSystems}}
-                    <div class="list-group-item">
-                      <strong>{{name}}</strong>
-                      {{#if os}}<span class="badge bg-secondary ms-2">{{os}}</span>{{/if}}
-                      {{#if type}}<span class="badge bg-info ms-1">{{type}}</span>{{/if}}
-                    </div>
-                  {{/each}}
-                </div>
-              {{else}}
-                <p>No systems assigned to this license</p>
-              {{/if}}
-            </div>
-          </div>
-          
-          <div class="col-md-6">
-            <div class="utilization-chart-container" style="height: 200px;">
-              <canvas id="utilizationChart"></canvas>
-            </div>
-            
-            <div class="text-center mt-3">
-              {{#if (gte (divide license.usedSeats license.totalSeats) 0.9)}}
-                <div class="alert alert-danger">
-                  <i class="fas fa-exclamation-triangle me-2"></i> License is at high utilization
-                </div>
-              {{else if (gte (divide license.usedSeats license.totalSeats) 0.7)}}
-                <div class="alert alert-warning">
-                  <i class="fas fa-exclamation-circle me-2"></i> License is at moderate utilization
-                </div>
-              {{else}}
-                <div class="alert alert-success">
-                  <i class="fas fa-check-circle me-2"></i> License has available capacity
-                </div>
-              {{/if}}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    {{#if license.assignedSystems.length}}
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="mb-0">Assigned Systems</h5>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>System Name</th>
-                  <th>Type</th>
-                  <th>Environment</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{#each license.assignedSystems}}
-                  <tr>
-                    <td>{{name}}</td>
-                    <td>{{systemType}}</td>
-                    <td>{{environment}}</td>
-                    <td>
-                      <span class="badge bg-{{systemStatusClass status}}">
-                        {{status}}
-                      </span>
-                    </td>
-                    <td>
-                      <a href="/systems/view/{{_id}}" class="btn btn-sm btn-info">
-                        <i class="fas fa-eye"></i>
-                      </a>
-                    </td>
-                  </tr>
-                {{/each}}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    {{/if}}
   </div>
   
   <div class="col-lg-4">
     <div class="card mb-4">
       <div class="card-header">
-        <h5 class="mb-0">License QR Code</h5>
+        <h5 class="mb-0">License Information</h5>
       </div>
-      <div class="card-body text-center">
-        <div id="qrcode" class="d-inline-block border p-2 bg-white"></div>
-        <div class="mt-3">
-          <button class="btn btn-sm btn-outline-primary" onclick="downloadQRCode()">
-            <i class="fas fa-download me-1"></i> Download
-          </button>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <p><i class="fas fa-info-circle me-2"></i> This is a demo license.</p>
+          <p class="mb-0">Created for demonstration purposes.</p>
         </div>
       </div>
     </div>
-    
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="mb-0">Attachments</h5>
-      </div>
-      <div class="card-body">
-        {{#if license.attachments.length}}
-          <div class="list-group mb-3">
-            {{#each license.attachments}}
-              <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                <div>
-                  <i class="fas {{#if (eq (getFileExt filename) 'pdf')}}fa-file-pdf{{else if (eq (getFileExt filename) 'doc')}}fa-file-word{{else if (eq (getFileExt filename) 'jpg')}}fa-file-image{{else}}fa-file{{/if}} me-2"></i>
-                  <span>{{filename}}</span>
-                </div>
-                <div>
-                  <button class="btn btn-sm btn-danger" onclick="confirmDeleteAttachment('{{../_id}}', '{{_id}}')">
-                    <i class="fas fa-trash-alt"></i>
-                  </button>
-                </div>
-              </div>
-            {{/each}}
-          </div>
-        {{else}}
-          <p class="text-muted">No attachments</p>
-        {{/if}}
-        
-        <form action="/licenses/{{license._id}}/attachments" method="POST" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label for="attachment" class="form-label">Add Attachment</label>
-            <input class="form-control form-control-sm" type="file" id="attachment" name="attachment">
-          </div>
-          <button type="submit" class="btn btn-sm btn-primary">
-            <i class="fas fa-paperclip me-1"></i> Upload
-          </button>
-        </form>
-      </div>
-    </div>
   </div>
 </div>
 
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure you want to delete this license for <strong>{{license.product}}</strong>?</p>
-        <p class="text-danger">This action cannot be undone.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <form action="/licenses/{{license._id}}/delete" method="POST">
-          <button type="submit" class="btn btn-danger">Delete</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Attachment Modal -->
-<div class="modal fade" id="deleteAttachmentModal" tabindex="-1" aria-labelledby="deleteAttachmentModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="deleteAttachmentModalLabel">Confirm Delete Attachment</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure you want to delete this attachment?</p>
-        <p class="text-danger">This action cannot be undone.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <form id="deleteAttachmentForm" method="POST">
-          <input type="hidden" name="_method" value="DELETE">
-          <button type="submit" class="btn btn-danger">Delete</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="text-end mb-4">
-  <a href="/licenses" class="btn btn-secondary">
-    <i class="fas fa-arrow-left me-2"></i> Back to Licenses
-  </a>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Generate QR code
-    const qrcode = new QRCode(document.getElementById("qrcode"), {
-      text: `License: {{license.product}}\nKey: {{license.licenseKey}}\nExpiry: {{formatDate license.expiryDate "YYYY-MM-DD"}}`,
-      width: 148,
-      height: 148,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
-    
-    // Initialize DataTable for assigned systems
-    const table = document.querySelector('table');
-    if (table) {
-      new DataTable(table, {
-        responsive: true,
-        pageLength: 5,
-        lengthMenu: [5, 10, 25, 50],
-        dom: 'frt',
-        language: {
-          search: "Filter records:"
-        }
-      });
-    }
-
-    // Utilization chart
-    const utilizationCtx = document.getElementById('utilizationChart').getContext('2d');
-    const usedSeats = {{license.usedSeats}};
-    const totalSeats = {{license.totalSeats}};
-    const availableSeats = totalSeats - usedSeats;
-    
-    new Chart(utilizationCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Used Seats', 'Available Seats'],
-        datasets: [{
-          data: [usedSeats, availableSeats],
-          backgroundColor: [
-            availableSeats === 0 ? '#e74a3b' : '#4e73df',
-            '#1cc88a'
-          ],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '70%',
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const label = context.label || '';
-                const value = context.raw || 0;
-                const percentage = Math.round((value / totalSeats) * 100);
-                return `${label}: ${value} (${percentage}%)`;
-              }
-            }
-          },
-          legend: {
-            position: 'bottom'
-          }
-        }
-      }
-    });
-  });
+function copyToClipboard(elementId) {
+  const element = document.getElementById(elementId);
+  element.select();
+  document.execCommand('copy');
   
-  // Copy to clipboard function
-  function copyToClipboard(elementId) {
-    const copyText = document.getElementById(elementId);
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-    
-    // Show toast or alert
-    alert("Copied license key to clipboard");
-  }
-  
-  // Download QR code
-  function downloadQRCode() {
-    const canvas = document.querySelector('#qrcode canvas');
-    const image = canvas.toDataURL("image/png");
-    const link = document.createElement('a');
-    link.download = 'license-{{license.product}}-qr.png';
-    link.href = image;
-    link.click();
-  }
-  
-  // Confirm delete attachment
-  function confirmDeleteAttachment(licenseId, attachmentId) {
-    const form = document.getElementById('deleteAttachmentForm');
-    form.action = `/licenses/${licenseId}/attachments/${attachmentId}`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('deleteAttachmentModal'));
-    modal.show();
-  }
-  
-  // Get file extension helper
-  function getFileExt(filename) {
-    return filename.split('.').pop().toLowerCase();
-  }
+  // Show a temporary message
+  const button = element.nextElementSibling;
+  const originalHtml = button.innerHTML;
+  button.innerHTML = '<i class="fas fa-check"></i>';
+  setTimeout(() => {
+    button.innerHTML = originalHtml;
+  }, 1500);
+}
 </script>

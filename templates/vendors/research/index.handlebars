@@ -1,0 +1,85 @@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Vendor Research Tool</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead mb-4">Search for vendor information to automatically populate your database.</p>
+                    
+                    <form action="/vendors/research/search" method="POST" class="mb-4">
+                        <div class="form-group">
+                            <label for="searchQuery">Search Query</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchQuery" name="query" 
+                                    placeholder="Enter vendor name or software product..." required>
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search mr-1"></i> Search
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">Example: "Microsoft", "Adobe Creative Cloud", "Oracle Database"</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Search Sources</label>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="sourceWeb" name="sources[]" value="web" checked>
+                                <label class="custom-control-label" for="sourceWeb">Web Search</label>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="sourceDb" name="sources[]" value="database">
+                                <label class="custom-control-label" for="sourceDb">Licener Database</label>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    {{#if message}}
+                        <div class="alert alert-{{messageType}}">
+                            {{message}}
+                        </div>
+                    {{/if}}
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">About This Tool</h5>
+                            <p>The Vendor Research Tool helps you find and add software vendors to your license management system. It searches across multiple sources to gather information about vendors, their products, and licensing options.</p>
+                            <p>Benefits:</p>
+                            <ul>
+                                <li>Save time by automatically populating vendor information</li>
+                                <li>Ensure consistency in vendor data</li>
+                                <li>Discover new vendors that might be relevant to your organization</li>
+                                <li>Keep licensing information up-to-date</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Recent Searches</h5>
+                </div>
+                <div class="card-body">
+                    {{#if recentSearches.length}}
+                        <div class="list-group">
+                            {{#each recentSearches}}
+                                <a href="/vendors/research/search?query={{query}}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{query}}</h6>
+                                        <small>{{formatDate date}}</small>
+                                    </div>
+                                    <small>Found {{resultCount}} results</small>
+                                </a>
+                            {{/each}}
+                        </div>
+                    {{else}}
+                        <p class="text-muted mb-0">No recent searches.</p>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

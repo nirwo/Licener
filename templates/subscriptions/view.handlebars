@@ -1,0 +1,218 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-0">{{subscription.name}}</h1>
+    <p class="text-muted mb-0">Subscription details</p>
+  </div>
+  <div>
+    <a href="/subscriptions/edit/{{subscription._id}}" class="btn btn-primary">
+      <i class="fas fa-edit me-1"></i> Edit
+    </a>
+    <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteSubscriptionModal">
+      <i class="fas fa-trash-alt me-1"></i> Delete
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">Subscription Information</h5>
+      </div>
+      <div class="card-body">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="small text-muted d-block">Product</label>
+              <div class="d-flex align-items-center">
+                <div class="avatar-circle bg-primary bg-opacity-10 me-2">
+                  <i class="fas fa-calendar-alt text-primary"></i>
+                </div>
+                <span class="fw-bold">{{subscription.product}}</span>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted d-block">Vendor</label>
+              <span>{{subscription.vendor}}</span>
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted d-block">Type</label>
+              <span>{{subscription.type}}</span>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="small text-muted d-block">Status</label>
+              <span class="badge bg-{{#if (eq subscription.status 'active')}}success{{else if (eq subscription.status 'expired')}}danger{{else}}warning{{/if}}">
+                {{subscription.status}}
+              </span>
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted d-block">Purchase Date</label>
+              <div class="d-flex align-items-center">
+                <i class="fas fa-calendar-alt text-muted me-2"></i>
+                <span>{{subscription.purchaseDate}}</span>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="small text-muted d-block">Renewal Date</label>
+              <div class="d-flex align-items-center">
+                <i class="fas fa-calendar-alt text-warning me-2"></i>
+                <span>{{subscription.renewalDate}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="small text-muted d-block">Seats</label>
+              <span>{{subscription.seats}}</span>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="small text-muted d-block">Cost</label>
+              <span>{{subscription.cost}} {{subscription.currency}}</span>
+            </div>
+          </div>
+        </div>
+        
+        {{#if subscription.notes}}
+          <div class="mb-0">
+            <label class="small text-muted d-block">Notes</label>
+            <p class="mb-0">{{subscription.notes}}</p>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    
+    {{#if subscription.assignedSystems.length}}
+      <div class="card mb-4">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Assigned Systems</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table mb-0">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>OS</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each subscription.assignedSystems}}
+                  <tr>
+                    <td>
+                      <a href="/systems/view/{{this._id}}">{{this.name}}</a>
+                    </td>
+                    <td>{{this.os}}</td>
+                    <td>{{this.systemType}}</td>
+                    <td>
+                      <span class="badge bg-{{#if (eq this.status 'active')}}success{{else}}secondary{{/if}}">
+                        {{this.status}}
+                      </span>
+                    </td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">Subscription Details</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="small text-muted d-block">Utilization</label>
+          <div class="progress" style="height: 10px;">
+            <div class="progress-bar {{#if (lt subscription.utilization 60)}}bg-success{{else if (lt subscription.utilization 90)}}bg-warning{{else}}bg-danger{{/if}}" 
+                role="progressbar" 
+                style="width: {{subscription.utilization}}%;" 
+                aria-valuenow="{{subscription.utilization}}" 
+                aria-valuemin="0" 
+                aria-valuemax="100">
+            </div>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <small>{{subscription.usedSeats}} used</small>
+            <small>{{subscription.seats}} total</small>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="small text-muted d-block">Annual Cost</label>
+          <h4>{{subscription.cost}} {{subscription.currency}}</h4>
+        </div>
+        
+        <div class="mb-0">
+          <label class="small text-muted d-block">Time until renewal</label>
+          <div class="d-flex align-items-center">
+            <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+              <i class="fas fa-hourglass-half text-primary"></i>
+            </div>
+            <span class="fw-bold">
+              {{!-- Add helper for calculating days until renewal --}}
+              30 days
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {{#if subscription.attachments.length}}
+      <div class="card mb-4">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Attachments</h5>
+        </div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            {{#each subscription.attachments}}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-alt text-primary me-2"></i>
+                  <span>{{this.filename}}</span>
+                </div>
+                <a href="/uploads/{{this.path}}" class="btn btn-sm btn-outline-primary" download>
+                  <i class="fas fa-download"></i>
+                </a>
+              </li>
+            {{/each}}
+          </ul>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+</div>
+
+<!-- Delete Subscription Modal -->
+<div class="modal fade" id="deleteSubscriptionModal" tabindex="-1" aria-labelledby="deleteSubscriptionModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteSubscriptionModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the subscription <strong>{{subscription.name}}</strong>?</p>
+        <p class="text-danger mb-0">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form action="/subscriptions/delete/{{subscription._id}}" method="POST">
+          <button type="submit" class="btn btn-danger">Delete Subscription</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div> 

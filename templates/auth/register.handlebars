@@ -1,43 +1,110 @@
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-xl-10 col-lg-12 col-md-9">
-      <div class="card o-hidden border-0 shadow-lg my-5">
-        <div class="card-body p-0">
-          <div class="row">
-            <div class="col-lg-5 d-none d-lg-block bg-register-image">
-              <!-- Register image background will be set by CSS -->
-            </div>
-            <div class="col-lg-7">
-              <div class="p-5">
-                <div class="text-center">
-                  <h1 class="h4 text-gray-900 mb-4">Create an Account!</h1>
+<div class="auth-wrapper gradient-background">
+  <div class="container-fluid py-5">
+    <div class="row justify-content-center">
+      <div class="col-xxl-8 col-xl-9 col-lg-11">
+        <div class="card shadow-lg">
+          <div class="card-body p-0">
+            <div class="row g-0">
+              <div class="col-lg-5 d-none d-lg-block bg-register-image">
+                <div class="text-white p-5 h-100 d-flex flex-column justify-content-center">
+                  <h2 class="display-4 fw-bold mb-4">Join Licener</h2>
+                  <p class="lead mb-4">Start managing your licenses efficiently and save time & money</p>
+                  <div class="features mt-5">
+                    <div class="feature-item d-flex align-items-center mb-3">
+                      <div class="feature-icon me-3">
+                        <i class="fas fa-check-circle"></i>
+                      </div>
+                      <div class="feature-text">Track all your software licenses</div>
+                    </div>
+                    <div class="feature-item d-flex align-items-center mb-3">
+                      <div class="feature-icon me-3">
+                        <i class="fas fa-check-circle"></i>
+                      </div>
+                      <div class="feature-text">Get renewal reminders</div>
+                    </div>
+                    <div class="feature-item d-flex align-items-center">
+                      <div class="feature-icon me-3">
+                        <i class="fas fa-check-circle"></i>
+                      </div>
+                      <div class="feature-text">Optimize software spending</div>
+                    </div>
+                  </div>
                 </div>
-                <form class="user" action="/auth/register" method="POST">
-                  <div class="form-group mb-3">
-                    <input type="text" class="form-control form-control-user" id="name" name="name" 
-                      placeholder="Full Name" required>
+              </div>
+              <div class="col-lg-7">
+                <div class="p-4 p-lg-5">
+                  <div class="text-center mb-4">
+                    <h1 class="h3 text-gray-900 fw-bold">Create Your Account</h1>
+                    <p class="text-muted">Fill in your details to get started</p>
                   </div>
-                  <div class="form-group mb-3">
-                    <input type="email" class="form-control form-control-user" id="email" name="email" 
-                      placeholder="Email Address" required>
+                  {{#if errors}}
+                    {{#each errors}}
+                      <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>{{msg}}
+                      </div>
+                    {{/each}}
+                  {{/if}}
+                  {{#if error_msg}}
+                  <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{error_msg}}
                   </div>
-                  <div class="form-group row">
-                    <div class="col-sm-6 mb-3 mb-sm-0">
-                      <input type="password" class="form-control form-control-user" id="password" name="password" 
-                        placeholder="Password" required>
+                  {{/if}}
+                  {{#if success_msg}}
+                  <div class="alert alert-success" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>{{success_msg}}
+                  </div>
+                  {{/if}}
+                  <form class="user" action="/auth/register" method="POST">
+                    <div class="form-group mb-3">
+                      <label for="name" class="form-label">Full Name</label>
+                      <div class="input-group input-group-merge">
+                        <span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
+                        <input type="text" class="form-control form-control-user" id="name" name="name" 
+                          placeholder="Enter your full name" required value="{{name}}">
+                      </div>
                     </div>
-                    <div class="col-sm-6">
-                      <input type="password" class="form-control form-control-user" id="password2" name="password2" 
-                        placeholder="Repeat Password" required>
+                    <div class="form-group mb-3">
+                      <label for="email" class="form-label">Email Address</label>
+                      <div class="input-group input-group-merge">
+                        <span class="input-group-text bg-light"><i class="fas fa-envelope"></i></span>
+                        <input type="email" class="form-control form-control-user" id="email" name="email" 
+                          placeholder="Enter your email" required value="{{email}}">
+                      </div>
                     </div>
+                    <div class="form-group mb-3">
+                      <label for="password" class="form-label">Password</label>
+                      <div class="input-group input-group-merge">
+                        <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control form-control-user" id="password" name="password" 
+                          placeholder="Create a password" required>
+                      </div>
+                      <small class="form-text text-muted">Password must be at least 6 characters long</small>
+                    </div>
+                    <div class="form-group mb-4">
+                      <label for="password2" class="form-label">Confirm Password</label>
+                      <div class="input-group input-group-merge">
+                        <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control form-control-user" id="password2" name="password2" 
+                          placeholder="Confirm your password" required>
+                      </div>
+                    </div>
+                    <div class="form-check mb-4">
+                      <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                      <label class="form-check-label" for="terms">
+                        I agree to the <a href="#" class="text-primary">Terms of Service</a> and <a href="#" class="text-primary">Privacy Policy</a>
+                      </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-user btn-block w-100 py-3">
+                      <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                  </form>
+                  <hr class="my-4">
+                  <div class="text-center">
+                    <a class="small fw-bold" href="/auth/login">Already have an account? Login!</a>
                   </div>
-                  <button type="submit" class="btn btn-primary btn-user btn-block">
-                    Register Account
-                  </button>
-                </form>
-                <hr>
-                <div class="text-center">
-                  <a class="small" href="/auth/login">Already have an account? Login!</a>
+                  <div class="text-center mt-3">
+                    <a class="small" href="#"><i class="fas fa-question-circle me-1"></i>Need help?</a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -47,3 +114,145 @@
     </div>
   </div>
 </div>
+
+<style>
+body.register-page {
+  background: transparent;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.gradient-background {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.bg-register-image {
+  background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+  background-size: cover;
+  position: relative;
+  min-height: 600px;
+}
+
+.feature-icon i {
+  color: #64e9ff;
+  font-size: 1.2rem;
+}
+
+.feature-text {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.card {
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.shadow-lg {
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.form-control-user {
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.btn-user {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #4e73df;
+  border-color: #4e73df;
+}
+
+.btn-primary:hover {
+  background-color: #2e59d9;
+  border-color: #2e59d9;
+  transform: translateY(-2px);
+}
+
+.input-group-merge .input-group-text {
+  background-color: #f8f9fc;
+  border-right: none;
+  color: #6e707e;
+}
+
+.input-group-merge .form-control {
+  border-left: none;
+}
+
+.input-group-merge .form-control:focus {
+  box-shadow: none;
+  border-color: #d1d3e2;
+}
+
+.form-control:focus {
+  border-color: #4e73df;
+  box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.1);
+}
+
+.alert {
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+}
+
+.form-text {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.form-check-input:checked {
+  background-color: #4e73df;
+  border-color: #4e73df;
+}
+
+hr {
+  opacity: 0.1;
+}
+
+@media (max-width: 1199.98px) {
+  .bg-register-image {
+    min-height: 550px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .auth-wrapper {
+    padding: 2rem 1rem;
+    display: block;
+    align-items: normal;
+  }
+  
+  .card {
+    margin: 0 auto;
+  }
+  
+  .bg-register-image {
+    min-height: 250px;
+    display: block !important;
+  }
+  
+  .p-lg-5 {
+    padding: 2rem !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .card {
+    border-radius: 0.75rem;
+  }
+}
+</style>

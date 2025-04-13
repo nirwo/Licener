@@ -1,0 +1,92 @@
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Web Researcher Tool</h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-3">
+            Search for vendor information across multiple sources to automatically populate your vendor database.
+          </p>
+          <form action="/web-researcher/search" method="POST">
+            <div class="row align-items-end">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="query">Vendor Name or Keywords</label>
+                  <input type="text" id="query" name="query" class="form-control" placeholder="e.g. Microsoft, Adobe, Cloud Services" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label>Search Sources</label>
+                  <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="sourceWeb" name="sources" value="web" checked>
+                    <label class="custom-control-label" for="sourceWeb">Web APIs</label>
+                  </div>
+                  <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="sourceDb" name="sources" value="database">
+                    <label class="custom-control-label" for="sourceDb">Internal Database</label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-block">
+                  <i class="fas fa-search mr-1"></i> Search
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{#if recentSearches.length}}
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header">
+          <h5 class="mb-0">Recent Searches</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>Query</th>
+                  <th>Date</th>
+                  <th>Sources</th>
+                  <th>Results</th>
+                  <th>Added Vendors</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each recentSearches}}
+                <tr>
+                  <td>{{this.query}}</td>
+                  <td>{{formatDate this.date "MMMM Do YYYY, h:mm a"}}</td>
+                  <td>
+                    {{#each this.sources}}
+                    <span class="badge badge-info">{{this}}</span>
+                    {{/each}}
+                  </td>
+                  <td>{{this.results}}</td>
+                  <td>{{this.addedVendors.length}}</td>
+                  <td>
+                    <a href="/web-researcher/search?query={{this.query}}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-redo"></i> Rerun
+                    </a>
+                  </td>
+                </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{/if}}
+</div> 

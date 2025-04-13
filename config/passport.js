@@ -1,6 +1,8 @@
 const LocalStrategy = require('passport-local').Strategy;
-const { User } = require('../utils/file-db');
-const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+const bcrypt = require('bcrypt');
+const fs = require('fs');
+const path = require('path');
 
 // Safe toString utility function
 const safeToString = (value) => {
@@ -16,70 +18,59 @@ const safeToString = (value) => {
 
 module.exports = function(passport) {
   passport.use(
-    new LocalStrategy({ usernameField: 'email' }, (email, password, done) => {
-      // Match user
-      User.findOne({ email: email })
-        .then(user => {
-          if (!user) {
-            return done(null, false, { message: 'That email is not registered' });
+    new LocalStrategy(
+      {
+        usernameField: 'email',
+        passwordField: 'password'
+      },
+      async (email, password, done) => {
+        try {
+          console.log(`Passport: Attempting to authenticate user ${email}`);
+          
+          // Use the User model's authenticate method
+          const result = await User.authenticate(email, password);
+          
+          if (result.error) {
+            console.log(`Passport: Authentication failed - ${result.error}`);
+            return done(null, false, { message: result.error });
           }
-
-          // Match password
-          bcrypt.compare(password, user.password, (err, isMatch) => {
-            if (err) throw err;
-            if (isMatch) {
-              return done(null, user);
-            } else {
-              return done(null, false, { message: 'Password incorrect' });
-            }
-          });
-        })
-        .catch(err => {
-          console.error('Error in LocalStrategy:', err);
+          
+          if (result.user) {
+            console.log(`Passport: Authentication successful for user ${email} (ID: ${result.user._id})`);
+            return done(null, result.user);
+          }
+          
+          // Fallback error (should not reach here)
+          console.log('Passport: Authentication failed - Unknown error');
+          return done(null, false, { message: 'Invalid credentials' });
+        } catch (err) {
+          console.error('Passport error:', err);
           return done(err);
-        });
-    })
+        }
+      }
+    )
   );
 
   passport.serializeUser((user, done) => {
-    try {
-      if (user && (user._id || user.id)) {
-        const userId = user._id || user.id;
-        console.log(`Serializing user: ${userId}`);
-        return done(null, userId);
-      }
-      console.error("Cannot serialize user - missing ID:", user);
-      return done(null, false);
-    } catch (err) {
-      console.error("Error serializing user:", err);
-      return done(err, null);
-    }
+    console.log(`Passport: Serializing user ID: ${user._id}`);
+    done(null, user._id);
   });
 
-  passport.deserializeUser((id, done) => {
-    console.log(`Deserializing user with ID: ${id}`);
-    
+  passport.deserializeUser(async (id, done) => {
     try {
-      User.findOne({ _id: id })
-        .then(user => {
-          if (!user) {
-            console.log(`No user found with ID: ${id}`);
-            return done(null, false);
-          }
-          
-          // Log the entire user object for debugging
-          console.log("Found user:", JSON.stringify(user, null, 2));
-          
-          // Return the user directly, avoiding any toString() operations
-          return done(null, user);
-        })
-        .catch(err => {
-          console.error('Error deserializing user:', err);
-          return done(err, null);
-        });
+      console.log(`Passport: Deserializing user ID: ${id}`);
+      const user = await User.findById(id);
+      
+      if (!user) {
+        console.log(`Passport: User with ID ${id} not found during deserialization`);
+        return done(null, false);
+      }
+      
+      console.log(`Passport: User ${user.email} deserialized successfully`);
+      done(null, user);
     } catch (err) {
-      console.error('Error in deserializeUser:', err);
-      return done(err, null);
+      console.error(`Passport: Error deserializing user:`, err);
+      done(err);
     }
   });
 };

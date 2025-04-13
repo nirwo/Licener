@@ -1,115 +1,217 @@
 const express = require('express');
 const router = express.Router();
 const { ensureAuthenticated } = require('../middleware/auth');
-const { License, System } = require('../utils/file-db');
+const License = require('../models/License');
+const System = require('../models/System');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const { ensureManager } = require('../middleware/auth');
-const Vendor = require('../models/Vendor'); // Add this line
+const Vendor = require('../models/Vendor');
+const { Parser } = require('@json2csv/node');
+const sanitizeHtml = require('sanitize-html');
+const { v4: uuidv4 } = require('uuid');
 
-// Set up storage for file uploads
+// Set up storage for file uploads with better security
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     const dir = './data/uploads';
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
     }
     cb(null, dir);
   },
   filename: function(req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    const uniqueId = uuidv4();
+    const sanitizedFilename = sanitizeFilename(file.originalname);
+    cb(null, `${uniqueId}-${sanitizedFilename}`);
   }
 });
 
-// File filter
+// Improved file filter with better security
 const fileFilter = (req, file, cb) => {
-  const filetypes = /csv|xlsx|pdf|jpg|jpeg|png|doc|docx/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+  const allowedFiletypes = /csv|xlsx|pdf|jpg|jpeg|png|doc|docx/;
+  const extname = allowedFiletypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedFiletypes.test(file.mimetype);
 
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb('Error: File upload only supports the following filetypes - CSV, XLSX, PDF, JPG, JPEG, PNG, DOC, DOCX');
+    cb(new Error('Invalid file type. Only CSV, XLSX, PDF, JPG, JPEG, PNG, DOC, DOCX files are allowed.'));
   }
 };
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { 
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 5 // Maximum 5 files
+  },
   fileFilter: fileFilter
 });
 
-// Helper function to safely convert IDs to strings for comparison
+// Helper function to sanitize filenames
+function sanitizeFilename(filename) {
+  return filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+}
+
+// Helper function to safely convert IDs to strings
 function safeIdToString(id) {
   if (!id) return '';
   return typeof id === 'object' && id.toString ? id.toString() : String(id);
 }
 
-// Helper function for debugging
-function logObject(label, obj) {
-  console.log(`=== ${label} ===`);
-  if (typeof obj === 'undefined') {
-    console.log('UNDEFINED');
-  } else if (obj === null) {
-    console.log('NULL');
-  } else {
-    console.log(JSON.stringify(obj, (key, value) => 
+// Improved logging function
+function logObject(label, obj, level = 'info') {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] [${level.toUpperCase()}] === ${label} ===\n${
+    typeof obj === 'undefined' ? 'UNDEFINED' :
+    obj === null ? 'NULL' :
+    JSON.stringify(obj, (key, value) => 
       typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 20
         ? '[Object with many properties]'
         : value
-    , 2));
+    , 2)
+  }\n=== END ${label} ===`;
+  
+  console.log(logMessage);
+  
+  // Write to log file
+  const logDir = './logs';
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true, mode: 0o755 });
   }
-  console.log(`=== END ${label} ===`);
+  
+  fs.appendFileSync(
+    path.join(logDir, 'app.log'),
+    logMessage + '\n',
+    { encoding: 'utf8' }
+  );
 }
 
-// Get all licenses
-router.get('/', ensureAuthenticated, async (req, res) => {
+// Helper function to validate license data
+function validateLicenseData(data) {
+  const errors = [];
+  
+  if (!data.product) errors.push('Product name is required');
+  if (!data.vendor) errors.push('Vendor is required');
+  if (!data.licenseKey) errors.push('License key is required');
+  
+  if (data.totalSeats && isNaN(parseInt(data.totalSeats))) {
+    errors.push('Total seats must be a number');
+  }
+  
+  if (data.cost && isNaN(parseFloat(data.cost))) {
+    errors.push('Cost must be a number');
+  }
+  
+  if (data.purchaseDate && isNaN(Date.parse(data.purchaseDate))) {
+    errors.push('Invalid purchase date format');
+  }
+  
+  if (data.expiryDate && isNaN(Date.parse(data.expiryDate))) {
+    errors.push('Invalid expiry date format');
+  }
+  
+  return errors;
+}
+
+// Helper function to sanitize license data
+function sanitizeLicenseData(data) {
+  return {
+    ...data,
+    name: sanitizeHtml(data.name || ''),
+    product: sanitizeHtml(data.product || ''),
+    vendor: sanitizeHtml(data.vendor || ''),
+    licenseKey: sanitizeHtml(data.licenseKey || ''),
+    notes: sanitizeHtml(data.notes || ''),
+    status: sanitizeHtml(data.status || 'active'),
+    currency: sanitizeHtml(data.currency || 'USD')
+  };
+}
+
+// Helper function to read Excel file with improved error handling
+async function readExcelFile(filePath) {
   try {
-    console.log('User ID for license query:', req.user._id);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const worksheet = workbook.getWorksheet(1);
     
-    // Create base query
-    let baseQuery = { owner: req.user._id }; // Query for all licenses owned by user
- 
-    // Filter by status if provided
-    let displayQuery = { ...baseQuery }; // Query for licenses to display (with filters)
-    if (req.query.status && req.query.status !== 'all') {
-      displayQuery.status = req.query.status;
+    if (!worksheet) {
+      throw new Error('No worksheet found in the Excel file');
     }
     
-    // Fetch all user licenses for distinct values first
-    const allUserLicenses = await License.find(baseQuery);
+    const data = [];
+    const headers = [];
     
-    // Find matching licenses
-    console.log('License display query:', displayQuery);
-    let licenses = await License.find(displayQuery); // Added await
-    console.log('Found licenses:', licenses.length);
+    // Get headers from first row
+    worksheet.getRow(1).eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value;
+    });
     
-    // Apply manual filtering for text search (product & vendor)
+    // Process data rows
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+      
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        const header = headers[colNumber];
+        if (header) {
+          rowData[header] = cell.value;
+        }
+      });
+      
+      if (Object.keys(rowData).length > 0) {
+        data.push(rowData);
+      }
+    });
+    
+    return data;
+  } catch (error) {
+    logObject('Excel Read Error', error, 'error');
+    throw new Error(`Error reading Excel file: ${error.message}`);
+  }
+}
+
+// Get all licenses with improved filtering and pagination
+router.get('/', ensureAuthenticated, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Create base query
+    let baseQuery = { owner: req.user._id };
+    
+    // Apply filters
+    if (req.query.status && req.query.status !== 'all') {
+      baseQuery.status = req.query.status;
+    }
+    
     if (req.query.product) {
-      const productRegex = new RegExp(req.query.product, 'i');
-      licenses = licenses.filter(license => productRegex.test(license.product));
+      baseQuery.product = new RegExp(req.query.product, 'i');
     }
     
     if (req.query.vendor) {
-      const vendorRegex = new RegExp(req.query.vendor, 'i');
-      licenses = licenses.filter(license => vendorRegex.test(license.vendor));
+      baseQuery.vendor = new RegExp(req.query.vendor, 'i');
     }
-      
-    // Sort by expiry date
-    licenses.sort((a, b) => {
-      const dateA = a.expiryDate ? new Date(a.expiryDate) : new Date();
-      const dateB = b.expiryDate ? new Date(b.expiryDate) : new Date();
-      return dateA - dateB;
-    });
+    
+    // Get total count for pagination
+    const total = await License.countDocuments(baseQuery);
+    
+    // Find licenses with pagination
+    let licenses = await License.find(baseQuery)
+      .skip(skip)
+      .limit(limit)
+      .sort({ expiryDate: 1 });
     
     // Populate assigned systems
     licenses = await License.populate(licenses, 'assignedSystems');
     
     // Get unique products and vendors for filter dropdowns
+    const allUserLicenses = await License.find({ owner: req.user._id });
     const products = [...new Set(allUserLicenses.map(lic => lic.product).filter(Boolean))].sort();
     const vendors = [...new Set(allUserLicenses.map(lic => lic.vendor).filter(Boolean))].sort();
     
@@ -118,10 +220,16 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       licenses,
       products,
       vendors,
-      filters: req.query
+      filters: req.query,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
   } catch (err) {
-    console.error(err);
+    logObject('License List Error', err, 'error');
     req.flash('error_msg', 'Error loading licenses');
     res.redirect('/dashboard');
   }
@@ -404,53 +512,22 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
 // View license details
 router.get('/view/:id', ensureAuthenticated, async (req, res) => {
   try {
+    console.log(`Viewing license with ID: ${req.params.id}`);
     let license = await License.findById(req.params.id);
     
     if (!license) {
+      console.error(`License not found with ID: ${req.params.id}`);
       req.flash('error_msg', 'License not found');
       return res.redirect('/licenses');
     }
     
-    // Fix: Use static License.populate method instead of license.populate
     // Populate assigned systems
     console.log('Populating license data for ID:', license._id);
-    
-    if (typeof License.populate === 'function') {
-      // First populate assigned systems
-      license = await License.populate(license, 'assignedSystems');
-      // Then populate owner
-      license = await License.populate(license, 'owner');
-      
-      console.log('License populated successfully');
-    } else {
-      console.error('License.populate is not a function, check file-db implementation');
-      // Fallback: Try to get system details manually
-      if (license.assignedSystems && Array.isArray(license.assignedSystems)) {
-        const populatedSystems = [];
-        for (const sysId of license.assignedSystems) {
-          try {
-            const system = await System.findById(sysId);
-            if (system) populatedSystems.push(system);
-          } catch (err) {
-            console.error(`Error fetching system ${sysId}:`, err);
-          }
-        }
-        license.assignedSystems = populatedSystems;
-      }
-      
-      // Try to get owner details manually
-      if (license.owner) {
-        try {
-          const owner = await User.findById(license.owner);
-          if (owner) license.owner = owner;
-        } catch (err) {
-          console.error(`Error fetching owner ${license.owner}:`, err);
-        }
-      }
-    }
+    license = await License.populate(license, 'assignedSystems');
+    license = await License.populate(license, 'owner');
     
     res.render('licenses/view', {
-      title: license.name,
+      title: license.name || license.product,
       license
     });
   } catch (err) {
@@ -502,6 +579,220 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
     req.flash('error_msg', 'Error updating license: ' + err.message);
     res.redirect(`/licenses/edit/${req.params.id}`);
   }
-});2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+});
+
+// Import licenses from Excel
+router.post('/import', ensureAuthenticated, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      req.flash('error_msg', 'No file uploaded');
+      return res.redirect('/licenses');
+    }
+
+    const filePath = req.file.path;
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+
+    let licenses = [];
+    
+    if (fileExt === '.xlsx') {
+      licenses = await readExcelFile(filePath);
+    } else if (fileExt === '.csv') {
+      licenses = await new Promise((resolve, reject) => {
+        const results = [];
+        fs.createReadStream(filePath)
+          .pipe(csv())
+          .on('data', (data) => results.push(data))
+          .on('end', () => resolve(results))
+          .on('error', reject);
+      });
+    }
+
+    // Process each license
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+
+    for (const licenseData of licenses) {
+      try {
+        // Map Excel/CSV columns to license fields
+        const mappedData = {
+          name: licenseData.name || licenseData.product,
+          product: licenseData.product,
+          vendor: licenseData.vendor,
+          licenseKey: licenseData.licenseKey,
+          purchaseDate: licenseData.purchaseDate,
+          expiryDate: licenseData.expiryDate,
+          totalSeats: parseInt(licenseData.totalSeats) || 1,
+          cost: parseFloat(licenseData.cost),
+          currency: licenseData.currency || 'USD',
+          notes: licenseData.notes,
+          status: licenseData.status || 'active',
+          owner: req.user._id
+        };
+
+        // Create the license
+        await License.create(mappedData);
+        results.success++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push({
+          row: licenseData,
+          error: err.message
+        });
+      }
+    }
+
+    // Clean up the uploaded file
+    fs.unlinkSync(filePath);
+
+    req.flash('success_msg', `Successfully imported ${results.success} licenses. ${results.failed} failed.`);
+    if (results.failed > 0) {
+      req.flash('error_msg', `Failed to import ${results.failed} licenses. Check the logs for details.`);
+    }
+    res.redirect('/licenses');
+  } catch (err) {
+    console.error('Error importing licenses:', err);
+    req.flash('error_msg', 'Error importing licenses: ' + err.message);
+    res.redirect('/licenses');
+  }
+});
+
+// Export licenses to Excel with improved formatting
+router.get('/export', ensureAuthenticated, async (req, res) => {
+  try {
+    const licenses = await License.find({ owner: req.user._id });
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Licenses');
+    
+    // Define columns with improved formatting
+    worksheet.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Product', key: 'product', width: 30 },
+      { header: 'Vendor', key: 'vendor', width: 20 },
+      { header: 'License Key', key: 'licenseKey', width: 40 },
+      { header: 'Purchase Date', key: 'purchaseDate', width: 15 },
+      { header: 'Expiry Date', key: 'expiryDate', width: 15 },
+      { header: 'Total Seats', key: 'totalSeats', width: 12 },
+      { header: 'Used Seats', key: 'usedSeats', width: 12 },
+      { header: 'Utilization', key: 'utilization', width: 12 },
+      { header: 'Cost', key: 'cost', width: 12 },
+      { header: 'Currency', key: 'currency', width: 10 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Notes', key: 'notes', width: 40 }
+    ];
+    
+    // Style the header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD3D3D3' }
+    };
+    
+    // Add data with conditional formatting
+    licenses.forEach(license => {
+      const row = worksheet.addRow({
+        name: license.name,
+        product: license.product,
+        vendor: license.vendor,
+        licenseKey: license.licenseKey,
+        purchaseDate: license.purchaseDate ? new Date(license.purchaseDate).toISOString().split('T')[0] : '',
+        expiryDate: license.expiryDate ? new Date(license.expiryDate).toISOString().split('T')[0] : '',
+        totalSeats: license.totalSeats,
+        usedSeats: license.usedSeats,
+        utilization: license.utilization ? `${license.utilization}%` : '',
+        cost: license.cost,
+        currency: license.currency,
+        status: license.status,
+        notes: license.notes
+      });
+      
+      // Add conditional formatting for expiry dates
+      if (license.expiryDate) {
+        const expiryDate = new Date(license.expiryDate);
+        const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry <= 30) {
+          row.getCell('expiryDate').fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFF0000' }
+          };
+        } else if (daysUntilExpiry <= 90) {
+          row.getCell('expiryDate').fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFFF00' }
+          };
+        }
+      }
+    });
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=licenses.xlsx');
+    
+    // Write to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    logObject('Export Error', err, 'error');
+    req.flash('error_msg', 'Error exporting licenses: ' + err.message);
+    res.redirect('/licenses');
+  }
+});
+
+// Demo license route
+router.get('/demo1', ensureAuthenticated, async (req, res) => {
+  try {
+    console.log('Accessing demo license route for user:', req.user._id);
+    
+    // Ensure License model is properly loaded
+    if (!License || typeof License.createDemo !== 'function') {
+      console.error('License model is not properly configured or createDemo method is missing');
+      console.log('License model properties:', Object.keys(License));
+      req.flash('error_msg', 'System error: License model not properly configured');
+      return res.redirect('/licenses');
+    }
+    
+    // Convert user._id to string for consistent comparison
+    const userId = req.user._id.toString();
+    console.log(`Using user ID for demo license: ${userId}`);
+    
+    // Use the createDemo method to create or retrieve a demo license
+    let demoLicense = null;
+    try {
+      demoLicense = await License.createDemo(userId);
+      console.log('Demo license returned from createDemo:', demoLicense ? demoLicense._id : 'null');
+    } catch (createErr) {
+      console.error('Error calling License.createDemo:', createErr);
+      throw new Error(`Failed to create demo license: ${createErr.message}`);
+    }
+    
+    if (!demoLicense) {
+      console.error('Demo license was not created/found');
+      req.flash('error_msg', 'Unable to create or find demo license');
+      return res.redirect('/licenses');
+    }
+    
+    // Populate related data
+    const populatedLicense = await License.populate(demoLicense, 'assignedSystems');
+    
+    console.log('Demo license created/retrieved successfully:', demoLicense._id);
+    
+    res.render('licenses/view', {
+      title: 'Demo License 1',
+      license: populatedLicense
+    });
+  } catch (err) {
+    console.error('Error in demo license route:', err);
+    req.flash('error_msg', 'Error loading demo license: ' + err.message);
+    res.redirect('/licenses');
+  }
+});
 
 module.exports = router;

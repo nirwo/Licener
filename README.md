@@ -12,6 +12,7 @@ Licener is a full-featured web application for managing, tracking, and optimizin
 - **Import/Export**: Import license data from CSV/Excel and export reports
 - **Renewal Tracking**: Get alerts for upcoming license renewals
 - **Compliance Monitoring**: Ensure systems are properly licensed
+- **Web Researcher Tool**: Search the web for software license and vendor information
 
 ## Installation
 
@@ -94,6 +95,7 @@ Licener uses a file-based database system with LowDB for data storage. This prov
 - License data: `data/licenses.json`
 - System data: `data/systems.json`
 - User data: `data/users.json`
+- Search data: `data/searches.json`
 
 ### Quick Start Scripts
 
@@ -145,6 +147,37 @@ On first run, the system automatically creates a demo user:
 - Compliance Report
 - Renewal Forecast
 - Custom Report Builder
+
+## Web Researcher Tool
+
+The Web Researcher Tool allows you to search for and save vendor and license information from the web. This feature helps you:
+
+- Find current pricing for software licenses
+- Research vendor information
+- Discover different license types for products
+- Automatically add vendors and licenses to your database
+
+### Configuration
+
+To use the real web search functionality (instead of simulated data):
+
+1. Sign up for a [Serper.dev](https://serper.dev/) API key
+2. Add your API key to the `.env` file:
+   ```
+   SERPER_API_KEY=your_api_key_here
+   USE_REAL_SEARCH=true
+   ```
+
+### Usage
+
+1. Navigate to the Web Researcher Tool in the application menu
+2. Enter your search query and select the search type:
+   - Vendor Information
+   - License Types
+   - Pricing Updates
+   - Vendor Contact Information
+3. Select your preferred data sources
+4. Review and save search results to your database
 
 ## API
 

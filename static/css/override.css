@@ -1,0 +1,106 @@
+/* Emergency Override Stylesheet for Navbar */
+html body nav.navbar,
+html body div.navbar,
+html body nav.navbar.navbar-expand-lg.navbar-dark.bg-dark,
+html body .navbar.navbar-expand-lg.navbar-dark.bg-dark,
+body nav.navbar.navbar-dark.bg-dark,
+body .navbar.navbar-dark.bg-dark,
+nav.navbar,
+.navbar.bg-dark,
+.navbar.navbar-dark.bg-dark {
+  background-color: #343a40 !important;
+  border: none !important;
+  color: white !important;
+}
+
+html body nav.navbar .container-fluid,
+html body .navbar .container-fluid {
+  background-color: #343a40 !important;
+}
+
+html body nav.navbar .navbar-brand,
+html body .navbar .navbar-brand,
+html body nav.navbar.navbar-dark .navbar-brand,
+.navbar .navbar-brand,
+.navbar-dark .navbar-brand {
+  color: white !important;
+}
+
+html body nav.navbar .nav-link,
+html body .navbar .nav-link,
+.navbar .nav-link,
+.navbar-dark .nav-link,
+.bg-dark .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html body nav.navbar .nav-link:hover,
+html body .navbar .nav-link:hover,
+.navbar .nav-link:hover,
+.navbar-dark .nav-link:hover,
+.bg-dark .nav-link:hover {
+  color: white !important;
+}
+
+/* Apply to all icons within the navbar */
+html body nav.navbar i,
+html body .navbar i,
+.navbar i,
+.navbar-dark i {
+  color: white !important;
+}
+
+/* Fix navbar-toggler icon */
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
+/* Force Bootstrap 5's bg-dark to be actually dark */
+.bg-dark {
+  background-color: #343a40 !important;
+}
+
+/* Target offcanvas headers */
+.offcanvas-header.bg-dark {
+  background-color: #343a40 !important;
+}
+
+/* Dropdown menu styling - IMPORTANT */
+.navbar .dropdown-menu,
+html body .navbar .dropdown-menu,
+.dropdown-menu {
+  background-color: white !important;
+  border-radius: 0.35rem !important;
+  border: none !important;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Dropdown item styling - IMPORTANT */
+.navbar .dropdown-menu .dropdown-item,
+html body .navbar .dropdown-menu .dropdown-item,
+.dropdown-menu .dropdown-item {
+  color: #3a3b45 !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 400 !important;
+}
+
+/* Dropdown item icon styling */
+.navbar .dropdown-menu .dropdown-item i,
+html body .navbar .dropdown-menu .dropdown-item i,
+.dropdown-menu .dropdown-item i {
+  color: #4e73df !important;
+  width: 1.25rem !important;
+  text-align: center !important;
+  margin-right: 0.5rem !important;
+}
+
+/* Dropdown item hover styling */
+.navbar .dropdown-menu .dropdown-item:hover,
+html body .navbar .dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:hover,
+.navbar .dropdown-menu .dropdown-item:focus,
+html body .navbar .dropdown-menu .dropdown-item:focus,
+.dropdown-menu .dropdown-item:focus {
+  background-color: #f8f9fc !important;
+  color: #2e59d9 !important;
+}

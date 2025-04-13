@@ -1,917 +1,401 @@
 /**
- * File-based database using LowDB
+ * File-based Database Adapter
+ * This adapter provides backward compatibility with the file-based database
+ * but all operations actually use MongoDB models
  */
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
-const path = require('path');
+
 const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const { join } = require('path');
+const mongoose = require('mongoose');
+
+// Import Lowdb with the correct syntax for the newer version
+const { Low } = require('lowdb');
+const { JSONFile } = require('lowdb/node');
+
+// Define path to data directory
+const DATA_DIR = path.join(__dirname, '..', 'data');
 
 // Ensure data directory exists
-const dataDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Create database files if they don't exist
-const dbFiles = {
-  licenses: path.join(dataDir, 'licenses.json'),
-  systems: path.join(dataDir, 'systems.json'),
-  users: path.join(dataDir, 'users.json')
-};
+// Define path to database file
+const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Initialize each database file
-Object.values(dbFiles).forEach(file => {
-  if (!fs.existsSync(file)) {
-    fs.writeFileSync(file, JSON.stringify({ data: [] }));
-  }
-});
-
-// Create database connections
-const dbs = {};
-Object.entries(dbFiles).forEach(([name, file]) => {
-  const adapter = new FileSync(file);
-  const db = low(adapter);
-  
-  // Initialize with empty data array if not exists
-  db.defaults({ data: [] }).write();
-  
-  dbs[name] = db;
-});
-
-// Helper to generate IDs
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-};
-
-// Safe toString helper function to avoid errors
-const safeToString = (value) => {
-  if (value === undefined || value === null) return '';
-  if (typeof value === 'string') return value;
-  
-  try {
-    return String(value);
-  } catch (err) {
-    console.error('Error converting value to string:', err);
-    return '';
-  }
-};
-
-/**
- * Safely compare two IDs which might be strings, objects with toString, etc.
- * @param {*} id1 - First ID
- * @param {*} id2 - Second ID
- * @return {boolean} Whether the IDs match
- */
-const safeIdCompare = (id1, id2) => {
-  if (id1 === id2) return true;
-  if (!id1 || !id2) return false;
-  
-  try {
-    return safeToString(id1) === safeToString(id2);
-  } catch (err) {
-    console.error('Error comparing IDs:', err);
-    return false;
-  }
-};
-
-// Define a common database utility object
-const db = {
-  // Find by ID and update method for all collections
-  findByIdAndUpdate: async (collection, id, updates) => {
-    try {
-      console.log(`UPDATE BY ID: Looking to update _id=${id} in ${collection}`);
-      const collectionPath = path.join(dataDir, `${collection}.json`);
-      
-      // Make sure the file exists
-      if (!fs.existsSync(collectionPath)) {
-        console.log(`UPDATE BY ID: Collection file not found for ${collection}`);
-        return null;
-      }
-      
-      // Read the collection data
-      const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
-      
-      // Find the item by ID
-      const index = data.data.findIndex(item => safeIdCompare(item._id, id));
-      
-      // If item not found, return null
-      if (index === -1) {
-        console.log(`UPDATE BY ID: No matching item with _id=${id} in ${collection}`);
-        return null;
-      }
-      
-      console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
-      
-      // Get the existing item
-      const existingItem = data.data[index];
-      
-      // Create updated item by merging existing with updates
-      const updatedItem = {
-        ...existingItem,
-        ...updates,
-        updatedAt: new Date()
-      };
-      
-      // Replace the old item with the updated one
-      data.data[index] = updatedItem;
-      
-      // Write the updated data back to the file
-      fs.writeFileSync(collectionPath, JSON.stringify(data, null, 2), 'utf8');
-      
-      console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${collection}`);
-      
-      // Return the updated item
-      return updatedItem;
-    } catch (err) {
-      console.error(`Error in findByIdAndUpdate for ${collection}:`, err);
-      throw err;
-    }
-  }
-  // ...other db methods...
-};
-
-/**
- * Generic database operations
- */
-const dbOperations = (dbName) => {
-  const db = dbs[dbName];
-  
-  return {
-    /**
-     * Find all records, optionally filtered
-     * @param {Object} filter - Optional filter criteria
-     * @returns {Array} Array of records
-     */
-    find: (filter = {}) => {
-      // Debug logging for systems database
-      if (dbName === 'systems') {
-        console.log('SYSTEMS DB QUERY - Filter:', JSON.stringify(filter));
-        console.log('SYSTEMS DB QUERY - DB Content:', JSON.stringify(db.get('data').value()));
-      }
-      
-      let result = db.get('data').value();
-      
-      // Apply filters if provided
-      if (Object.keys(filter).length > 0) {
-        result = result.filter(item => {
-          return Object.entries(filter).every(([key, value]) => {
-            // Handle special query operators
-            if (key.includes('.')) {
-              const [field, operator] = key.split('.');
-              
-              switch (operator) {
-                case '$regex':
-                  return new RegExp(value).test(item[field]);
-                case '$lt':
-                  return new Date(item[field]) < new Date(value);
-                case '$lte':
-                  return new Date(item[field]) <= new Date(value);
-                case '$gt':
-                  return new Date(item[field]) > new Date(value);
-                case '$gte':
-                  return new Date(item[field]) >= new Date(value);
-                default:
-                  return false;
-              }
-            }
-            
-            // Handle array contains
-            if (Array.isArray(item[key]) && !Array.isArray(value)) {
-              return item[key].some(v => {
-                // Convert both to strings for proper comparison
-                const itemValue = safeToString(v);
-                const compareValue = safeToString(value);
-                return itemValue === compareValue;
-              });
-            }
-            
-            // Handle array vs array (at least one match)
-            if (Array.isArray(item[key]) && Array.isArray(value)) {
-              return item[key].some(v => value.some(val => {
-                const itemValue = safeToString(v);
-                const compareValue = safeToString(val);
-                return itemValue === compareValue;
-              }));
-            }
-            
-            // Handle ID comparisons (special case for managedBy, owner, _id)
-            if (key === 'managedBy' || key === 'owner' || key === '_id') {
-              return safeIdCompare(item[key], value);
-            }
-            
-            // Add strict logging for system lookups
-            if (dbName === 'systems' && key === 'managedBy') {
-              console.log(`COMPARING: Item ${key}=${item[key]} vs Query value=${value}, MATCH=${item[key] === value}`);
-            }
-            
-            // Regular equality check
-            return item[key] === value;
-          });
-        });
-      }
-      
-      // More debug logging for systems database
-      if (dbName === 'systems') {
-        console.log('SYSTEMS DB QUERY - Result count:', result.length);
-        if (result.length > 0) {
-          console.log('SYSTEMS DB QUERY - First result:', JSON.stringify(result[0]));
-        }
-      }
-      
-      if (dbName === 'licenses') {
-        console.log('LICENSES DB QUERY - Filter:', JSON.stringify(filter));
-        console.log('LICENSES DB QUERY - Result count:', result.length);
-      }
-      
-      return result;
-    },
-    
-    /**
-     * Find one record by ID
-     * @param {String} id - Record ID
-     * @returns {Object|null} The record or null if not found
-     */
-    findById: (id) => {
-      if (!id) return null;
-      
-      // Convert id to string for comparison with error handling
-      const idStr = safeToString(id); 
-      console.log(`FIND BY ID: Looking for _id=${idStr} in ${dbName}`);
-      
-      try {
-        const result = db.get('data')
-          .find(item => safeIdCompare(item._id, idStr))
-          .value();
-        
-        return result || null;
-      } catch (err) {
-        console.error(`Error in findById for ${dbName}:`, err);
-        return null;
-      }
-    },
-    
-    /**
-     * Insert a new record
-     * @param {Object} data - Record data
-     * @returns {Object} The saved record
-     */
-    create: (data) => {
-      const newRecord = { 
-        ...data,
-        _id: data._id || generateId(),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      console.log(`${dbName.toUpperCase()} DB - Creating new record:`, JSON.stringify(newRecord));
-      
-      try {
-        // Get current data
-        const currentData = db.get('data').value() || [];
-        
-        // Check that currentData is an array
-        if (!Array.isArray(currentData)) {
-          console.error(`${dbName.toUpperCase()} DB - Error: Current data is not an array`);
-          // Initialize with empty array
-          db.set('data', [newRecord]).write();
-        } else {
-          // Add new record to data array
-          db.set('data', [...currentData, newRecord]).write();
-        }
-        
-        console.log(`${dbName.toUpperCase()} DB - Created record with ID:`, newRecord._id);
-        return newRecord;
-      } catch (error) {
-        console.error(`${dbName.toUpperCase()} DB - Error creating record:`, error);
-        throw error;
-      }
-    },
-    
-    /**
-     * Update a record by ID
-     * @param {String} id - Record ID
-     * @param {Object} data - Data to update
-     * @returns {Object|null} Updated record or null
-     */
-    findByIdAndUpdate: async (id, updates) => {
-      try {
-        console.log(`UPDATE BY ID: Looking to update _id=${id} in ${dbName}`);
-        const collectionPath = path.join(dataDir, `${dbName}.json`);
-        
-        // Make sure the file exists
-        if (!fs.existsSync(collectionPath)) {
-          console.log(`UPDATE BY ID: Collection file not found for ${dbName}`);
-          return null;
-        }
-        
-        // Read the collection data
-        const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
-        
-        // Find the item by ID
-        const index = data.data.findIndex(item => safeIdCompare(item._id, id));
-        
-        // If item not found, return null
-        if (index === -1) {
-          console.log(`UPDATE BY ID: No matching item with _id=${id} in ${dbName}`);
-          return null;
-        }
-        
-        console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
-        
-        // Get the existing item
-        const existingItem = data.data[index];
-        
-        // Create updated item by merging existing with updates
-        const updatedItem = {
-          ...existingItem,
-          ...updates,
-          updatedAt: new Date()
-        };
-        
-        // Replace the old item with the updated one
-        data.data[index] = updatedItem;
-        
-        // Write the updated data back to the file
-        fs.writeFileSync(collectionPath, JSON.stringify(data, null, 2), 'utf8');
-        
-        console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${dbName}`);
-        
-        // Return the updated item
-        return updatedItem;
-      } catch (err) {
-        console.error(`Error in findByIdAndUpdate for ${dbName}:`, err);
-        throw err;
-      }
-    },
-    
-    /**
-     * Delete a record by ID
-     * @param {String} id - Record ID
-     * @returns {Boolean} Success status
-     */
-    findByIdAndDelete: (id) => {
-      if (!id) return false;
-      
-      // Convert id to string for comparison with error handling
-      const idStr = safeToString(id);
-      console.log(`DELETE BY ID: Looking to delete _id=${idStr} in ${dbName}`);
-      
-      try {
-        // Find record by string ID with better error handling
-        const record = db.get('data')
-          .find(item => safeIdCompare(item._id, idStr))
-          .value();
-        
-        if (!record) {
-          console.warn(`${dbName.toUpperCase()} DB - Delete failed: Record with ID ${idStr} not found`);
-          return false;
-        }
-        
-        db.get('data')
-          .remove(item => safeIdCompare(item._id, idStr))
-          .write();
-        
-        console.log(`${dbName.toUpperCase()} DB - Deleted record with ID:`, idStr);
-        return true;
-      } catch (error) {
-        console.error(`${dbName.toUpperCase()} DB - Error deleting record:`, error);
-        return false;
-      }
-    },
-    
-    /**
-     * Insert multiple records
-     * @param {Array} records - Array of records to insert
-     * @returns {Array} The saved records
-     */
-    insertMany: (records) => {
-      const savedRecords = records.map(record => ({
-        ...record,
-        _id: record._id || generateId(),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }));
-      
-      try {
-        // Get current data
-        const currentData = db.get('data').value() || [];
-        
-        // Check that currentData is an array
-        if (!Array.isArray(currentData)) {
-          db.set('data', [...savedRecords]).write();
-        } else {
-          db.set('data', [...currentData, ...savedRecords]).write();
-        }
-          
-        return savedRecords;
-      } catch (error) {
-        console.error(`${dbName.toUpperCase()} DB - Error inserting multiple records:`, error);
-        throw error;
-      }
-    },
-    
-    /**
-     * Delete multiple records based on criteria
-     * @param {Object} filter - Filter criteria
-     * @returns {Number} Number of deleted records
-     */
-    deleteMany: (filter) => {
-      const before = db.get('data').size().value();
-      
-      try {
-        db.get('data')
-          .remove(filter)
-          .write();
-          
-        const after = db.get('data').size().value();
-        return before - after;
-      } catch (error) {
-        console.error(`${dbName.toUpperCase()} DB - Error deleting multiple records:`, error);
-        return 0;
-      }
-    },
-    
-    /**
-     * Update multiple records based on criteria
-     * @param {Object} filter - Filter criteria
-     * @param {Object} update - Update operations
-     * @returns {Number} Number of updated records
-     */
-    updateMany: (filter, update) => {
-      let updated = 0;
-      
-      // Extract operations from update object
-      const operations = update.$set || update;
-      const pull = update.$pull;
-      const push = update.$push;
-      
-      try {
-        // Get matching records
-        const records = db.get('data')
-          .filter(item => {
-            return Object.entries(filter).every(([key, value]) => {
-              // Handle special query operators for updateMany
-              if (key === 'licenseRequirements' && value.$elemMatch) {
-                return item.licenseRequirements && item.licenseRequirements.some(req => {
-                  return Object.entries(value.$elemMatch).every(([subKey, subValue]) => {
-                    return req[subKey] === subValue;
-                  });
-                });
-              }
-              
-              // Handle ID comparisons with better error handling
-              if (key === 'managedBy' || key === 'owner' || key === '_id') {
-                return safeIdCompare(item[key], value);
-              }
-              
-              return item[key] === value;
-            });
-          })
-          .value();
-        
-        // Apply updates to each matching record
-        records.forEach(record => {
-          // Apply regular updates
-          if (operations) {
-            Object.assign(record, operations, { updatedAt: new Date() });
-          }
-          
-          // Apply $pull operation (remove items from arrays)
-          if (pull) {
-            Object.entries(pull).forEach(([key, value]) => {
-              if (Array.isArray(record[key])) {
-                record[key] = record[key].filter(item => {
-                  if (typeof item === 'object') {
-                    return !Object.entries(value).every(([subKey, subValue]) => {
-                      return item[subKey] === subValue;
-                    });
-                  }
-                  return item !== value;
-                });
-              }
-            });
-          }
-          
-          // Apply $push operation (add items to arrays)
-          if (push) {
-            Object.entries(push).forEach(([key, value]) => {
-              if (!Array.isArray(record[key])) {
-                record[key] = [];
-              }
-              record[key].push(value);
-            });
-          }
-          
-          // Save the updated record
-          db.get('data')
-            .find({ _id: record._id })
-            .assign(record)
-            .write();
-            
-          updated++;
-        });
-        
-        return updated;
-      } catch (error) {
-        console.error(`${dbName.toUpperCase()} DB - Error updating multiple records:`, error);
-        return 0;
-      }
-    },
-    
-    /**
-     * Get distinct values for a field
-     * @param {String} field - Field name
-     * @param {Object} filter - Optional filter criteria
-     * @returns {Array} Array of distinct values
-     */
-    distinct: (field, filter = {}) => {
-      let records = db.get('data').value();
-      
-      // Apply filters if provided
-      if (Object.keys(filter).length > 0) {
-        records = records.filter(item => {
-          return Object.entries(filter).every(([key, value]) => {
-            // Handle ID comparisons with better error handling
-            if (key === 'managedBy' || key === 'owner' || key === '_id') {
-              return safeIdCompare(item[key], value);
-            }
-            
-            return item[key] === value;
-          });
-        });
-      }
-      
-      // Extract distinct values
-      const values = records
-        .map(item => item[field])
-        .filter(value => value !== undefined && value !== null);
-        
-      // Return unique values
-      return [...new Set(values)];
-    }
+// Initialize empty database structure if it doesn't exist
+if (!fs.existsSync(DB_FILE)) {
+  const initialData = {
+    users: [],
+    subscriptions: [],
+    systems: [],
+    vendors: []
   };
-};
-
-// Create models
-const License = {
-  ...dbOperations('licenses'),
   
-  /**
-   * Populate references in license document(s)
-   * @param {Object|Array} docs - License document or array of documents
-   * @param {String} path - Path to populate ('assignedSystems' or 'owner')
-   * @return {Object|Array} Populated document(s)
-   */
-  populate: async (docs, path) => {
-    console.log(`Populating ${path} for license(s)`);
-    
-    if (!docs) {
-      console.log('No documents to populate');
-      return null;
-    }
-    
-    // Handle single document
-    if (!Array.isArray(docs)) {
-      return await populateSingleDocument(docs, path);
-    }
-    
-    // Handle array of documents
-    const populatedDocs = [];
-    for (const doc of docs) {
-      const populated = await populateSingleDocument(doc, path);
-      populatedDocs.push(populated);
-    }
-    
-    return populatedDocs;
-  },
-  
-  // Create a new license with proper ID handling
-  create: async (licenseData) => {
-    try {
-      // Ensure license has an ID
-      if (!licenseData._id) {
-        licenseData._id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-      }
-      
-      console.log(`Creating license with ID: ${licenseData._id}`);
-      
-      // Get existing licenses
-      let licenses = [];
-      if (fs.existsSync(dbFiles.licenses)) {
-        const data = JSON.parse(fs.readFileSync(dbFiles.licenses, 'utf8'));
-        licenses = data.data || [];
-      }
-      
-      // Ensure ID is unique
-      const existingLicense = licenses.find(lic => lic._id === licenseData._id);
-      if (existingLicense) {
-        console.log(`ID collision detected: ${licenseData._id}, generating new ID`);
-        licenseData._id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-      }
-      
-      // Add timestamps
-      licenseData.createdAt = new Date();
-      licenseData.updatedAt = new Date();
-      
-      // Add the new license
-      licenses.push(licenseData);
-      
-      // Save to file
-      fs.writeFileSync(dbFiles.licenses, JSON.stringify({ data: licenses }, null, 2));
-      
-      console.log(`License saved successfully with ID: ${licenseData._id}`);
-      return licenseData;
-    } catch (err) {
-      console.error('Error creating license:', err);
-      throw err;
-    }
-  },
-  
-  // Find license by ID with improved error handling
-  findById: async (id) => {
-    try {
-      if (!id) {
-        console.error('Invalid license ID: null or undefined');
-        return null;
-      }
-      
-      console.log(`Looking for license with ID: ${id}`);
-      
-      if (!fs.existsSync(dbFiles.licenses)) {
-        console.log('License file does not exist');
-        return null;
-      }
-      
-      const data = JSON.parse(fs.readFileSync(dbFiles.licenses, 'utf8'));
-      const licenses = data.data || [];
-      
-      console.log(`Searching among ${licenses.length} licenses`);
-      
-      // Find by exact ID match
-      const license = licenses.find(lic => lic._id === id);
-      
-      console.log(`License with ID ${id} ${license ? 'found' : 'not found'}`);
-      return license || null;
-    } catch (err) {
-      console.error(`Error finding license with ID ${id}:`, err);
-      return null;
-    }
-  },
-  
-  // Find all licenses with improved error handling
-  find: async (query = {}) => {
-    try {
-      if (!fs.existsSync(dbFiles.licenses)) {
-        console.log('License file does not exist, returning empty array');
-        return [];
-      }
-      
-      const data = JSON.parse(fs.readFileSync(dbFiles.licenses, 'utf8'));
-      const licenses = data.data || [];
-      
-      // If no query or empty query, return all
-      if (!query || Object.keys(query).length === 0) {
-        return licenses;
-      }
-      
-      // Otherwise, filter based on query
-      // ...existing filtering code...
-      
-      return licenses;
-    } catch (err) {
-      console.error('Error finding licenses:', err);
-      return [];
-    }
-  }
-};
-
-/**
- * Helper function to populate a single document
- * @param {Object} doc - The document to populate
- * @param {String} path - Path to populate
- * @return {Object} Populated document
- */
-async function populateSingleDocument(doc, path) {
-  // Clone the document to avoid modifying the original
-  const clonedDoc = JSON.parse(JSON.stringify(doc));
-  
-  if (path === 'assignedSystems') {
-    // Populate systems
-    if (clonedDoc.assignedSystems && Array.isArray(clonedDoc.assignedSystems)) {
-      const populatedSystems = [];
-      
-      for (const systemId of clonedDoc.assignedSystems) {
-        if (!systemId) continue;
-        
-        try {
-          const system = await System.findById(systemId);
-          if (system) {
-            populatedSystems.push(system);
-          }
-        } catch (err) {
-          console.error(`Error populating system ${systemId}:`, err);
-        }
-      }
-      
-      clonedDoc.assignedSystems = populatedSystems;
-    }
-  } else if (path === 'owner') {
-    // Populate owner
-    if (clonedDoc.owner) {
-      try {
-        const owner = await User.findById(clonedDoc.owner);
-        if (owner) {
-          clonedDoc.owner = owner;
-        }
-      } catch (err) {
-        console.error(`Error populating owner ${clonedDoc.owner}:`, err);
-      }
-    }
-  }
-  
-  return clonedDoc;
+  fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
+  console.log(`Created empty database file at ${DB_FILE}`);
 }
 
-const SYSTEM_FILE = dbFiles.systems;
+// Initialize lowdb with JSONFile adapter
+const adapter = new JSONFile(DB_FILE);
+const db = new Low(adapter);
 
-const System = {
-  ...dbOperations('systems'),
+// Read data from JSON file
+(async () => {
+  await db.read();
   
-  // Fix the findById method that's causing the error
-  findById: async (id) => {
-    if (!id) return null;
-    const idStr = safeToString(id);
-    
+  // Initialize with empty data if db.data is null
+  db.data ||= {
+    users: [],
+    subscriptions: [],
+    systems: [],
+    vendors: []
+  };
+  
+  await db.write();
+})().catch(err => console.error('Error initializing database:', err));
+
+// Global flag to indicate if we've loaded MongoDB models
+let hasLoadedModels = false;
+// Variables to hold MongoDB models (loaded lazily to avoid circular references)
+let UserModel, SubscriptionModel, SystemModel, VendorModel;
+
+// Function to load MongoDB models when needed
+const loadMongoDBModels = () => {
+  if (hasLoadedModels) return;
+  
+  try {
+    UserModel = require('../models/User');
+    // Dynamically load SubscriptionModel when needed to avoid circular dependencies
+    SubscriptionModel = getSubscriptionModel();
+    SystemModel = require('../models/System');
+    VendorModel = require('../models/Vendor');
+    hasLoadedModels = true;
+    console.log('[FileDB] Successfully loaded MongoDB models');
+  } catch (err) {
+    console.warn('[FileDB] Could not load MongoDB models:', err.message);
+  }
+};
+
+function getSubscriptionModel() {
+  try {
+    return mongoose.model('Subscription');
+  } catch (e) {
+    // If not already defined, load it
     try {
-      // Read from systems file directly instead of using db.findById
-      if (!fs.existsSync(SYSTEM_FILE)) {
-        console.log('System file does not exist');
-        return null;
-      }
-      
-      const data = JSON.parse(fs.readFileSync(SYSTEM_FILE, 'utf8'));
-      const systems = data.data || [];
-      
-      // Find by ID with safe comparison
-      const system = systems.find(sys => safeIdCompare(sys._id, idStr));
-      return system || null;
+      return require('../models/Subscription');
     } catch (err) {
-      console.error('Error in System.findById:', err);
+      console.error('Error loading Subscription model:', err);
       return null;
     }
-  },
+  }
+}
 
-  /**
-   * Find systems managed by a specific user
-   * @param {string} managerId - ID of the manager/user
-   * @return {Array} Array of systems managed by the user
-   */
-  findByManager: async (managerId) => {
+/**
+ * Base model class for file-based data operations
+ * All operations forward to MongoDB models if available
+ */
+class BaseModel {
+  constructor(collection) {
+    this.collection = collection;
+    this.mongoModel = null;
+  }
+  
+  // Lazy load the appropriate MongoDB model when needed
+  getMongoModel() {
+    if (!hasLoadedModels) {
+      loadMongoDBModels();
+    }
+    
+    // Set MongoDB model based on collection name
+    switch (this.collection) {
+      case 'users':
+        return UserModel;
+      case 'subscriptions':
+        return SubscriptionModel;
+      case 'systems':
+        return SystemModel;
+      case 'vendors':
+        return VendorModel;
+      default:
+        return null;
+    }
+  }
+  
+  // Create a new item
+  async create(data) {
     try {
-      console.log(`Finding systems managed by user ID: ${managerId}`);
+      console.log(`[FileDB] Creating ${this.collection} item:`, data);
       
-      if (!managerId) {
-        console.warn('No manager ID provided to findByManager');
-        return [];
+      // If MongoDB model is available, use it
+      const mongoModel = this.getMongoModel();
+      if (mongoModel) {
+        // Create document using MongoDB model
+        const newDoc = new mongoModel(data);
+        const result = await newDoc.save();
+        console.log(`[FileDB] Created ${this.collection} item with MongoDB (ID: ${result._id})`);
+        return result;
       }
       
-      // Check if system file exists
-      if (!fs.existsSync(SYSTEM_FILE)) {
-        console.log('System file does not exist, returning empty array');
-        return [];
+      // Fallback to file-based DB with new lowdb API
+      // Ensure the db is read first
+      await db.read();
+      
+      // Ensure the collection exists
+      if (!db.data[this.collection]) {
+        db.data[this.collection] = [];
       }
       
-      // Read systems from file
-      const data = JSON.parse(fs.readFileSync(SYSTEM_FILE, 'utf8'));
-      const systems = data.data || [];
+      // Add ID if not present
+      if (!data._id) {
+        data._id = uuidv4();
+      }
       
-      // Filter by manager ID
-      const managedSystems = systems.filter(system => {
-        // Check if managedBy exists and matches the provided ID
-        if (!system.managedBy) return false;
+      // Add timestamps if not present
+      if (!data.createdAt) {
+        data.createdAt = new Date();
+      }
+      if (!data.updatedAt) {
+        data.updatedAt = new Date();
+      }
+      
+      // Add item to collection
+      db.data[this.collection].push(data);
+      
+      // Write updated data back to file
+      await db.write();
+      
+      console.log(`[FileDB] Created ${this.collection} item with file DB (ID: ${data._id})`);
+      return data;
+    } catch (err) {
+      console.error(`[FileDB] Error creating ${this.collection} item:`, err);
+      throw err;
+    }
+  }
+  
+  // Find items matching a query
+  async find(query = {}) {
+    try {
+      // If MongoDB model is available, use it
+      const mongoModel = this.getMongoModel();
+      if (mongoModel) {
+        // Directly call the mongoose method to avoid recursion
+        // Check if it's a circular self-reference
+        if (mongoModel.modelName === 'Subscription' && this.collection === 'subscriptions') {
+          console.log('[FileDB] Detected potential circular reference in Subscription.find, using direct MongoDB query');
+          // Use direct MongoDB query to avoid recursion
+          return await mongoose.connection.db.collection('subscriptions').find(query).toArray();
+        }
         
-        // Convert IDs to strings for comparison
-        const systemManagerId = typeof system.managedBy === 'string' ? 
-          system.managedBy : system.managedBy.toString();
-        const requestedManagerId = typeof managerId === 'string' ? 
-          managerId : managerId.toString();
-          
-        return systemManagerId === requestedManagerId;
+        const results = await mongoModel.find(query);
+        return results;
+      }
+      
+      // Fallback to file-based DB with new lowdb API
+      // Ensure the db is read first
+      await db.read();
+      
+      // Ensure the collection exists
+      if (!db.data[this.collection]) {
+        return [];
+      }
+      
+      // Filter items based on query
+      const results = db.data[this.collection].filter(item => {
+        return Object.keys(query).every(key => {
+          if (query[key] === undefined) return true;
+          return item[key] === query[key];
+        });
       });
       
-      console.log(`Found ${managedSystems.length} systems managed by user ${managerId}`);
-      return managedSystems;
+      return results;
     } catch (err) {
-      console.error(`Error finding systems managed by ${managerId}:`, err);
-      return [];
-    }
-  }
-};
-
-const USER_FILE = dbFiles.users;
-
-const User = {
-  ...dbOperations('users'),
-  
-  // Create a new user
-  create: async (userData) => {
-    try {
-      // Read current users
-      let users = [];
-      if (fs.existsSync(USER_FILE)) {
-        const data = JSON.parse(fs.readFileSync(USER_FILE, 'utf8'));
-        users = data.data || [];
-      }
-      
-      // Add new user
-      users.push(userData);
-      
-      // Save to file
-      fs.writeFileSync(USER_FILE, JSON.stringify({ data: users }, null, 2));
-      
-      return userData;
-    } catch (err) {
-      console.error('Error creating user:', err);
+      console.error(`[FileDB] Error finding ${this.collection} items:`, err);
       throw err;
     }
-  },
+  }
   
-  // Find a user by email
-  findOne: async (query) => {
+  // Find a single item by ID
+  async findById(id) {
     try {
-      console.log('Finding user with query:', query);
+      // If MongoDB model is available, use it
+      const mongoModel = this.getMongoModel();
+      if (mongoModel) {
+        // Avoid circular references in Subscription model
+        if (mongoModel.modelName === 'Subscription' && this.collection === 'subscriptions') {
+          console.log('[FileDB] Detected potential circular reference in Subscription.findById, using direct MongoDB query');
+          // Use direct MongoDB query to avoid recursion
+          const result = await mongoose.connection.db.collection('subscriptions').findOne({ _id: mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id });
+          return result;
+        }
+        
+        const result = await mongoModel.findById(id);
+        return result;
+      }
       
-      // Check if file exists, create it if it doesn't
-      if (!fs.existsSync(USER_FILE)) {
-        // Initialize empty users file
-        fs.writeFileSync(USER_FILE, JSON.stringify({ data: [] }, null, 2));
-        console.log('Created new users file');
+      // Fallback to file-based DB with new lowdb API
+      // Ensure the db is read first
+      await db.read();
+      
+      // Ensure the collection exists
+      if (!db.data[this.collection]) {
         return null;
       }
       
-      // Read users from file
-      const fileContent = fs.readFileSync(USER_FILE, 'utf8');
-      const data = JSON.parse(fileContent);
-      const users = data.data || [];
+      // Find item by ID
+      const item = db.data[this.collection].find(item => item._id === id);
       
-      console.log(`Searching among ${users.length} users`);
-      
-      // Find by email (most common case)
-      if (query.email) {
-        const user = users.find(user => user.email === query.email);
-        console.log(`User with email ${query.email} ${user ? 'found' : 'not found'}`);
-        return user || null;
-      }
-      
-      // Find by ID
-      if (query._id) {
-        const user = users.find(user => safeIdCompare(user._id, query._id));
-        console.log(`User with ID ${query._id} ${user ? 'found' : 'not found'}`);
-        return user || null;
-      }
-      
-      // No matching criteria
-      console.log('No valid search criteria in query');
-      return null;
+      return item || null;
     } catch (err) {
-      console.error('Error in User.findOne:', err);
-      return null; // Return null instead of throwing to prevent app crashes
-    }
-  },
-  
-  // Make sure findById exists too
-  findById: async (id) => {
-    if (!id) return null;
-    
-    try {
-      // Safe string conversion
-      const idStr = safeToString(id);
-      if (!idStr) return null;
-      
-      return await User.findOne({ _id: idStr });
-    } catch (err) {
-      console.error('Error in User.findById:', err);
-      return null;
+      console.error(`[FileDB] Error finding ${this.collection} item by ID:`, err);
+      throw err;
     }
   }
-};
-
-// Populate initial demo user if none exists
-if (User.find().length === 0) {
-  User.create({
-    name: 'Demo User',
-    email: 'demo@example.com',
-    password: '$2a$10$XZqOWgAQNQRGQl7jxvp8BuWzBzF10U5idkRr0z0KjWlnf4e0JZ1.i', // Hash for 'password'
-    role: 'admin'
-  });
-  console.log('Created demo user: demo@example.com / password');
+  
+  // Find a single item matching a query
+  async findOne(query = {}) {
+    try {
+      // If MongoDB model is available, use it
+      const mongoModel = this.getMongoModel();
+      if (mongoModel) {
+        // Avoid circular references in Subscription model
+        if (mongoModel.modelName === 'Subscription' && this.collection === 'subscriptions') {
+          console.log('[FileDB] Detected potential circular reference in Subscription.findOne, using direct MongoDB query');
+          // Use direct MongoDB query to avoid recursion
+          const result = await mongoose.connection.db.collection('subscriptions').findOne(query);
+          return result;
+        }
+        
+        const result = await mongoModel.findOne(query);
+        return result;
+      }
+      
+      // Fallback to file-based DB with new lowdb API
+      // Ensure the db is read first
+      await db.read();
+      
+      // Ensure the collection exists
+      if (!db.data[this.collection]) {
+        return null;
+      }
+      
+      // Find first item matching query
+      const item = db.data[this.collection].find(item => {
+        return Object.keys(query).every(key => {
+          if (query[key] === undefined) return true;
+          return item[key] === query[key];
+        });
+      });
+      
+      return item || null;
+    } catch (err) {
+      console.error(`[FileDB] Error finding ${this.collection} item:`, err);
+      throw err;
+    }
+  }
+  
+  // Count items matching a query
+  async count(query = {}) {
+    try {
+      // If MongoDB model is available, use it
+      const mongoModel = this.getMongoModel();
+      if (mongoModel) {
+        // Avoid circular references in Subscription model
+        if (mongoModel.modelName === 'Subscription' && this.collection === 'subscriptions') {
+          console.log('[FileDB] Detected potential circular reference in Subscription.count, using direct MongoDB query');
+          // Use direct MongoDB query to avoid recursion
+          return await mongoose.connection.db.collection('subscriptions').countDocuments(query);
+        }
+        
+        const count = await mongoModel.countDocuments(query);
+        return count;
+      }
+      
+      // Fallback to file-based DB with new lowdb API
+      // We need to implement this differently to avoid recursion
+      await db.read();
+      
+      // Ensure the collection exists
+      if (!db.data[this.collection]) {
+        return 0;
+      }
+      
+      // Filter items based on query
+      const results = db.data[this.collection].filter(item => {
+        return Object.keys(query).every(key => {
+          if (query[key] === undefined) return true;
+          return item[key] === query[key];
+        });
+      });
+      
+      return results.length;
+    } catch (err) {
+      console.error(`[FileDB] Error counting ${this.collection} items:`, err);
+      throw err;
+    }
+  }
 }
 
+// Define Subscription class with extended functionality
+class Subscription extends BaseModel {
+  constructor() {
+    super('subscriptions');
+  }
+
+  findByManager(managerId) {
+    return this.find({ owner: managerId });
+  }
+  
+  async createDemo(userId) {
+    try {
+      // Create demo subscription
+      const demoSubscription = {
+        name: 'Demo Subscription',
+        product: 'Demo Product',
+        vendor: 'Demo Vendor',
+        type: 'Subscription',
+        seats: 10,
+        cost: 999.99,
+        renewalDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        purchaseDate: new Date(),
+        notes: 'This is a demo subscription created automatically.',
+        user: userId
+      };
+      
+      return await this.create(demoSubscription);
+    } catch (err) {
+      console.error('[FileDB] Error creating demo subscription:', err);
+      throw err;
+    }
+  }
+  
+  // Get all data for migration
+  async getData() {
+    try {
+      // Ensure the db is read first with new lowdb API
+      await db.read();
+      
+      // Return subscriptions data or empty array
+      return db.data.subscriptions || [];
+    } catch (err) {
+      console.error('[FileDB] Error getting subscriptions data:', err);
+      return [];
+    }
+  }
+}
+
+// Create instances
+const FileDBUser = new BaseModel('users');
+const FileDBSubscription = new Subscription();
+const FileDBSystem = new BaseModel('systems');
+const FileDBVendor = new BaseModel('vendors');
+
+// Export instances
 module.exports = {
-  License,
-  System,
-  User,
-  db,
-  safeToString,
-  safeIdCompare
+  FileDBUser,
+  FileDBSubscription,
+  FileDBSystem,
+  FileDBVendor
 };

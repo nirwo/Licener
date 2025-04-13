@@ -1,0 +1,138 @@
+<!-- Web Researcher Search Interface -->
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-search mr-2"></i> Web Researcher Tool</h5>
+                </div>
+                <div class="card-body">
+                    <form id="webResearchForm" action="/web-researcher/search" method="POST">
+                        <div class="form-group">
+                            <label for="searchType">What are you looking for?</label>
+                            <select class="form-control" id="searchType" name="searchType" required>
+                                <option value="vendor">Vendor Information</option>
+                                <option value="license">License Types</option>
+                                <option value="pricing">Pricing Updates</option>
+                                <option value="contact">Vendor Contact Information</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="searchQuery">Search Query</label>
+                            <input type="text" class="form-control" id="searchQuery" name="searchQuery" 
+                                placeholder="Enter vendor name, product, or specific license" required>
+                            <small class="form-text text-muted">Be specific for better results (e.g., "Microsoft 365 Business Standard pricing")</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Data Sources</label>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="sourceVendor" name="sources[]" value="vendor" checked>
+                                <label class="custom-control-label" for="sourceVendor">Vendor Websites</label>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="sourceReseller" name="sources[]" value="reseller" checked>
+                                <label class="custom-control-label" for="sourceReseller">Authorized Resellers</label>
+                            </div>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="sourceWeb" name="sources[]" value="web">
+                                <label class="custom-control-label" for="sourceWeb">General Web Search</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Advanced Options</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="includeHistorical" name="includeHistorical">
+                                        <label class="custom-control-label" for="includeHistorical">Include historical data</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="deepSearch" name="deepSearch">
+                                        <label class="custom-control-label" for="deepSearch">Deep search (may take longer)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group text-center mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-search mr-2"></i> Search
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ml-2" id="clearForm">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Recent Searches</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {{#if recentSearches.length}}
+                            {{#each recentSearches}}
+                            <a href="/web-researcher/results/{{id}}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{query}}</h6>
+                                    <small>{{formatDate date}}</small>
+                                </div>
+                                <p class="mb-1">{{type}} search • {{resultsCount}} results</p>
+                                <small>Sources: {{sources}}</small>
+                            </a>
+                            {{/each}}
+                        {{else}}
+                            <div class="list-group-item text-center text-muted py-4">
+                                <i class="fas fa-history mb-2"></i>
+                                <p class="mb-0">No recent searches</p>
+                            </div>
+                        {{/if}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Clear form
+        $('#clearForm').click(function() {
+            $('#webResearchForm')[0].reset();
+            $('#searchQuery').focus();
+        });
+        
+        // Search type change
+        $('#searchType').change(function() {
+            const searchType = $(this).val();
+            let placeholder = "";
+            
+            switch(searchType) {
+                case 'vendor':
+                    placeholder = "Enter vendor name (e.g., Microsoft, Adobe, Salesforce)";
+                    break;
+                case 'license':
+                    placeholder = "Enter vendor and product (e.g., Adobe Creative Cloud)";
+                    break;
+                case 'pricing':
+                    placeholder = "Enter specific product (e.g., Microsoft 365 Business Standard)";
+                    break;
+                case 'contact':
+                    placeholder = "Enter vendor name for contact details";
+                    break;
+            }
+            
+            $('#searchQuery').attr('placeholder', placeholder);
+        });
+        
+        // Trigger on initial load
+        $('#searchType').trigger('change');
+    });
+</script> 

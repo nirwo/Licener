@@ -10,11 +10,14 @@
       <a href="/systems/import" class="btn btn-sm btn-secondary">
         <i class="fas fa-file-import me-1"></i> Import
       </a>
+      <a href="/systems/scan" class="btn btn-sm btn-success">
+        <i class="fas fa-network-wired me-1"></i> Network Scan
+      </a>
     </div>
   </div>
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover datatable">
         <thead>
           <tr>
             <th>Name</th>
@@ -100,16 +103,65 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const table = document.querySelector('table');
-    if (table) {
-      new DataTable(table, {
-        responsive: true,
+    try {
+      // Make sure jQuery is available
+      if (typeof $ === 'undefined') {
+        console.error('jQuery is not available!');
+        return;
+      }
+      
+      // Make sure DataTables plugin is available
+      if (typeof $.fn.DataTable === 'undefined') {
+        console.error('DataTables plugin is not available!');
+        return;
+      }
+      
+      // Clean any broken DataTable instances
+      $('.datatable').each(function() {
+        try {
+          // First check if there are any elements with _DT_CellIndex set incorrectly
+          $(this).find('td').removeAttr('_DT_CellIndex');
+          
+          // If a DataTable instance exists on this element, destroy it properly
+          if ($.fn.DataTable.isDataTable(this)) {
+            $(this).DataTable().destroy();
+          }
+        } catch (err) {
+          console.error('Error cleaning up DataTable:', err);
+        }
+      });
+      
+      // Initialize DataTables with proper column definitions
+      $('.datatable').DataTable({
+        responsive: false,
         pageLength: 10,
         lengthMenu: [5, 10, 25, 50],
         language: {
           search: "Filter records:"
-        }
+        },
+        ordering: true,
+        searching: true,
+        paging: true,
+        columns: [
+          { data: 'name', title: 'Name' },
+          { data: 'type', title: 'Type' },
+          { data: 'environment', title: 'Environment' },
+          { data: 'status', title: 'Status' },
+          { data: 'licenses', title: 'Licenses' },
+          { data: 'actions', title: 'Actions', orderable: false, searchable: false }
+        ],
+        columnDefs: [
+          {
+            targets: -1, // Last column (Actions)
+            orderable: false,
+            searchable: false
+          }
+        ]
       });
+      
+      console.log('DataTables initialization complete for systems table.');
+    } catch (err) {
+      console.error('Error initializing DataTables:', err);
     }
   });
 </script>

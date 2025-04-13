@@ -1,0 +1,112 @@
+{{> messages}}
+
+<div class="container mt-4">
+    <h2>Vendor Research Results</h2>
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Search Results for: {{query}}</h5>
+            <a href="/vendors/research" class="btn btn-sm btn-light">New Search</a>
+        </div>
+        <div class="card-body">
+            {{#if results.length}}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Website</th>
+                                <th>Description</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#each results}}
+                                <tr>
+                                    <td>{{name}}</td>
+                                    <td><a href="{{website}}" target="_blank">{{website}}</a></td>
+                                    <td>{{description}}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <form action="/vendors/add-from-research" method="POST">
+                                                <input type="hidden" name="name" value="{{name}}">
+                                                <input type="hidden" name="website" value="{{website}}">
+                                                <input type="hidden" name="description" value="{{description}}">
+                                                {{#if verified}}
+                                                    <button type="submit" class="btn btn-sm btn-success">
+                                                        <i class="fas fa-plus-circle"></i> Add Vendor
+                                                    </button>
+                                                {{else}}
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                        <i class="fas fa-user-check"></i> Verify & Add
+                                                    </button>
+                                                {{/if}}
+                                            </form>
+                                            <a href="/vendors/research/licenses?vendor={{name}}" class="btn btn-sm btn-info ml-1">
+                                                <i class="fas fa-search"></i> Research Licenses
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            {{else}}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No vendors found matching your search criteria. Try adjusting your search terms.
+                </div>
+            {{/if}}
+        </div>
+    </div>
+    
+    {{#if message}}
+        <div class="alert alert-{{messageType}}">
+            {{message}}
+        </div>
+    {{/if}}
+    
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Search Tips</h5>
+        </div>
+        <div class="card-body">
+            <ul>
+                <li>Use company names like "Microsoft", "Adobe", or "Oracle"</li>
+                <li>Try searching by product names like "Office 365" or "Creative Cloud"</li>
+                <li>Include terms like "software vendor" or "license provider" for better results</li>
+                <li>For B2B software, include industry terms like "enterprise" or "business"</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Additional Information</h6>
+  </div>
+  <div class="card-body">
+    <p>The data gathered through this research tool is for informational purposes only. Please verify all information before making business decisions.</p>
+    
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <h5><i class="fas fa-lightbulb text-warning"></i> Tips</h5>
+        <ul class="small">
+          <li>Use specific company names for better results</li>
+          <li>Premium sources provide more detailed information</li>
+          <li>You can edit vendor details after adding them</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h5><i class="fas fa-question-circle text-info"></i> Need Help?</h5>
+        <p class="small">If you need assistance with vendor research or have questions about the data sources, please contact support.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="text-right">
+  <a href="/vendors" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Back to Vendors
+  </a>
+</div> 

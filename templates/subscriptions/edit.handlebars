@@ -1,0 +1,244 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-0">Edit Subscription</h1>
+    <p class="text-muted mb-0">Update subscription information</p>
+  </div>
+  <div>
+    <a href="/subscriptions" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Subscriptions
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header bg-white">
+    <h5 class="mb-0">Subscription Information</h5>
+  </div>
+  <div class="card-body">
+    <form action="/subscriptions/edit/{{subscription._id}}" method="POST" enctype="multipart/form-data" id="subscriptionForm">
+      <!-- Subscription Information -->
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+          <label for="name" class="form-label">Subscription Name*</label>
+          <input type="text" class="form-control" id="name" name="name" value="{{subscription.name}}" required>
+          <div class="form-text">A descriptive name for this subscription</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="product" class="form-label">Product*</label>
+          <input type="text" class="form-control" id="product" name="product" value="{{subscription.product}}" required>
+          <div class="form-text">The product or service provided</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="vendor" class="form-label">Vendor*</label>
+          <select class="form-select" id="vendor" name="vendor" required>
+            <option value="">Select a vendor</option>
+            {{#each vendors}}
+              <option value="{{this.name}}" {{#if (eq ../subscription.vendor this.name)}}selected{{/if}}>{{this.name}}</option>
+            {{/each}}
+            <option value="other" {{#if (not_in_list subscription.vendor vendors)}}selected{{/if}}>Other (specify)</option>
+          </select>
+          <div id="otherVendorWrapper" class="mt-2 {{#if (not_in_list subscription.vendor vendors)}}d-block{{else}}d-none{{/if}}">
+            <input type="text" class="form-control" id="otherVendor" placeholder="Enter vendor name" value="{{#if (not_in_list subscription.vendor vendors)}}{{subscription.vendor}}{{/if}}">
+          </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="type" class="form-label">Subscription Type</label>
+          <select class="form-select" id="type" name="type">
+            <option value="Subscription" {{#if (eq subscription.type 'Subscription')}}selected{{/if}}>Subscription</option>
+            <option value="SaaS" {{#if (eq subscription.type 'SaaS')}}selected{{/if}}>SaaS</option>
+            <option value="Perpetual" {{#if (eq subscription.type 'Perpetual')}}selected{{/if}}>Perpetual</option>
+            <option value="Trial" {{#if (eq subscription.type 'Trial')}}selected{{/if}}>Trial</option>
+            <option value="Open Source" {{#if (eq subscription.type 'Open Source')}}selected{{/if}}>Open Source</option>
+            <option value="Other" {{#if (eq subscription.type 'Other')}}selected{{/if}}>Other</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Dates and Financial -->
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+          <label for="purchaseDate" class="form-label">Purchase Date</label>
+          <input type="date" class="form-control" id="purchaseDate" name="purchaseDate" value="{{formatDate subscription.purchaseDate 'YYYY-MM-DD'}}">
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="renewalDate" class="form-label">Renewal Date*</label>
+          <input type="date" class="form-control" id="renewalDate" name="renewalDate" value="{{formatDate subscription.renewalDate 'YYYY-MM-DD'}}" required>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label for="cost" class="form-label">Cost*</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" id="cost" name="cost" step="0.01" value="{{subscription.cost}}" required>
+          </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label for="currency" class="form-label">Currency</label>
+          <select class="form-select" id="currency" name="currency">
+            <option value="USD" {{#if (eq subscription.currency 'USD')}}selected{{/if}}>USD</option>
+            <option value="EUR" {{#if (eq subscription.currency 'EUR')}}selected{{/if}}>EUR</option>
+            <option value="GBP" {{#if (eq subscription.currency 'GBP')}}selected{{/if}}>GBP</option>
+            <option value="CAD" {{#if (eq subscription.currency 'CAD')}}selected{{/if}}>CAD</option>
+            <option value="AUD" {{#if (eq subscription.currency 'AUD')}}selected{{/if}}>AUD</option>
+            <option value="JPY" {{#if (eq subscription.currency 'JPY')}}selected{{/if}}>JPY</option>
+          </select>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label for="seats" class="form-label">Number of Seats</label>
+          <input type="number" class="form-control" id="seats" name="seats" min="1" value="{{subscription.seats}}">
+        </div>
+      </div>
+      
+      <!-- Systems Assignment -->
+      <div class="mb-4">
+        <label for="systems" class="form-label">Assign to Systems</label>
+        <select class="form-select" id="systems" name="systems" multiple>
+          {{#each systems}}
+            <option value="{{this._id}}" {{#if (includes ../assignedSystemIds this._id)}}selected{{/if}}>{{this.name}} ({{this.os}})</option>
+          {{/each}}
+        </select>
+        <div class="form-text">Hold Ctrl/Cmd to select multiple systems</div>
+      </div>
+      
+      <!-- Status and Notes -->
+      <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+          <label for="status" class="form-label">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="active" {{#if (eq subscription.status 'active')}}selected{{/if}}>Active</option>
+            <option value="expired" {{#if (eq subscription.status 'expired')}}selected{{/if}}>Expired</option>
+            <option value="pending" {{#if (eq subscription.status 'pending')}}selected{{/if}}>Pending Renewal</option>
+            <option value="cancelled" {{#if (eq subscription.status 'cancelled')}}selected{{/if}}>Cancelled</option>
+          </select>
+        </div>
+        
+        <div class="col-md-8 mb-3">
+          <label for="notes" class="form-label">Notes</label>
+          <textarea class="form-control" id="notes" name="notes" rows="3">{{subscription.notes}}</textarea>
+        </div>
+      </div>
+      
+      <!-- Existing Attachments -->
+      {{#if subscription.attachments.length}}
+        <div class="mb-4">
+          <label class="form-label">Existing Attachments</label>
+          <div class="list-group">
+            {{#each subscription.attachments}}
+              <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-file-alt text-primary me-2"></i>
+                  <span>{{this.filename}}</span>
+                </div>
+                <div>
+                  <a href="/uploads/{{this.path}}" class="btn btn-sm btn-outline-primary me-1" download>
+                    <i class="fas fa-download"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-attachment-id="{{@index}}" onclick="removeAttachment(this)">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+                <input type="hidden" name="existingAttachments[]" value="{{@index}}" id="attachment-{{@index}}">
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+      
+      <!-- New Attachments -->
+      <div class="mb-4">
+        <label for="attachments" class="form-label">Add Attachments</label>
+        <input class="form-control" type="file" id="attachments" name="attachments" multiple>
+        <div class="form-text">Upload contract documents, invoices, or other relevant files (max 5 files, 10MB each)</div>
+      </div>
+      
+      <div class="d-flex justify-content-between">
+        <a href="/subscriptions" class="btn btn-outline-secondary">Cancel</a>
+        <div>
+          <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteSubscriptionModal">
+            <i class="fas fa-trash-alt me-1"></i> Delete
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> Update Subscription
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Subscription Modal -->
+<div class="modal fade" id="deleteSubscriptionModal" tabindex="-1" aria-labelledby="deleteSubscriptionModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteSubscriptionModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the subscription <strong>{{subscription.name}}</strong>?</p>
+        <p class="text-danger mb-0">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form action="/subscriptions/delete/{{subscription._id}}" method="POST">
+          <button type="submit" class="btn btn-danger">Delete Subscription</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle "Other" vendor selection
+    const vendorSelect = document.getElementById('vendor');
+    const otherVendorWrapper = document.getElementById('otherVendorWrapper');
+    const otherVendorInput = document.getElementById('otherVendor');
+    
+    vendorSelect.addEventListener('change', function() {
+      if (this.value === 'other') {
+        otherVendorWrapper.classList.remove('d-none');
+      } else {
+        otherVendorWrapper.classList.add('d-none');
+        otherVendorInput.value = '';
+      }
+    });
+    
+    // Form submission handler
+    const form = document.getElementById('subscriptionForm');
+    form.addEventListener('submit', function(e) {
+      // If "Other" vendor is selected, use the custom input value
+      if (vendorSelect.value === 'other' && otherVendorInput.value.trim()) {
+        // Create a hidden input with the custom vendor value
+        const hiddenVendorInput = document.createElement('input');
+        hiddenVendorInput.type = 'hidden';
+        hiddenVendorInput.name = 'vendor';
+        hiddenVendorInput.value = otherVendorInput.value.trim();
+        
+        // Replace the original vendor select
+        vendorSelect.name = 'vendor_original';
+        form.appendChild(hiddenVendorInput);
+      }
+    });
+  });
+  
+  // Handle attachment removal
+  function removeAttachment(button) {
+    const attachmentId = button.getAttribute('data-attachment-id');
+    const hiddenInput = document.getElementById(`attachment-${attachmentId}`);
+    
+    // Mark for removal (will be handled by server-side code)
+    hiddenInput.name = 'attachmentsToRemove[]';
+    
+    // Visual feedback - disable the button and show strikethrough
+    button.closest('.list-group-item').classList.add('text-muted');
+    button.closest('.list-group-item').style.textDecoration = 'line-through';
+    button.disabled = true;
+  }
+</script> 

@@ -2,59 +2,111 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <meta name="description" content="Licener - Comprehensive License Management System">
-  <title>{{ title }} | Licener - License Management System</title>
+  <meta name="description" content="Licener - Comprehensive Subscription Management System">
+  <title>{{ title }} | Licener - Subscription Management System</title>
+  
   <!-- Favicon -->
   <link rel="shortcut icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%234e73df' d='M336 352c97.2 0 176-78.8 176-176S433.2 0 336 0S160 78.8 160 176c0 18.7 2.9 36.8 8.3 53.7L7 391c-4.5 4.5-7 10.6-7 17v80c0 13.3 10.7 24 24 24h80c13.3 0 24-10.7 24-24V448h40c13.3 0 24-10.7 24-24V384h40c6.4 0 12.5-2.5 17-7l33.3-33.3c16.9 5.4 35 8.3 53.7 8.3zM376 96a40 40 0 1 1 0 80 40 40 0 1 1 0-80z'/%3E%3C/svg%3E" type="image/svg+xml">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
   <!-- Bootstrap CSS (CDN) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  
   <!-- DataTables CSS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+  
   <!-- Base Styles -->
   <link rel="stylesheet" href="/static/css/style.css">
+  
   <!-- Custom Styles -->
   <link rel="stylesheet" href="/static/css/custom.css">
+  
+  <!-- Override Styles for Navbar -->
+  <link rel="stylesheet" href="/static/css/override.css">
+  
+  <!-- Critical Inline Styles -->
+  <style>
+    .navbar, nav.navbar, .navbar-dark, .bg-dark, .navbar-dark.bg-dark {
+      background-color: #343a40 !important;
+      color: white !important;
+    }
+    .navbar > *, .navbar a:not(.dropdown-item), .navbar-brand, .navbar > .nav-link, .navbar > i {
+      color: white !important;
+    }
+    .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+    }
+    .bg-dark {
+      background-color: #343a40 !important;
+    }
+    /* Dropdown menu fixes */
+    .dropdown-menu {
+      background-color: white !important;
+    }
+    .dropdown-item {
+      color: #3a3b45 !important;
+    }
+    .dropdown-item i {
+      color: #4e73df !important;
+    }
+  </style>
+  
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="{{ title }} | Licener">
-  <meta property="og:description" content="Comprehensive software license management system">
+  <meta property="og:description" content="Comprehensive software subscription management system">
   <meta property="og:type" content="website">
 </head>
-<body class="{{#if user}}dashboard-page{{/if}}">
+<body class="{{#if user}}dashboard-page{{else}}auth-page{{/if}}">
   {{#if user}}
     {{> _navbar}}
-    <div class="sidebar-wrapper" id="sidebarWrapper">
-      {{> _sidebar}}
-      {{!-- The duplicate UL block that was here has been removed --}}
-    </div>
-    <div class="content-wrapper">
-      <main>
-        <div class="container-fluid px-4 py-4">
-          {{> _messages}}
-          {{{body}}}
-        </div>
-      </main>
+    <div class="app-wrapper">
+      <div class="content-wrapper {{#if sidebarExpanded}}sidebar-expanded{{/if}}">
+        <main class="main-content">
+          <div class="container-fluid px-4">
+            {{> _messages}}
+            {{{body}}}
+          </div>
+        </main>
+      </div>
     </div>
   {{else}}
-    <div class="container mt-5">
-      {{> _messages}}
+    <div class="auth-wrapper">
+      {{#unless (eq title 'Login')}}
+        {{> _messages}}
+      {{/unless}}
       {{{body}}}
     </div>
   {{/if}}
   
   <!-- Bootstrap JS Bundle with Popper -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <!-- DataTables JS - Using compatible versions -->
-  <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
+  
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+  
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  
   <!-- Custom JS -->
   <script src="/static/js/main.js"></script>
+  
+  <!-- Navbar Fix Script -->
+  <script src="/static/js/navbar-fix.js"></script>
 </body>
 </html>

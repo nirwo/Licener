@@ -2,102 +2,208 @@
  * System Model
  * File-based implementation using LowDB
  */
-const { System: FileDBSystem } = require('../utils/file-db');
+const mongoose = require('mongoose');
 
-// This is a wrapper around the file DB to maintain API compatibility
+// Define System Schema
+const SystemSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String
+  },
+  systemType: {
+    type: String,
+    enum: ['physical', 'virtual', 'cloud', 'other'],
+    default: 'other'
+  },
+  environment: {
+    type: String,
+    enum: ['production', 'development', 'testing', 'staging'],
+    default: 'production'
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'maintenance', 'decommissioned'],
+    default: 'active'
+  },
+  os: {
+    type: String
+  },
+  ip: {
+    type: String
+  },
+  hostname: {
+    type: String
+  },
+  location: {
+    type: String
+  },
+  department: {
+    type: String
+  },
+  manager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  licenseRequirements: [{
+    licenseType: String,
+    quantity: {
+      type: Number,
+      default: 1
+    },
+    licenseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'License'
+    }
+  }],
+  notes: {
+    type: String
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Update 'updatedAt' on save
+SystemSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+// Find by manager method
+SystemSchema.statics.findByManager = function(managerId) {
+  return this.find({ manager: managerId });
+};
+
+// Create the System model
+let MongoSystem;
+try {
+  // Try to get the existing model first to avoid redefining
+  MongoSystem = mongoose.model('System');
+} catch (e) {
+  // If not found, define it
+  MongoSystem = mongoose.model('System', SystemSchema);
+}
+
+// Create a comprehensive System object that extends the Mongoose model
 const System = {
-  ...FileDBSystem,
+  // Include all properties from the Mongoose model
+  ...MongoSystem,
   
-  // Mongoose-like populate functionality
-  populate: async (docs, path) => {
-    // Dynamically require models to avoid circular dependencies
-    const License = require('./License'); 
-    const User = require('./User');
-    
-    if (!docs) return null;
-    
-    // Handle single document case
-    const wasSingleDoc = !Array.isArray(docs);
-    const docArray = wasSingleDoc ? [docs] : docs;
-    
-    // Clone the documents to avoid modifying originals
-    const clonedDocs = JSON.parse(JSON.stringify(docArray));
-    
-    // Process each document
-    for (const doc of clonedDocs) {
-      if (path === 'licenseRequirements.licenseId') {
-        // Populate license requirements
-        if (doc.licenseRequirements && Array.isArray(doc.licenseRequirements)) {
-          for (const req of doc.licenseRequirements) {
-            if (req.licenseId) {
-              try {
-                // Use the robust findById from the License model with await
-                const license = await License.findById(req.licenseId);
-                if (license) {
-                  req.licenseId = license; // Replace ID with populated object
-                } else {
-                  console.warn(`System Populate: License with ID ${req.licenseId} not found for system ${doc._id}`);
-                  // Keep the original ID if lookup fails
-                }
-              } catch (error) {
-                console.error(`System Populate: Error finding license ${req.licenseId} for system ${doc._id}`, error);
+  // Override the find method
+  find: async function(query = {}) {
+    try {
+      return await MongoSystem.find(query);
+    } catch (err) {
+      console.error('Error in System.find:', err);
+      return [];
+    }
+  },
+  
+  // Add a create method that wraps the Mongoose model's create
+  create: async function(data) {
+    try {
+      console.log('Creating new system with data:', JSON.stringify({
+        name: data.name,
+        os: data.os
+      }));
+      
+      // Use direct Mongoose model create method if available
+      if (MongoSystem.create) {
+        return await MongoSystem.create(data);
+      }
+      
+      // Fallback to creating a new document manually
+      const newSystem = new MongoSystem(data);
+      return await newSystem.save();
+    } catch (err) {
+      console.error('Error creating system:', err);
+      throw new Error(`Failed to create system: ${err.message}`);
+    }
+  },
+  
+  // Other methods
+  findById: async function(id) {
+    try {
+      return await MongoSystem.findById(id);
+    } catch (err) {
+      console.error('Error in System.findById:', err);
+      return null;
+    }
+  },
+  
+  findOne: async function(query = {}) {
+    try {
+      return await MongoSystem.findOne(query);
+    } catch (err) {
+      console.error('Error in System.findOne:', err);
+      return null;
+    }
+  },
+  
+  findByManager: async function(managerId) {
+    try {
+      return await MongoSystem.find({ managedBy: managerId });
+    } catch (err) {
+      console.error('Error in System.findByManager:', err);
+      return [];
+    }
+  },
+  
+  // Add populate method
+  populate: async function(docs, path) {
+    try {
+      // If docs is a single document, convert to array
+      const docsArray = Array.isArray(docs) ? docs : [docs];
+      
+      // If using MongoDB, use Mongoose's populate
+      if (MongoSystem.populate) {
+        return await MongoSystem.populate(docsArray, path);
+      }
+      
+      // For file-db, implement basic population
+      if (path === 'managedBy') {
+        const User = require('./User');
+        for (let doc of docsArray) {
+          if (doc.managedBy) {
+            doc.managedBy = await User.findById(doc.managedBy);
+          }
+        }
+      } else if (path === 'licenseRequirements.licenseId') {
+        const License = require('./License');
+        for (let doc of docsArray) {
+          if (doc.licenseRequirements) {
+            for (let req of doc.licenseRequirements) {
+              if (req.licenseId) {
+                req.licenseId = await License.findById(req.licenseId);
               }
             }
           }
         }
-      } else if (path === 'managedBy') {
-        // Populate managed by
-        if (doc.managedBy) {
-          try {
-            // Use the robust findById from the User model with await
-            const manager = await User.findById(doc.managedBy);
-            if (manager) {
-              // Selectively populate user fields to avoid exposing sensitive data like password hash
-              doc.managedBy = {
-                _id: manager._id,
-                id: manager._id.toString(), // Add id for backwards compatibility
-                name: manager.name,
-                email: manager.email,
-                role: manager.role
-              };
-            } else {
-              console.warn(`System Populate: Manager with ID ${doc.managedBy} not found for system ${doc._id}`);
-            }
-          } catch (error) {
-            console.error(`System Populate: Error finding manager ${doc.managedBy} for system ${doc._id}`, error);
-          }
-        }
       }
-      // Add other population paths here if needed
+      
+      return docs;
+    } catch (err) {
+      console.error('Error in System.populate:', err);
+      return docs;
     }
-    
-    // Return single object or array based on input
-    return wasSingleDoc ? clonedDocs[0] : clonedDocs;
   },
   
-  // Enhanced find method with debug
-  find: (query = {}) => {
-    console.log('SYSTEM MODEL - Find query:', JSON.stringify(query));
-    
-    // Ensure managedBy is properly handled (convert to string)
-    if (query.managedBy) {
-      query.managedBy = query.managedBy.toString();
+  // Add distinct method
+  distinct: function(field, query = {}) {
+    try {
+      return MongoSystem.distinct(field, query);
+    } catch (err) {
+      console.error('Error in System.distinct:', err);
+      return [];
     }
-    
-    const results = FileDBSystem.find(query);
-    console.log('SYSTEM MODEL - Find results count:', results.length);
-    return results;
-  },
-  
-  // Get systems by manager ID, ensuring correct ID comparison
-  findByManager: (managerId) => {
-    if (!managerId) return [];
-    
-    const managerId_str = managerId.toString();
-    console.log('Finding systems for manager ID:', managerId_str);
-    
-    // Use the find method with proper filtering
-    return System.find({ managedBy: managerId_str });
   }
 };
 

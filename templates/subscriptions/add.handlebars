@@ -1,0 +1,193 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-0">Add Subscription</h1>
+    <p class="text-muted mb-0">Create a new subscription record</p>
+  </div>
+  <div>
+    <a href="/subscriptions" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Subscriptions
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header bg-white">
+    <h5 class="mb-0">Subscription Information</h5>
+  </div>
+  <div class="card-body">
+    <form action="/subscriptions/add" method="POST" enctype="multipart/form-data" id="subscriptionForm">
+      <!-- Subscription Information -->
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+          <label for="name" class="form-label">Subscription Name*</label>
+          <input type="text" class="form-control" id="name" name="name" required>
+          <div class="form-text">A descriptive name for this subscription</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="product" class="form-label">Product*</label>
+          <input type="text" class="form-control" id="product" name="product" required>
+          <div class="form-text">The product or service provided</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="vendor" class="form-label">Vendor*</label>
+          <select class="form-select" id="vendor" name="vendor" required>
+            <option value="">Select a vendor</option>
+            {{#each vendors}}
+              <option value="{{this.name}}">{{this.name}}</option>
+            {{/each}}
+            <option value="other">Other (specify)</option>
+          </select>
+          <div id="otherVendorWrapper" class="mt-2 d-none">
+            <input type="text" class="form-control" id="otherVendor" placeholder="Enter vendor name">
+          </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="type" class="form-label">Subscription Type</label>
+          <select class="form-select" id="type" name="type">
+            <option value="Subscription">Subscription</option>
+            <option value="SaaS">SaaS</option>
+            <option value="Perpetual">Perpetual</option>
+            <option value="Trial">Trial</option>
+            <option value="Open Source">Open Source</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Dates and Financial -->
+      <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+          <label for="purchaseDate" class="form-label">Purchase Date</label>
+          <input type="date" class="form-control" id="purchaseDate" name="purchaseDate">
+        </div>
+        
+        <div class="col-md-6 mb-3">
+          <label for="renewalDate" class="form-label">Renewal Date*</label>
+          <input type="date" class="form-control" id="renewalDate" name="renewalDate" required>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label for="cost" class="form-label">Cost*</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" id="cost" name="cost" step="0.01" required>
+          </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label for="currency" class="form-label">Currency</label>
+          <select class="form-select" id="currency" name="currency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="CAD">CAD</option>
+            <option value="AUD">AUD</option>
+            <option value="JPY">JPY</option>
+          </select>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label for="seats" class="form-label">Number of Seats</label>
+          <input type="number" class="form-control" id="seats" name="seats" min="1" value="1">
+        </div>
+      </div>
+      
+      <!-- Systems Assignment -->
+      <div class="mb-4">
+        <label for="systems" class="form-label">Assign to Systems</label>
+        <select class="form-select" id="systems" name="systems" multiple>
+          {{#each systems}}
+            <option value="{{this._id}}">{{this.name}} ({{this.os}})</option>
+          {{/each}}
+        </select>
+        <div class="form-text">Hold Ctrl/Cmd to select multiple systems</div>
+      </div>
+      
+      <!-- Status and Notes -->
+      <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+          <label for="status" class="form-label">Status</label>
+          <select class="form-select" id="status" name="status">
+            <option value="Active">Active</option>
+            <option value="Expired">Expired</option>
+            <option value="Pending">Pending</option>
+            <option value="Pending Renewal">Pending Renewal</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Renewed">Renewed</option>
+          </select>
+        </div>
+        
+        <div class="col-md-8 mb-3">
+          <label for="notes" class="form-label">Notes</label>
+          <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+        </div>
+      </div>
+      
+      <!-- Attachments -->
+      <div class="mb-4">
+        <label for="attachments" class="form-label">Attachments</label>
+        <input class="form-control" type="file" id="attachments" name="attachments" multiple>
+        <div class="form-text">Upload contract documents, invoices, or other relevant files (max 5 files, 10MB each)</div>
+      </div>
+      
+      <div class="d-flex justify-content-between">
+        <a href="/subscriptions" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-1"></i> Save Subscription
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle "Other" vendor selection
+    const vendorSelect = document.getElementById('vendor');
+    const otherVendorWrapper = document.getElementById('otherVendorWrapper');
+    const otherVendorInput = document.getElementById('otherVendor');
+    
+    vendorSelect.addEventListener('change', function() {
+      if (this.value === 'other') {
+        otherVendorWrapper.classList.remove('d-none');
+      } else {
+        otherVendorWrapper.classList.add('d-none');
+      }
+    });
+    
+    // Set default dates
+    const purchaseDateInput = document.getElementById('purchaseDate');
+    const renewalDateInput = document.getElementById('renewalDate');
+    
+    if (!purchaseDateInput.value) {
+      const today = new Date();
+      purchaseDateInput.valueAsDate = today;
+    }
+    
+    if (!renewalDateInput.value) {
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      renewalDateInput.valueAsDate = nextYear;
+    }
+    
+    // Form submission handler
+    const form = document.getElementById('subscriptionForm');
+    form.addEventListener('submit', function(e) {
+      // If "Other" vendor is selected, use the custom input value
+      if (vendorSelect.value === 'other' && otherVendorInput.value.trim()) {
+        // Create a hidden input with the custom vendor value
+        const hiddenVendorInput = document.createElement('input');
+        hiddenVendorInput.type = 'hidden';
+        hiddenVendorInput.name = 'vendor';
+        hiddenVendorInput.value = otherVendorInput.value.trim();
+        
+        // Replace the original vendor select
+        vendorSelect.name = 'vendor_original';
+        form.appendChild(hiddenVendorInput);
+      }
+    });
+  });
+</script> 

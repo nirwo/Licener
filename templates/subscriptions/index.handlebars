@@ -1,0 +1,153 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Subscriptions</h1>
+  <div>
+    <a href="/subscriptions/add" class="btn btn-primary">
+      <i class="fas fa-plus me-1"></i> Add Subscription
+    </a>
+    <a href="/subscriptions/demo1" class="btn btn-info ms-2">
+      <i class="fas fa-vial me-1"></i> View Demo Subscription
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header bg-white">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Your Subscriptions</h5>
+      <form action="/subscriptions" method="GET" class="d-flex">
+        <select name="status" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+          <option value="all" {{#if (eq filters.status 'all')}}selected{{/if}}>All Status</option>
+          <option value="active" {{#if (eq filters.status 'active')}}selected{{/if}}>Active</option>
+          <option value="expired" {{#if (eq filters.status 'expired')}}selected{{/if}}>Expired</option>
+          <option value="pending" {{#if (eq filters.status 'pending')}}selected{{/if}}>Pending</option>
+        </select>
+      </form>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {{#if subscriptions.length}}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Vendor</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Renewal</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each subscriptions}}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-primary bg-opacity-10 me-2">
+                      <i class="fas fa-calendar-alt text-primary"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold">{{this.product}}</div>
+                      <small class="text-muted">{{this.name}}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>{{this.vendor}}</td>
+                <td>{{this.type}}</td>
+                <td>
+                  <span class="badge bg-{{#if (eq this.status 'active')}}success{{else if (eq this.status 'expired')}}danger{{else}}warning{{/if}}">
+                    {{this.status}}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-calendar-alt text-muted me-2"></i>
+                    {{this.renewalDate}}
+                  </div>
+                </td>
+                <td>
+                  <div class="btn-group">
+                    <a href="/subscriptions/view/{{this._id}}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="/subscriptions/edit/{{this._id}}" class="btn btn-sm btn-outline-secondary">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <div class="text-center py-5">
+        <div class="mb-3">
+          <i class="fas fa-calendar-check fa-3x text-muted"></i>
+        </div>
+        <h5>No subscriptions found</h5>
+        <p class="text-muted">Get started by adding your first subscription or use the demo</p>
+        <div class="mt-3">
+          <a href="/subscriptions/add" class="btn btn-primary me-2">
+            <i class="fas fa-plus me-2"></i>Add Subscription
+          </a>
+          <a href="/subscriptions/demo1" class="btn btn-info">
+            <i class="fas fa-vial me-2"></i>View Demo
+          </a>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Loaded, initializing DataTables for subscriptions...');
+    
+    try {
+      // Make sure jQuery is available
+      if (typeof $ === 'undefined') {
+        console.error('jQuery is not available!');
+        return;
+      }
+      
+      // Make sure DataTables plugin is available
+      if (typeof $.fn.DataTable === 'undefined') {
+        console.error('DataTables plugin is not available!');
+        return;
+      }
+      
+      // Clean any broken DataTable instances
+      $('.datatable').each(function() {
+        try {
+          // First check if there are any elements with _DT_CellIndex set incorrectly
+          $(this).find('td').removeAttr('_DT_CellIndex');
+          
+          // If a DataTable instance exists on this element, destroy it properly
+          if ($.fn.DataTable.isDataTable(this)) {
+            $(this).DataTable().destroy();
+          }
+        } catch (err) {
+          console.error('Error cleaning up DataTable:', err);
+        }
+      });
+      
+      // Initialize DataTables with simpler configuration to avoid errors
+      $('.datatable').DataTable({
+        responsive: false, // Disable responsive for now
+        pageLength: 10,
+        lengthMenu: [5, 10, 25, 50],
+        language: {
+          search: "Filter records:"
+        },
+        ordering: true,
+        searching: true,
+        paging: true
+      });
+      
+      console.log('DataTables initialization complete for subscriptions.');
+    } catch (err) {
+      console.error('Error initializing DataTables:', err);
+    }
+  });
+</script> 

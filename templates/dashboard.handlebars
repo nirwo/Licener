@@ -1,63 +1,209 @@
-<h1>Dashboard</h1>
-<p>Welcome to the Licener dashboard.</p>
-
-{{!-- Stats Cards Section using generic CSS classes --}}
-<div class="data-card-grid">
-  <div class="data-card card-border-primary">
-    <h3 class="data-card-title">Total Licenses</h3>
-    <p class="data-card-value">{{stats.totalLicenses}}</p>
+{{!-- No duplicate navbar here, it should be in the main layout --}}
+<div class="dashboard-container">
+  <!-- Welcome Section -->
+  <div class="welcome-section mb-4 pt-4">
+    <h2>Welcome back, {{user.name}}!</h2>
+    <p class="text-muted">Here's a summary of your subscription management system.</p>
   </div>
 
-  <div class="data-card card-border-success">
-    <h3 class="data-card-title">Active Licenses</h3>
-    <p class="data-card-value">{{stats.activeLicenses}}</p>
+  <!-- Stats Cards Section -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-4 mb-md-0">
+      <div class="card stats-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Total Subscriptions</h5>
+          <p class="card-text stats-number">{{stats.totalLicenses}}</p>
+          <p class="stats-trend {{#if stats.licenseTrend.positive}}positive{{else}}negative{{/if}}">
+            <i class="fas fa-arrow-{{#if stats.licenseTrend.positive}}up{{else}}down{{/if}}"></i>
+            {{stats.licenseTrend.percentage}}% from last month
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3 mb-4 mb-md-0">
+      <div class="card stats-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Expiring Soon</h5>
+          <p class="card-text stats-number">{{stats.expiringSoon}}</p>
+          <p class="stats-info">Subscriptions expiring in 30 days</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3 mb-4 mb-md-0">
+      <div class="card stats-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Annual Spend</h5>
+          <p class="card-text stats-number">${{stats.annualSpend}}</p>
+          <p class="stats-info">Total annual subscription cost</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3">
+      <div class="card stats-card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Active Systems</h5>
+          <p class="card-text stats-number">{{stats.activeSystems}}</p>
+          <p class="stats-info">Systems with active subscriptions</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="data-card card-border-warning">
-    <h3 class="data-card-title">Expiring Soon</h3>
-    <p class="data-card-value">{{stats.expiringSoon}}</p>
+  <!-- Recent Licenses Section -->
+  <div class="row mb-4">
+    <div class="col-md-8 mb-4 mb-md-0">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Recent Subscriptions</h5>
+          <a href="/subscriptions" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Subscription</th>
+                  <th>Product</th>
+                  <th>Status</th>
+                  <th>Expiry</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each recentLicenses}}
+                <tr>
+                  <td><a href="/subscriptions/view/{{this._id}}">{{this.name}}</a></td>
+                  <td>{{this.product}}</td>
+                  <td><span class="badge bg-{{subscriptionStatusClass this.status}}">{{this.status}}</span></td>
+                  <td>{{formatDate this.expiryDate "MMM DD, YYYY"}}</td>
+                </tr>
+                {{else}}
+                <tr>
+                  <td colspan="4" class="text-center text-muted">No subscriptions found</td>
+                </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <a href="/licenses/add" class="btn btn-primary">
+              <i class="fas fa-plus-circle me-2"></i> Add Subscription
+            </a>
+            <a href="/systems/add" class="btn btn-outline-primary">
+              <i class="fas fa-server me-2"></i> Add System
+            </a>
+            <a href="/reports/license-expiry" class="btn btn-outline-primary">
+              <i class="fas fa-calendar-alt me-2"></i> Check Expirations
+            </a>
+            <a href="/web-researcher" class="btn btn-outline-primary">
+              <i class="fas fa-search me-2"></i> Research Licenses
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-{{!-- Recent Licenses Table Section using generic CSS classes --}}
-<div class="data-table-container">
-  <div class="table-header-bg">
-    <h2 class="table-header-title">Recent Licenses</h2>
-  </div>
-
-  <div class="table-inner-padding">
-    {{#if recentLicenses.length}}
-      {{!-- Use standard Bootstrap table classes --}}
-      <table class="table table-striped table-hover">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Vendor</th>
-            <th>Status</th>
-            <th>Expiry</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{#each recentLicenses}}
-            <tr>
-              <td>{{this.product}}</td>
-              <td>{{this.vendor}}</td>
-              <td>
-                {{!-- TODO: Enhance with status badge helper --}}
-                {{this.status}}
-              </td>
-              <td>{{formatDate this.expiryDate "MMM DD, YYYY"}}</td>
-            </tr>
-          {{/each}}
-        </tbody>
-      </table>
-    {{else}}
-      <p>No recent licenses found.</p>
-    {{/if}}
-
-    {{!-- Use standard Bootstrap button classes --}}
-    <div class="data-table-action-container">
-      <a href="/licenses" class="btn btn-primary">View All Licenses</a>
+  <!-- Activity Log -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Recent Activity</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="list-group list-group-flush">
+        {{#each recentActivity}}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <i class="fas {{this.icon}} me-2 text-primary"></i>
+              <span>{{this.action}}</span>
+              <small class="text-muted">{{this.details}}</small>
+            </div>
+            <small class="text-muted">{{formatDate this.date "MMM DD, h:mm a"}}</small>
+          </div>
+        </div>
+        {{else}}
+        <div class="list-group-item text-center text-muted">No recent activity</div>
+        {{/each}}
+      </div>
     </div>
   </div>
 </div>
+
+<style>
+.dashboard-container {
+  padding: 1rem;
+}
+
+.welcome-section {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.stats-card {
+  border-radius: 10px;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: transform 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+  transform: translateY(-5px);
+}
+
+.stats-number {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.stats-trend {
+  font-size: 0.85rem;
+}
+
+.stats-trend.positive {
+  color: #28a745;
+}
+
+.stats-trend.negative {
+  color: #dc3545;
+}
+
+.stats-info {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard-container {
+    padding: 0.5rem;
+  }
+  
+  .welcome-section {
+    padding-top: 1rem !important;
+  }
+  
+  .stats-number {
+    font-size: 1.4rem;
+  }
+  
+  .card-header {
+    padding: 0.75rem;
+  }
+  
+  .card-body {
+    padding: 0.75rem;
+  }
+}
+</style>
