@@ -1,41 +1,63 @@
 <h1>Dashboard</h1>
 <p>Welcome to the Licener dashboard.</p>
 
-<div style="border: 1px solid #ddd; padding: 20px; margin: 20px 0; background-color: #f9f9f9;">
-  <h2>License Statistics</h2>
-  <ul>
-    <li>Total Licenses: {{stats.totalLicenses}}</li>
-    <li>Active Licenses: {{stats.activeLicenses}}</li>
-    <li>Expiring Soon: {{stats.expiringSoon}}</li>
-  </ul>
+{{!-- Stats Cards Section using generic CSS classes --}}
+<div class="data-card-grid">
+  <div class="data-card card-border-primary">
+    <h3 class="data-card-title">Total Licenses</h3>
+    <p class="data-card-value">{{stats.totalLicenses}}</p>
+  </div>
+
+  <div class="data-card card-border-success">
+    <h3 class="data-card-title">Active Licenses</h3>
+    <p class="data-card-value">{{stats.activeLicenses}}</p>
+  </div>
+
+  <div class="data-card card-border-warning">
+    <h3 class="data-card-title">Expiring Soon</h3>
+    <p class="data-card-value">{{stats.expiringSoon}}</p>
+  </div>
 </div>
 
-<div style="border: 1px solid #ddd; padding: 20px; margin: 20px 0; background-color: #f9f9f9;">
-  <h2>Recent Licenses</h2>
-  {{#if recentLicenses.length}}
-    <table style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="background-color: #eee;">
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Product</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Vendor</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Status</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Expires</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each recentLicenses}}
+{{!-- Recent Licenses Table Section using generic CSS classes --}}
+<div class="data-table-container">
+  <div class="table-header-bg">
+    <h2 class="table-header-title">Recent Licenses</h2>
+  </div>
+
+  <div class="table-inner-padding">
+    {{#if recentLicenses.length}}
+      {{!-- Use standard Bootstrap table classes --}}
+      <table class="table table-striped table-hover">
+        <thead>
           <tr>
-            <td style="border: 1px solid #ddd; padding: 8px;">{{this.product}}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">{{this.vendor}}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">{{this.status}}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">{{formatDate this.expiryDate "MMM DD, YYYY"}}</td>
+            <th>Product</th>
+            <th>Vendor</th>
+            <th>Status</th>
+            <th>Expiry</th>
           </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  {{else}}
-    <p>No recent licenses found.</p>
-  {{/if}}
-</div>
+        </thead>
+        <tbody>
+          {{#each recentLicenses}}
+            <tr>
+              <td>{{this.product}}</td>
+              <td>{{this.vendor}}</td>
+              <td>
+                {{!-- TODO: Enhance with status badge helper --}}
+                {{this.status}}
+              </td>
+              <td>{{formatDate this.expiryDate "MMM DD, YYYY"}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{else}}
+      <p>No recent licenses found.</p>
+    {{/if}}
 
-<a href="/licenses" style="display: inline-block; padding: 10px 15px; background-color: #4e73df; color: white; text-decoration: none; border-radius: 4px;">View All Licenses</a>
+    {{!-- Use standard Bootstrap button classes --}}
+    <div class="data-table-action-container">
+      <a href="/licenses" class="btn btn-primary">View All Licenses</a>
+    </div>
+  </div>
+</div>

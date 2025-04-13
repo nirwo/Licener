@@ -14,8 +14,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap5.min.css">
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="/css/style.css">
+  <!-- Base Styles -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/static/css/custom.css">
   <!-- Open Graph Meta Tags -->
   <meta property="og:title" content="{{ title }} | Licener">
   <meta property="og:description" content="Comprehensive software license management system">
@@ -26,31 +28,7 @@
     {{> _navbar}}
     <div class="sidebar-wrapper" id="sidebarWrapper">
       {{> _sidebar}}
-      <ul class="nav flex-column">
-        <!-- Nav Item - Licenses -->
-        <li class="nav-item {{#if (startsWith currentUrl '/licenses')}}active{{/if}}">
-          <a class="nav-link" href="/licenses">
-            <i class="fas fa-key"></i>
-            <span>Licenses</span>
-          </a>
-        </li>
-
-        <!-- Nav Item - Vendors -->
-        <li class="nav-item {{#if (startsWith currentUrl '/vendors')}}active{{/if}}">
-          <a class="nav-link" href="/vendors">
-            <i class="fas fa-building"></i>
-            <span>Vendors</span>
-          </a>
-        </li>
-
-        <!-- Nav Item - Systems -->
-        <li class="nav-item {{#if (startsWith currentUrl '/systems')}}active{{/if}}">
-          <a class="nav-link" href="/systems">
-            <i class="fas fa-server"></i>
-            <span>Systems</span>
-          </a>
-        </li>
-      </ul>
+      {{!-- The duplicate UL block that was here has been removed --}}
     </div>
     <div class="content-wrapper">
       <main>
@@ -77,6 +55,6 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <!-- Custom JS -->
-  <script src="/js/main.js"></script>
+  <script src="/static/js/main.js"></script>
 </body>
 </html>

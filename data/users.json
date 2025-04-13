@@ -24,6 +24,15 @@
       "updatedAt": "2025-04-10T18:16:53.432Z",
       "lastLogin": 1744309013432,
       "id": "m8rdc2uoam52f"
+    },
+    {
+      "_id": "m9en0v5gzyy18",
+      "name": "nir",
+      "email": "nir@nirwolff.com",
+      "password": "$2a$10$E7rZtGcCCZEqVVS9wW3SrO0aBKRhmFfrEJrLOvTLp0xLZcJTu6EpK",
+      "role": "user",
+      "createdAt": "2025-04-12T19:57:29.140Z",
+      "updatedAt": "2025-04-12T19:57:29.140Z"
     }
   ]
 }
