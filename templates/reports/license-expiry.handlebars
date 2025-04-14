@@ -167,12 +167,21 @@
                 <td>{{assignedToName}}</td>
                 <td>
                   <div class="btn-group btn-group-sm">
+                    {{#if _id}}
                     <a href="/licenses/view/{{_id}}" class="btn btn-info">
                       <i class="fas fa-eye"></i>
                     </a>
                     <a href="/licenses/renew/{{_id}}" class="btn btn-success">
                       <i class="fas fa-sync-alt"></i>
                     </a>
+                    {{else}}
+                    <button class="btn btn-info" disabled title="No license ID">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-success" disabled title="No license ID">
+                      <i class="fas fa-sync-alt"></i>
+                    </button>
+                    {{/if}}
                   </div>
                 </td>
               </tr>
