@@ -18,92 +18,94 @@ const db = {
     try {
       console.log(`UPDATE BY ID: Looking to update _id=${id} in ${collection}`);
       const collectionPath = path.join(dataDir, `${collection}.json`);
-      
+
       // Make sure the file exists
       if (!fs.existsSync(collectionPath)) {
         console.log(`UPDATE BY ID: Collection file not found for ${collection}`);
         return null;
       }
-      
+
       // Read the collection data
       const data = JSON.parse(fs.readFileSync(collectionPath, 'utf8'));
-      
+
       // Find the item by ID
       const index = data.data.findIndex(item => item._id === id);
-      
+
       // If item not found, return null
       if (index === -1) {
         console.log(`UPDATE BY ID: No matching item with _id=${id} in ${collection}`);
         return null;
       }
-      
+
       console.log(`UPDATE BY ID: Found matching item with _id=${id}`);
-      
+
       // Get the existing item
       const existingItem = data.data[index];
-      
+
       // Create updated item by merging existing with updates
       const updatedItem = {
         ...existingItem,
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
-      
+
       // Replace the old item with the updated one
       data.data[index] = updatedItem;
-      
+
       // Write the updated data back to the file
       fs.writeFileSync(collectionPath, JSON.stringify(data, null, 2), 'utf8');
-      
+
       console.log(`UPDATE BY ID: Successfully updated item with _id=${id} in ${collection}`);
-      
+
       // Return the updated item
       return updatedItem;
     } catch (err) {
       console.error(`Error in findByIdAndUpdate for ${collection}:`, err);
       throw err;
     }
-  }
+  },
 };
 
 // This is a wrapper around the file DB to maintain API compatibility
 const License = {
   ...FileDBLicense,
-  
+
   // Mongoose-like populate functionality
   populate: async (docs, path) => {
     const { System } = require('./System');
     const User = require('./User');
-    
+
     if (!docs) return null;
-    
+
     // Handle single document
     if (!Array.isArray(docs)) {
       // Use await to ensure proper async resolution
       return (await License.populate([docs], path))[0];
     }
-    
+
     // Clone the documents to avoid modifying originals
     const clonedDocs = JSON.parse(JSON.stringify(docs));
-    
+
     // Process each document
     for (const doc of clonedDocs) {
       if (path === 'assignedSystems') {
         // Populate systems with better error handling
         if (doc.assignedSystems && doc.assignedSystems.length > 0) {
-          console.log(`License Populate - Populating ${doc.assignedSystems.length} systems for license ${doc._id}`);
-          
+          console.log(
+            `License Populate - Populating ${doc.assignedSystems.length} systems for license ${doc._id}`
+          );
+
           // Map to array of promises then await all
           const systemPromises = doc.assignedSystems.map(async systemId => {
             if (!systemId) {
-              console.log(`License Populate - Skipping null/undefined system ID`);
+              console.log('License Populate - Skipping null/undefined system ID');
               return null;
             }
-            
+
             // Ensure we're working with a string ID
             const sysId = systemId.toString();
             console.log(`License Populate - Attempting to find System with ID: ${sysId}`);
-            
+
             try {
               const system = await System.findById(sysId);
               if (system) {
@@ -117,7 +119,7 @@ const License = {
               return systemId; // Return original ID on error
             }
           });
-          
+
           // Filter out null values after populating
           const populatedSystems = await Promise.all(systemPromises);
           doc.assignedSystems = populatedSystems.filter(system => system !== null);
@@ -134,11 +136,11 @@ const License = {
           // Ensure we're working with a string ID
           const ownerId = doc.owner.toString();
           console.log(`License Populate - Attempting to find User with ID: ${ownerId}`);
-          
+
           try {
             const owner = await User.findById(ownerId);
             console.log(`License Populate - User.findById result: ${JSON.stringify(owner)}`);
-            
+
             if (owner) {
               doc.owner = owner;
               // Ensure _id is available as a string
@@ -153,11 +155,11 @@ const License = {
             console.error(`Error populating owner with ID ${ownerId}:`, err);
           }
         } else {
-          console.log(`License Populate - No owner ID to populate`);
+          console.log('License Populate - No owner ID to populate');
         }
       }
     }
-    
+
     return clonedDocs;
   },
 
@@ -165,7 +167,7 @@ const License = {
   findByIdAndUpdate: async (id, updateData) => {
     console.log(`Updating license with ID: ${id}`);
     console.log('Update data:', JSON.stringify(updateData, null, 2));
-    
+
     try {
       // Use the fixed db function to update the license
       const result = await db.findByIdAndUpdate('licenses', id, updateData);
@@ -178,95 +180,99 @@ const License = {
       console.error('Error updating license:', err);
       throw new Error(`Failed to update license: ${err.message}`);
     }
-  }
+  },
 };
 
 // Define License Schema
 const LicenseSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   product: {
     type: String,
-    required: true
+    required: true,
   },
   vendor: {
     type: String,
-    required: true
+    required: true,
   },
   licenseKey: {
     type: String,
-    required: true
+    required: true,
   },
   purchaseDate: {
-    type: Date
+    type: Date,
   },
   expiryDate: {
-    type: Date
+    type: Date,
   },
   renewalDate: {
-    type: Date
+    type: Date,
   },
   totalSeats: {
     type: Number,
-    default: 1
+    default: 1,
   },
   usedSeats: {
     type: Number,
-    default: 0
+    default: 0,
   },
   utilization: {
     type: Number,
-    default: 0
+    default: 0,
   },
   cost: {
-    type: Number
+    type: Number,
   },
   currency: {
     type: String,
-    default: 'USD'
+    default: 'USD',
   },
   notes: {
-    type: String
+    type: String,
   },
   status: {
     type: String,
     enum: ['active', 'expired', 'pending', 'renewed'],
-    default: 'active'
+    default: 'active',
   },
-  attachments: [{
-    filename: String,
-    path: String,
-    uploadDate: Date
-  }],
-  assignedSystems: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'System'
-  }],
+  attachments: [
+    {
+      filename: String,
+      path: String,
+      uploadDate: Date,
+    },
+  ],
+  assignedSystems: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'System',
+    },
+  ],
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Update 'updatedAt' on save
-LicenseSchema.pre('save', function(next) {
+LicenseSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
 // Create demo license method
-LicenseSchema.statics.createDemo = async function(userId) {
+LicenseSchema.statics.createDemo = async function (userId) {
   try {
     console.log(`Starting to create demo license for user ${userId}`);
     // Check if userId is valid
@@ -274,19 +280,19 @@ LicenseSchema.statics.createDemo = async function(userId) {
       console.error('Invalid userId provided to createDemo method:', userId);
       throw new Error('Invalid user ID');
     }
-    
+
     console.log(`Checking for existing demo license for user ${userId}`);
     // Check if demo license already exists for this user
-    const existingDemo = await this.findOne({ 
-      name: 'Demo License 1', 
-      owner: userId 
+    const existingDemo = await this.findOne({
+      name: 'Demo License 1',
+      owner: userId,
     });
-    
+
     if (existingDemo) {
       console.log(`Existing demo license found with ID: ${existingDemo._id}`);
       return existingDemo;
     }
-    
+
     console.log(`No existing demo license found, creating new one for user ${userId}`);
     // Create new demo license
     const demoLicense = new this({
@@ -303,9 +309,9 @@ LicenseSchema.statics.createDemo = async function(userId) {
       currency: 'USD',
       notes: 'This is a demo license for testing purposes',
       status: 'active',
-      owner: userId
+      owner: userId,
     });
-    
+
     console.log('Demo license created, about to save');
     const savedLicense = await demoLicense.save();
     console.log(`Demo license saved successfully with ID: ${savedLicense._id}`);
@@ -317,7 +323,7 @@ LicenseSchema.statics.createDemo = async function(userId) {
 };
 
 // Find by manager method
-LicenseSchema.statics.findByManager = function(managerId) {
+LicenseSchema.statics.findByManager = function (managerId) {
   return this.find({ owner: managerId });
 };
 
@@ -329,77 +335,81 @@ const SubscriptionSchema = new Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   vendor: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   product: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   type: {
     type: String,
     enum: ['Perpetual', 'Subscription', 'Trial', 'Open Source', 'Other'],
-    default: 'Subscription'
+    default: 'Subscription',
   },
   seats: {
     type: Number,
-    default: 1
+    default: 1,
   },
   cost: {
     type: Number,
-    required: true
+    required: true,
   },
   renewalDate: {
     type: Date,
-    required: true
+    required: true,
   },
   purchaseDate: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   notes: {
     type: String,
-    trim: true
+    trim: true,
   },
   contractUrl: {
     type: String,
-    trim: true
+    trim: true,
   },
-  attachments: [{
-    name: String,
-    url: String,
-    uploadDate: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  tags: [{
-    type: String,
-    trim: true
-  }],
+  attachments: [
+    {
+      name: String,
+      url: String,
+      uploadDate: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
+  tags: [
+    {
+      type: String,
+      trim: true,
+    },
+  ],
   status: {
     type: String,
     enum: ['Active', 'Expired', 'Pending Renewal', 'Cancelled'],
-    default: 'Active'
+    default: 'Active',
   },
   user: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   system: {
     type: Schema.Types.ObjectId,
-    ref: 'System'
+    ref: 'System',
   },
   created: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const Subscription = mongoose.model('Subscription', SubscriptionSchema);
@@ -407,7 +417,7 @@ const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 // Populate with demo data if in development mode
 if (process.env.NODE_ENV === 'development') {
   console.log('Populating subscription data for development...');
-  
+
   const populateSystems = async () => {
     const System = require('./System');
     try {
@@ -419,7 +429,7 @@ if (process.env.NODE_ENV === 'development') {
       return [];
     }
   };
-  
+
   const populateUsers = async () => {
     const User = require('./User');
     try {
@@ -431,32 +441,32 @@ if (process.env.NODE_ENV === 'development') {
       return [];
     }
   };
-  
+
   const updateSubscriptions = async () => {
     try {
       const systems = await populateSystems();
       const users = await populateUsers();
-      
+
       if (users.length === 0) {
         console.log('No users found, skipping subscription population');
         return;
       }
-      
+
       // Get the first user as a default
       const defaultUser = users[0];
-      
+
       // Create some demo subscriptions
       const demoSubscriptions = FileDBSubscription.getData();
-      
+
       // Check if we already have subscriptions
       const existingCount = await Subscription.countDocuments();
       if (existingCount > 0) {
         console.log(`Found ${existingCount} existing subscriptions, skipping population`);
         return;
       }
-      
+
       console.log(`Creating ${demoSubscriptions.length} demo subscriptions...`);
-      
+
       // Create subscriptions
       for (const subscription of demoSubscriptions) {
         // Assign a random system if available
@@ -464,21 +474,21 @@ if (process.env.NODE_ENV === 'development') {
         if (systems.length > 0) {
           system = systems[Math.floor(Math.random() * systems.length)]._id;
         }
-        
+
         // Create the subscription
         await Subscription.create({
           ...subscription,
           user: defaultUser._id,
-          system
+          system,
         });
       }
-      
+
       console.log('Demo subscriptions created successfully');
     } catch (err) {
       console.error('Error creating demo subscriptions:', err);
     }
   };
-  
+
   // Call the function to update subscriptions
   updateSubscriptions();
 }

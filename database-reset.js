@@ -1,6 +1,6 @@
 /**
  * Database Reset and Initialization Script
- * 
+ *
  * This script will:
  * 1. Create a fresh database file
  * 2. Add admin user and demo data
@@ -29,7 +29,7 @@ const now = new Date().toISOString();
 async function createAdminUser() {
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash('admin', salt);
-  
+
   return {
     _id: uuidv4(),
     name: 'Admin User',
@@ -37,7 +37,7 @@ async function createAdminUser() {
     password: hash,
     role: 'admin',
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
 }
 
@@ -51,7 +51,7 @@ function createVendors() {
       phone: '1-800-642-7676',
       website: 'https://www.microsoft.com',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       _id: uuidv4(),
@@ -60,7 +60,7 @@ function createVendors() {
       phone: '1-800-833-6687',
       website: 'https://www.adobe.com',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       _id: uuidv4(),
@@ -69,8 +69,8 @@ function createVendors() {
       phone: '1-800-392-2999',
       website: 'https://www.oracle.com',
       createdAt: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    },
   ];
 }
 
@@ -85,7 +85,7 @@ function createSystems() {
       environment: 'Production',
       status: 'Active',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       _id: uuidv4(),
@@ -95,7 +95,7 @@ function createSystems() {
       environment: 'Development',
       status: 'Active',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       _id: uuidv4(),
@@ -105,8 +105,8 @@ function createSystems() {
       environment: 'Production',
       status: 'Active',
       createdAt: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    },
   ];
 }
 
@@ -116,7 +116,7 @@ function createLicenses(vendors, systems) {
   const expired = new Date(new Date().setDate(new Date().getDate() - 30)).toISOString();
   const nearExpiry = new Date(new Date().setDate(new Date().getDate() + 15)).toISOString();
   const future = new Date(new Date().setDate(new Date().getDate() + 180)).toISOString();
-  
+
   return [
     {
       _id: uuidv4(),
@@ -132,7 +132,7 @@ function createLicenses(vendors, systems) {
       systems: [systems[0]._id],
       status: 'Active',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       _id: uuidv4(),
@@ -148,7 +148,7 @@ function createLicenses(vendors, systems) {
       systems: [systems[2]._id],
       status: 'Expired',
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       _id: uuidv4(),
@@ -164,8 +164,8 @@ function createLicenses(vendors, systems) {
       systems: [systems[0]._id, systems[1]._id],
       status: 'Active',
       createdAt: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    },
   ];
 }
 
@@ -173,59 +173,58 @@ function createLicenses(vendors, systems) {
 async function resetDatabase() {
   try {
     console.log('Starting database reset...');
-    
+
     // Create admin user
     const adminUser = await createAdminUser();
     console.log('Created admin user with email: admin@admin.com and password: admin');
-    
+
     // Create vendors
     const vendors = createVendors();
     console.log(`Created ${vendors.length} sample vendors`);
-    
+
     // Create systems
     const systems = createSystems();
     console.log(`Created ${systems.length} sample systems`);
-    
+
     // Create licenses
     const licenses = createLicenses(vendors, systems);
     console.log(`Created ${licenses.length} sample licenses`);
-    
+
     // Create the database object
     const db = {
       users: [adminUser],
       vendors: vendors,
       systems: systems,
-      licenses: licenses
+      licenses: licenses,
     };
-    
+
     // Write to file
     fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
     console.log(`Database reset successfully. File saved to: ${dbPath}`);
-    
+
     // Verify file was created properly
     if (fs.existsSync(dbPath)) {
       const stats = fs.statSync(dbPath);
       console.log(`Database file size: ${(stats.size / 1024).toFixed(2)} KB`);
-      
+
       // Try to read it back
       const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
       console.log('Database validation check:', {
         users: dbData.users.length,
         vendors: dbData.vendors.length,
         systems: dbData.systems.length,
-        licenses: dbData.licenses.length
+        licenses: dbData.licenses.length,
       });
     }
-    
+
     console.log('\nDatabase reset complete!');
     console.log('You can now log in with:');
     console.log('Email: admin@admin.com');
     console.log('Password: admin');
-    
   } catch (err) {
     console.error('Error resetting database:', err);
   }
 }
 
 // Run the reset function
-resetDatabase(); 
+resetDatabase();

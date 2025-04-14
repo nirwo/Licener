@@ -24,32 +24,29 @@ const logger = winston.createLogger({
   transports: [
     // Write all logs to console
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
     }),
     // Write all logs with level 'error' and below to 'error.log'
     new winston.transports.File({
       filename: path.join(logDir, 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
-      maxFiles: 5
+      maxFiles: 5,
     }),
     // Write all logs with level 'info' and below to 'combined.log'
     new winston.transports.File({
       filename: path.join(logDir, 'combined.log'),
       maxsize: 5242880, // 5MB
-      maxFiles: 5
-    })
-  ]
+      maxFiles: 5,
+    }),
+  ],
 });
 
 // Create a stream object for Morgan
 logger.stream = {
-  write: (message) => {
+  write: message => {
     logger.info(message.trim());
-  }
+  },
 };
 
-module.exports = logger; 
+module.exports = logger;

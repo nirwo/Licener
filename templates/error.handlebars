@@ -1,15 +1,73 @@
-<div class="container mt-4">
-  <div class="row justify-content-center">
-    <div class="col-md-8">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="alert alert-danger mb-4">
-            <h4 class="alert-heading">Server Error</h4>
-            <p>{{error}}</p>
+{{#if user}}
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card border-danger">
+          <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">{{title}}</h4>
           </div>
-          <a href="/" class="btn btn-primary">Return to Dashboard</a>
+          <div class="card-body">
+            <div class="text-center mb-4">
+              <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+              <h5 class="text-danger">Oops! Something went wrong</h5>
+            </div>
+            
+            <div class="alert alert-danger">
+              {{error}}
+            </div>
+            
+            {{#if stack}}
+              <div class="mt-4">
+                <h6>Debug Information:</h6>
+                <pre class="bg-light p-3 rounded"><code>{{stack}}</code></pre>
+              </div>
+            {{/if}}
+            
+            <div class="mt-4 text-center">
+              <a href="/" class="btn btn-primary me-2">
+                <i class="fas fa-home me-1"></i> Go Home
+              </a>
+              <button onclick="window.history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Go Back
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+{{else}}
+  <div class="auth-card">
+    <div class="card border-danger">
+      <div class="card-header bg-danger text-white">
+        <h4 class="mb-0">{{title}}</h4>
+      </div>
+      <div class="card-body">
+        <div class="text-center mb-4">
+          <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+          <h5 class="text-danger">Oops! Something went wrong</h5>
+        </div>
+        
+        <div class="alert alert-danger">
+          {{error}}
+        </div>
+        
+        {{#if stack}}
+          <div class="mt-4">
+            <h6>Debug Information:</h6>
+            <pre class="bg-light p-3 rounded"><code>{{stack}}</code></pre>
+          </div>
+        {{/if}}
+        
+        <div class="mt-4 text-center">
+          <a href="/auth/login" class="btn btn-primary me-2">
+            <i class="fas fa-sign-in-alt me-1"></i> Login
+          </a>
+          <button onclick="window.history.back()" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{{/if}}

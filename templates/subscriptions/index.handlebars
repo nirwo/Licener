@@ -27,7 +27,7 @@
   <div class="card-body p-0">
     {{#if subscriptions.length}}
       <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 datatable">
           <thead>
             <tr>
               <th>Product</th>
@@ -55,24 +55,30 @@
                 <td>{{this.vendor}}</td>
                 <td>{{this.type}}</td>
                 <td>
-                  <span class="badge bg-{{#if (eq this.status 'active')}}success{{else if (eq this.status 'expired')}}danger{{else}}warning{{/if}}">
+                  <span class="badge bg-{{subscriptionStatusClass this.status}}">
                     {{this.status}}
                   </span>
                 </td>
                 <td>
                   <div class="d-flex align-items-center">
                     <i class="fas fa-calendar-alt text-muted me-2"></i>
-                    {{this.renewalDate}}
+                    {{formatDate this.renewalDate "YYYY-MM-DD"}}
                   </div>
                 </td>
                 <td>
                   <div class="btn-group">
-                    <a href="/subscriptions/view/{{this._id}}" class="btn btn-sm btn-outline-primary">
+                    {{#if this._id}}
+                    <a href="/subscriptions/{{this._id}}/view" class="btn btn-sm btn-outline-primary">
                       <i class="fas fa-eye"></i>
                     </a>
-                    <a href="/subscriptions/edit/{{this._id}}" class="btn btn-sm btn-outline-secondary">
+                    <a href="/subscriptions/{{this._id}}/edit" class="btn btn-sm btn-outline-secondary">
                       <i class="fas fa-edit"></i>
                     </a>
+                    {{else}}
+                    <button class="btn btn-sm btn-outline-secondary" disabled>
+                      <i class="fas fa-exclamation-triangle"></i> Invalid ID
+                    </button>
+                    {{/if}}
                   </div>
                 </td>
               </tr>
@@ -101,53 +107,16 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Loaded, initializing DataTables for subscriptions...');
-    
-    try {
-      // Make sure jQuery is available
-      if (typeof $ === 'undefined') {
-        console.error('jQuery is not available!');
-        return;
+$(document).ready(function() {
+  // Check if DataTable is already initialized
+  if (!$.fn.DataTable.isDataTable('.datatable')) {
+    $('.datatable').DataTable({
+      pageLength: 10,
+      lengthMenu: [[5, 10, 25, 50], [5, 10, 25, 50]],
+      language: {
+        search: "Filter records:"
       }
-      
-      // Make sure DataTables plugin is available
-      if (typeof $.fn.DataTable === 'undefined') {
-        console.error('DataTables plugin is not available!');
-        return;
-      }
-      
-      // Clean any broken DataTable instances
-      $('.datatable').each(function() {
-        try {
-          // First check if there are any elements with _DT_CellIndex set incorrectly
-          $(this).find('td').removeAttr('_DT_CellIndex');
-          
-          // If a DataTable instance exists on this element, destroy it properly
-          if ($.fn.DataTable.isDataTable(this)) {
-            $(this).DataTable().destroy();
-          }
-        } catch (err) {
-          console.error('Error cleaning up DataTable:', err);
-        }
-      });
-      
-      // Initialize DataTables with simpler configuration to avoid errors
-      $('.datatable').DataTable({
-        responsive: false, // Disable responsive for now
-        pageLength: 10,
-        lengthMenu: [5, 10, 25, 50],
-        language: {
-          search: "Filter records:"
-        },
-        ordering: true,
-        searching: true,
-        paging: true
-      });
-      
-      console.log('DataTables initialization complete for subscriptions.');
-    } catch (err) {
-      console.error('Error initializing DataTables:', err);
-    }
-  });
+    });
+  }
+});
 </script> 

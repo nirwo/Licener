@@ -11,65 +11,69 @@ const fs = require('fs');
 const SubscriptionSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   vendor: {
     type: String,
-    required: true
+    required: true,
   },
   product: {
     type: String,
-    required: true
+    required: true,
   },
   type: {
     type: String,
-    default: 'Subscription'
+    default: 'Subscription',
   },
   seats: {
     type: Number,
-    default: 1
+    default: 1,
   },
   cost: {
-    type: Number
+    type: Number,
   },
   renewalDate: {
-    type: Date
+    type: Date,
   },
   purchaseDate: {
-    type: Date
+    type: Date,
   },
   notes: {
-    type: String
+    type: String,
   },
   contractUrl: {
-    type: String
+    type: String,
   },
-  attachments: [{
-    filename: String,
-    path: String,
-    uploadDate: Date
-  }],
-  tags: [{
-    type: String
-  }],
+  attachments: [
+    {
+      filename: String,
+      path: String,
+      uploadDate: Date,
+    },
+  ],
+  tags: [
+    {
+      type: String,
+    },
+  ],
   status: {
     type: String,
     enum: ['active', 'expired', 'pending', 'renewed'],
-    default: 'active'
+    default: 'active',
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   system: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'System'
+    ref: 'System',
   },
   created: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Create or get MongoDB model
@@ -101,33 +105,40 @@ function getFileDBSubscription() {
 // Create a minimal file DB implementation as fallback
 function createMinimalFileDB() {
   console.log('Creating minimal FileDB implementation for Subscriptions');
-  
+
   // Path to data directory and db.json
   const dataDir = path.join(__dirname, '..', 'data');
   const dbPath = path.join(dataDir, 'db.json');
-  
+
   // Create data directory if it doesn't exist
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  
+
   // Create db.json if it doesn't exist
   if (!fs.existsSync(dbPath)) {
-    fs.writeFileSync(dbPath, JSON.stringify({
-      subscriptions: [],
-      users: [],
-      systems: [],
-      vendors: []
-    }, null, 2));
+    fs.writeFileSync(
+      dbPath,
+      JSON.stringify(
+        {
+          subscriptions: [],
+          users: [],
+          systems: [],
+          vendors: [],
+        },
+        null,
+        2
+      )
+    );
   }
-  
+
   // Minimal implementation
   return {
     find: async (query = {}) => {
       try {
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
         if (!data.subscriptions) return [];
-        
+
         return data.subscriptions.filter(sub => {
           return Object.keys(query).every(key => {
             if (query[key] === undefined) return true;
@@ -139,41 +150,43 @@ function createMinimalFileDB() {
         return [];
       }
     },
-    
-    findById: async (id) => {
+
+    findById: async id => {
       try {
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
         if (!data.subscriptions) return null;
-        
+
         return data.subscriptions.find(sub => sub._id === id) || null;
       } catch (err) {
         console.error('Error reading subscription by id from file:', err);
         return null;
       }
     },
-    
+
     findOne: async (query = {}) => {
       try {
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
         if (!data.subscriptions) return null;
-        
-        return data.subscriptions.find(sub => {
-          return Object.keys(query).every(key => {
-            if (query[key] === undefined) return true;
-            return sub[key] === query[key];
-          });
-        }) || null;
+
+        return (
+          data.subscriptions.find(sub => {
+            return Object.keys(query).every(key => {
+              if (query[key] === undefined) return true;
+              return sub[key] === query[key];
+            });
+          }) || null
+        );
       } catch (err) {
         console.error('Error reading subscription from file:', err);
         return null;
       }
     },
-    
+
     count: async (query = {}) => {
       try {
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
         if (!data.subscriptions) return 0;
-        
+
         return data.subscriptions.filter(sub => {
           return Object.keys(query).every(key => {
             if (query[key] === undefined) return true;
@@ -185,7 +198,7 @@ function createMinimalFileDB() {
         return 0;
       }
     },
-    
+
     countDocuments: async (query = {}) => {
       try {
         return await this.count(query);
@@ -193,7 +206,7 @@ function createMinimalFileDB() {
         console.error('Error counting subscription documents:', err);
         return 0;
       }
-    }
+    },
   };
 }
 
@@ -201,9 +214,9 @@ function createMinimalFileDB() {
 const Subscription = {
   // Attach MongoDB model properties
   ...MongoSubscription,
-  
+
   // Core MongoDB-compatible methods
-  find: async function(query = {}) {
+  find: async function (query = {}) {
     try {
       return await getFileDBSubscription().find(query);
     } catch (err) {
@@ -211,8 +224,8 @@ const Subscription = {
       return [];
     }
   },
-  
-  findById: async function(id) {
+
+  findById: async function (id) {
     try {
       return await getFileDBSubscription().findById(id);
     } catch (err) {
@@ -220,8 +233,8 @@ const Subscription = {
       return null;
     }
   },
-  
-  findOne: async function(query = {}) {
+
+  findOne: async function (query = {}) {
     try {
       return await getFileDBSubscription().findOne(query);
     } catch (err) {
@@ -229,8 +242,8 @@ const Subscription = {
       return null;
     }
   },
-  
-  count: async function(query = {}) {
+
+  count: async function (query = {}) {
     try {
       return await getFileDBSubscription().count(query);
     } catch (err) {
@@ -238,8 +251,8 @@ const Subscription = {
       return 0;
     }
   },
-  
-  countDocuments: async function(query = {}) {
+
+  countDocuments: async function (query = {}) {
     try {
       return await getFileDBSubscription().countDocuments(query);
     } catch (err) {
@@ -247,25 +260,25 @@ const Subscription = {
       return 0;
     }
   },
-  
+
   // MongoDB model methods (pass through)
-  populate: async function(docs, path) {
+  populate: async function (docs, path) {
     try {
       // Create dummy populate function if FileDBSubscription doesn't have it
       if (!getFileDBSubscription().populate) {
         console.log('Using fallback populate method');
         return docs;
       }
-      
+
       return await getFileDBSubscription().populate(docs, path);
     } catch (err) {
       console.error('Error in Subscription.populate:', err);
       return docs;
     }
   },
-  
+
   // Utility methods
-  createDemo: async function(userId) {
+  createDemo: async function (userId) {
     try {
       // Create demo subscription
       const demoSubscription = {
@@ -281,9 +294,9 @@ const Subscription = {
         user: userId,
         status: 'active',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
-      
+
       // Use FileDBSubscription if available, otherwise create directly in file
       if (getFileDBSubscription().create) {
         return await getFileDBSubscription().create(demoSubscription);
@@ -291,24 +304,24 @@ const Subscription = {
         // Manual creation in db.json
         const dbPath = path.join(__dirname, '..', 'data', 'db.json');
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-        
+
         if (!data.subscriptions) {
           data.subscriptions = [];
         }
-        
+
         // Generate ID if not present
         demoSubscription._id = 'demo-' + Date.now();
-        
+
         data.subscriptions.push(demoSubscription);
         fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-        
+
         return demoSubscription;
       }
     } catch (err) {
       console.error('Error creating demo subscription:', err);
       throw err;
     }
-  }
+  },
 };
 
-module.exports = Subscription; 
+module.exports = Subscription;

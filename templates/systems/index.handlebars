@@ -36,7 +36,7 @@
                 <td>{{systemType}}</td>
                 <td>{{environment}}</td>
                 <td>
-                  <span class="badge bg-{{systemStatusClass status}}">
+                  <span class="badge bg-{{#if (eq status "Active")}}success{{else if (eq status "Inactive")}}secondary{{else if (eq status "Expired")}}danger{{else if (eq status "Pending")}}warning{{else if (eq status "Suspended")}}info{{else}}secondary{{/if}}">
                     {{status}}
                   </span>
                 </td>
@@ -84,16 +84,16 @@
                   </div>
                 </td>
               </tr>
+            {{else}}
+              <tr>
+                <td colspan="6" class="text-center">
+                  <p class="my-3">No systems found</p>
+                  <a href="/systems/add" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-1"></i> Add Your First System
+                  </a>
+                </td>
+              </tr>
             {{/each}}
-          {{else}}
-            <tr>
-              <td colspan="6" class="text-center">
-                <p class="my-3">No systems found</p>
-                <a href="/systems/add" class="btn btn-primary">
-                  <i class="fas fa-plus-circle me-1"></i> Add Your First System
-                </a>
-              </td>
-            </tr>
           {{/if}}
         </tbody>
       </table>
@@ -102,66 +102,17 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    try {
-      // Make sure jQuery is available
-      if (typeof $ === 'undefined') {
-        console.error('jQuery is not available!');
-        return;
+$(document).ready(function() {
+  // Check if DataTable is already initialized
+  if (!$.fn.DataTable.isDataTable('.datatable')) {
+    $('.datatable').DataTable({
+      responsive: true,
+      order: [[0, 'asc']],
+      pageLength: 25,
+      language: {
+        search: "Filter:"
       }
-      
-      // Make sure DataTables plugin is available
-      if (typeof $.fn.DataTable === 'undefined') {
-        console.error('DataTables plugin is not available!');
-        return;
-      }
-      
-      // Clean any broken DataTable instances
-      $('.datatable').each(function() {
-        try {
-          // First check if there are any elements with _DT_CellIndex set incorrectly
-          $(this).find('td').removeAttr('_DT_CellIndex');
-          
-          // If a DataTable instance exists on this element, destroy it properly
-          if ($.fn.DataTable.isDataTable(this)) {
-            $(this).DataTable().destroy();
-          }
-        } catch (err) {
-          console.error('Error cleaning up DataTable:', err);
-        }
-      });
-      
-      // Initialize DataTables with proper column definitions
-      $('.datatable').DataTable({
-        responsive: false,
-        pageLength: 10,
-        lengthMenu: [5, 10, 25, 50],
-        language: {
-          search: "Filter records:"
-        },
-        ordering: true,
-        searching: true,
-        paging: true,
-        columns: [
-          { data: 'name', title: 'Name' },
-          { data: 'type', title: 'Type' },
-          { data: 'environment', title: 'Environment' },
-          { data: 'status', title: 'Status' },
-          { data: 'licenses', title: 'Licenses' },
-          { data: 'actions', title: 'Actions', orderable: false, searchable: false }
-        ],
-        columnDefs: [
-          {
-            targets: -1, // Last column (Actions)
-            orderable: false,
-            searchable: false
-          }
-        ]
-      });
-      
-      console.log('DataTables initialization complete for systems table.');
-    } catch (err) {
-      console.error('Error initializing DataTables:', err);
-    }
-  });
+    });
+  }
+});
 </script>

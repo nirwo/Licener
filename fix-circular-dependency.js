@@ -8,8 +8,8 @@ const path = require('path');
 const subscriptionPath = path.join(__dirname, 'models', 'Subscription.js');
 if (fs.existsSync(subscriptionPath)) {
   console.log('Fixing models/Subscription.js...');
-  let content = fs.readFileSync(subscriptionPath, 'utf8');
-  
+  const content = fs.readFileSync(subscriptionPath, 'utf8');
+
   // Fix the circular dependency by removing direct require of file-db
   // and instead using dynamic require within each method
   const fixedContent = content.replace(
@@ -29,16 +29,19 @@ function getFileDBSubscription() {
   return FileDBSubscription;
 }`
   );
-  
+
   // Fix the Subscription methods to use dynamic import
   const methodsToFix = ['find', 'findById', 'findOne', 'countDocuments', 'count'];
   let updatedContent = fixedContent;
-  
+
   methodsToFix.forEach(method => {
-    const regex = new RegExp(`(async\\s+${method}\\s*\\([^)]*\\)\\s*{[\\s\\S]*?)FileDBSubscription\\.${method}`, 'g');
+    const regex = new RegExp(
+      `(async\\s+${method}\\s*\\([^)]*\\)\\s*{[\\s\\S]*?)FileDBSubscription\\.${method}`,
+      'g'
+    );
     updatedContent = updatedContent.replace(regex, `$1getFileDBSubscription().${method}`);
   });
-  
+
   // Write the fixed content back to the file
   fs.writeFileSync(subscriptionPath, updatedContent);
   console.log('Fixed models/Subscription.js');
@@ -48,8 +51,8 @@ function getFileDBSubscription() {
 const fileDbPath = path.join(__dirname, 'utils', 'file-db.js');
 if (fs.existsSync(fileDbPath)) {
   console.log('Fixing utils/file-db.js...');
-  let content = fs.readFileSync(fileDbPath, 'utf8');
-  
+  const content = fs.readFileSync(fileDbPath, 'utf8');
+
   // Fix the circular dependency in file-db.js
   const fixedContent = content.replace(
     // Match the problematic require
@@ -69,7 +72,7 @@ function getSubscriptionModel() {
   }
 }`
   );
-  
+
   // Write the fixed content back to the file
   fs.writeFileSync(fileDbPath, fixedContent);
   console.log('Fixed utils/file-db.js');
@@ -92,7 +95,7 @@ if (!fs.existsSync(dbJsonPath)) {
     subscriptions: [],
     users: [],
     systems: [],
-    vendors: []
+    vendors: [],
   };
   fs.writeFileSync(dbJsonPath, JSON.stringify(initialData, null, 2));
   console.log('Created db.json with empty collections');
@@ -116,7 +119,7 @@ if (!fs.existsSync(dbJsonPath)) {
       subscriptions: [],
       users: [],
       systems: [],
-      vendors: []
+      vendors: [],
     };
     fs.writeFileSync(dbJsonPath, JSON.stringify(initialData, null, 2));
     console.log('Created new db.json with empty collections');
@@ -127,7 +130,7 @@ if (!fs.existsSync(dbJsonPath)) {
 console.log('Adding demo subscription...');
 try {
   const data = JSON.parse(fs.readFileSync(dbJsonPath, 'utf8'));
-  
+
   const demoSubscription = {
     _id: 'demo1',
     name: 'Demo Subscription',
@@ -142,9 +145,9 @@ try {
     user: 'demo-user',
     status: 'active',
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
-  
+
   // Check if demo subscription already exists
   const existingIndex = data.subscriptions.findIndex(s => s._id === 'demo1');
   if (existingIndex >= 0) {
@@ -154,11 +157,11 @@ try {
     console.log('Adding new demo subscription...');
     data.subscriptions.push(demoSubscription);
   }
-  
+
   fs.writeFileSync(dbJsonPath, JSON.stringify(data, null, 2));
   console.log('Demo subscription added/updated in db.json');
 } catch (err) {
   console.error('Error adding demo subscription:', err.message);
 }
 
-console.log('Fixes completed! Please restart your application.'); 
+console.log('Fixes completed! Please restart your application.');

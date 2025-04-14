@@ -5,7 +5,7 @@ const cheerio = require('cheerio');
 // Show research form
 exports.showResearchForm = (req, res) => {
   res.render('vendors/research/form', {
-    title: 'Vendor Research'
+    title: 'Vendor Research',
   });
 };
 
@@ -13,22 +13,22 @@ exports.showResearchForm = (req, res) => {
 exports.processResearch = async (req, res) => {
   try {
     const { searchTerm, source } = req.body;
-    
+
     if (!searchTerm) {
       req.flash('error_msg', 'Search term is required');
       return res.redirect('/vendors/research/form');
     }
-    
+
     // Store search parameters in session
     req.session.vendorSearch = {
       searchTerm,
       source,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    
+
     // Perform search based on selected source
     let results = [];
-    
+
     if (source === 'web' || !source) {
       // Web search
       results = await performWebSearch(searchTerm);
@@ -39,10 +39,10 @@ exports.processResearch = async (req, res) => {
       // LinkedIn search (premium API - mock data for now)
       results = mockLinkedInSearch(searchTerm);
     }
-    
+
     // Store results in session
     req.session.vendorResults = results;
-    
+
     res.redirect('/vendors/research/results');
   } catch (err) {
     console.error('Error researching vendors:', err);
@@ -56,11 +56,11 @@ exports.showResults = (req, res) => {
   // Get results from session
   const results = req.session.vendorResults || [];
   const searchInfo = req.session.vendorSearch || {};
-  
+
   res.render('vendors/research/results', {
     title: 'Research Results',
     results,
-    searchInfo
+    searchInfo,
   });
 };
 
@@ -68,27 +68,27 @@ exports.showResults = (req, res) => {
 exports.saveVendor = async (req, res) => {
   try {
     const { index } = req.body;
-    
+
     // Get results from session
     const results = req.session.vendorResults || [];
-    
+
     if (!results[index]) {
       req.flash('error_msg', 'Selected vendor result not found');
       return res.redirect('/vendors/research/results');
     }
-    
+
     const vendorData = results[index];
-    
+
     // Check if vendor already exists
-    const existingVendor = await Vendor.findOne({ 
-      name: { $regex: new RegExp('^' + vendorData.name + '$', 'i') } 
+    const existingVendor = await Vendor.findOne({
+      name: { $regex: new RegExp('^' + vendorData.name + '$', 'i') },
     });
-    
+
     if (existingVendor) {
       req.flash('error_msg', 'A vendor with this name already exists');
       return res.redirect('/vendors/research/results');
     }
-    
+
     // Create new vendor
     const newVendor = new Vendor({
       name: vendorData.name,
@@ -97,11 +97,11 @@ exports.saveVendor = async (req, res) => {
       contactEmail: vendorData.email,
       contactPhone: vendorData.phone,
       address: vendorData.location,
-      notes: `Added from research on ${new Date().toLocaleDateString()}`
+      notes: `Added from research on ${new Date().toLocaleDateString()}`,
     });
-    
+
     await newVendor.save();
-    
+
     req.flash('success_msg', 'Vendor added successfully');
     res.redirect(`/vendors/view/${newVendor._id}`);
   } catch (err) {
@@ -116,7 +116,7 @@ async function performWebSearch(searchTerm) {
   try {
     // Simulated web scraping results
     // In a real implementation, this would use axios to fetch data and cheerio to parse it
-    
+
     // For demo purposes, return mock results
     return [
       {
@@ -127,7 +127,7 @@ async function performWebSearch(searchTerm) {
         phone: '+1 (800) 555-1234',
         location: 'San Francisco, CA',
         foundedYear: '2010',
-        employees: '100-500'
+        employees: '100-500',
       },
       {
         name: `${searchTerm} Solutions Inc.`,
@@ -137,7 +137,7 @@ async function performWebSearch(searchTerm) {
         phone: '+1 (888) 555-5678',
         location: 'New York, NY',
         foundedYear: '2005',
-        employees: '500-1000'
+        employees: '500-1000',
       },
       {
         name: `${searchTerm} Group`,
@@ -147,8 +147,8 @@ async function performWebSearch(searchTerm) {
         phone: '+1 (866) 555-9012',
         location: 'Austin, TX',
         foundedYear: '2015',
-        employees: '50-100'
-      }
+        employees: '50-100',
+      },
     ];
   } catch (error) {
     console.error('Web search error:', error);
@@ -168,7 +168,7 @@ function mockCrunchbaseSearch(searchTerm) {
       location: 'Boston, MA',
       foundedYear: '2012',
       employees: '200-500',
-      funding: '$24M Series B'
+      funding: '$24M Series B',
     },
     {
       name: `${searchTerm} AI`,
@@ -179,8 +179,8 @@ function mockCrunchbaseSearch(searchTerm) {
       location: 'Palo Alto, CA',
       foundedYear: '2018',
       employees: '25-50',
-      funding: '$8M Seed'
-    }
+      funding: '$8M Seed',
+    },
   ];
 }
 
@@ -196,7 +196,7 @@ function mockLinkedInSearch(searchTerm) {
       location: 'Seattle, WA',
       foundedYear: '2008',
       employees: '1000+',
-      industry: 'Information Technology'
+      industry: 'Information Technology',
     },
     {
       name: `${searchTerm} Systems`,
@@ -207,7 +207,7 @@ function mockLinkedInSearch(searchTerm) {
       location: 'Chicago, IL',
       foundedYear: '2010',
       employees: '500-1000',
-      industry: 'Enterprise Software'
-    }
+      industry: 'Enterprise Software',
+    },
   ];
-} 
+}

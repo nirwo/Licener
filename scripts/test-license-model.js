@@ -13,7 +13,7 @@ async function connectDB() {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/licener', {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
     });
     console.log('MongoDB connected successfully');
   } catch (err) {
@@ -28,13 +28,13 @@ async function getValidUserId() {
     if (User) {
       console.log('Fetching users from database...');
       const users = await User.find({}).limit(1);
-      
+
       if (users && users.length > 0) {
         console.log(`Found user: ${users[0].name || users[0].email || 'Unknown'}`);
         return users[0]._id;
       }
     }
-    
+
     // If no users found or User model not available, return a dummy ID
     console.log('No users found or User model not available, using a dummy ID');
     return new mongoose.Types.ObjectId();
@@ -46,16 +46,16 @@ async function getValidUserId() {
 
 async function testLicenseModel() {
   console.log('===== Testing License Model =====');
-  
+
   // Get a valid user ID
   const testUserId = await getValidUserId();
   console.log('Using user ID for testing:', testUserId);
-  
+
   try {
     // Check License model properties
     console.log('License model properties:', Object.keys(License));
     console.log('Is createDemo method available?', typeof License.createDemo === 'function');
-    
+
     // Test creating a demo license
     console.log('\nTesting License.createDemo method...');
     if (typeof License.createDemo === 'function') {
@@ -67,14 +67,14 @@ async function testLicenseModel() {
           name: demoLicense.name,
           product: demoLicense.product,
           vendor: demoLicense.vendor,
-          owner: demoLicense.owner
+          owner: demoLicense.owner,
         });
       } catch (err) {
         console.error('Failed to create demo license:', err);
       }
     } else {
       console.log('createDemo method not available - testing manual creation');
-      
+
       // Try creating a test license manually
       const licenseData = {
         name: 'Test License',
@@ -90,46 +90,45 @@ async function testLicenseModel() {
         currency: 'USD',
         notes: 'This is a test license',
         status: 'active',
-        owner: testUserId
+        owner: testUserId,
       };
-      
+
       const testLicense = new License(licenseData);
       const savedLicense = await testLicense.save();
       console.log('Test license created manually:', {
         id: savedLicense._id,
         name: savedLicense.name,
-        vendor: savedLicense.vendor
+        vendor: savedLicense.vendor,
       });
     }
-    
+
     // Test fetching all licenses
     console.log('\nTesting License.find()...');
     const allLicenses = await License.find({});
     console.log(`Found ${allLicenses.length} licenses in the database`);
-    
+
     if (allLicenses.length > 0) {
       console.log('First license details:', {
         id: allLicenses[0]._id,
         name: allLicenses[0].name,
         product: allLicenses[0].product,
-        vendor: allLicenses[0].vendor
+        vendor: allLicenses[0].vendor,
       });
-      
+
       // Test License.findById
       console.log('\nTesting License.findById...');
       const licenseId = allLicenses[0]._id;
       const foundLicense = await License.findById(licenseId);
-      
+
       if (foundLicense) {
         console.log(`License found by ID ${licenseId}:`, {
           id: foundLicense._id,
-          name: foundLicense.name
+          name: foundLicense.name,
         });
       } else {
         console.log(`No license found with ID ${licenseId}`);
       }
     }
-    
   } catch (err) {
     console.error('Error testing License model:', err);
   } finally {
@@ -145,4 +144,4 @@ async function main() {
   await testLicenseModel();
 }
 
-main().catch(console.error); 
+main().catch(console.error);

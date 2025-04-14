@@ -10,7 +10,7 @@ const User = require('../models/User');
 // Use chai-http plugin
 chai.use(chaiHttp);
 
-describe('Licener Integration Tests', function() {
+describe('Licener Integration Tests', function () {
   let mongoServer;
   let app;
   let testUser;
@@ -18,45 +18,45 @@ describe('Licener Integration Tests', function() {
   let testSystem;
   let agent;
 
-  before(async function() {
+  before(async function () {
     this.timeout(30000); // Increase timeout for MongoDB setup
-    
+
     // Create in-memory MongoDB server
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
-    
+
     // Set environment variable for MongoDB URI
     process.env.MONGO_URI = mongoUri;
-    
+
     // Load the app
     app = require('../app');
-    
+
     // Setup chai agent
     agent = chai.request.agent(app);
-    
+
     // Create test user
     const userData = {
       name: 'Test User',
       email: 'test@example.com',
       password: 'password123',
-      role: 'admin'
+      role: 'admin',
     };
-    
+
     const user = new User(userData);
     testUser = await user.save();
-    
+
     // Mock authentication (since we're not testing auth in this suite)
     app._router.stack.forEach(layer => {
       if (layer.route) {
         layer.route.stack.forEach(layer => {
           if (layer.name === 'ensureAuthenticated') {
-            layer.handle = function(req, res, next) {
+            layer.handle = function (req, res, next) {
               req.user = {
                 id: testUser._id,
                 _id: testUser._id,
                 name: testUser.name,
                 email: testUser.email,
-                role: testUser.role
+                role: testUser.role,
               };
               req.isAuthenticated = () => true;
               return next();
@@ -68,13 +68,13 @@ describe('Licener Integration Tests', function() {
           if (layer.route) {
             layer.route.stack.forEach(layer => {
               if (layer.name === 'ensureAuthenticated') {
-                layer.handle = function(req, res, next) {
+                layer.handle = function (req, res, next) {
                   req.user = {
                     id: testUser._id,
                     _id: testUser._id,
                     name: testUser.name,
                     email: testUser.email,
-                    role: testUser.role
+                    role: testUser.role,
                   };
                   req.isAuthenticated = () => true;
                   return next();
@@ -87,17 +87,17 @@ describe('Licener Integration Tests', function() {
     });
   });
 
-  after(async function() {
+  after(async function () {
     // Disconnect from database and stop MongoDB server
     await mongoose.disconnect();
     await mongoServer.stop();
   });
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     // Clear database before each test
     await License.deleteMany({});
     await System.deleteMany({});
-    
+
     // Create test license and system for each test
     const licenseData = {
       name: 'Test License',
@@ -113,9 +113,9 @@ describe('Licener Integration Tests', function() {
       notes: 'Test Notes',
       status: 'active',
       assignedSystems: [],
-      owner: testUser._id
+      owner: testUser._id,
     };
-    
+
     const systemData = {
       name: 'Test System',
       type: 'virtual',
@@ -128,29 +128,29 @@ describe('Licener Integration Tests', function() {
         {
           name: 'Test Software',
           version: '1.0',
-          installDate: new Date()
-        }
+          installDate: new Date(),
+        },
       ],
       licenseRequirements: [],
       notes: 'Test Notes',
-      status: 'active'
+      status: 'active',
     };
-    
+
     testLicense = new License(licenseData);
     await testLicense.save();
-    
+
     testSystem = new System(systemData);
     await testSystem.save();
   });
 
   // Test license listing endpoint
-  it('should retrieve licenses', async function() {
+  it('should retrieve licenses', async function () {
     const res = await agent.get('/licenses');
     expect(res).to.have.status(200);
   });
 
   // Test creating a new license
-  it('should create a new license', async function() {
+  it('should create a new license', async function () {
     const newLicense = {
       name: 'New Test License',
       product: 'New Product',
@@ -162,15 +162,13 @@ describe('Licener Integration Tests', function() {
       currency: 'USD',
       vendor: 'New Vendor',
       notes: 'New test license notes',
-      status: 'active'
+      status: 'active',
     };
-    
-    const res = await agent
-      .post('/licenses')
-      .send(newLicense);
-    
+
+    const res = await agent.post('/licenses').send(newLicense);
+
     expect(res).to.have.status(200);
-    
+
     // Check that license was created in the database
     const licenses = await License.find({ name: 'New Test License' });
     expect(licenses).to.have.lengthOf(1);
@@ -178,31 +176,28 @@ describe('Licener Integration Tests', function() {
   });
 
   // Test deleting a license
-  it('should delete a license', async function() {
-    const res = await agent
-      .post(`/licenses/${testLicense._id}/delete`);
-    
+  it('should delete a license', async function () {
+    const res = await agent.post(`/licenses/${testLicense._id}/delete`);
+
     expect(res).to.have.status(200);
-    
+
     // Check that license was deleted from the database
     const license = await License.findById(testLicense._id);
     expect(license).to.be.null;
   });
 
   // Test updating a license
-  it('should update a license', async function() {
+  it('should update a license', async function () {
     const updateData = {
       name: 'Updated License Name',
       status: 'renewed',
-      notes: 'Updated test notes'
+      notes: 'Updated test notes',
     };
-    
-    const res = await agent
-      .post(`/licenses/${testLicense._id}?_method=PUT`)
-      .send(updateData);
-    
+
+    const res = await agent.post(`/licenses/${testLicense._id}?_method=PUT`).send(updateData);
+
     expect(res).to.have.status(200);
-    
+
     // Check that license was updated in the database
     const license = await License.findById(testLicense._id);
     expect(license.name).to.equal('Updated License Name');
@@ -210,23 +205,21 @@ describe('Licener Integration Tests', function() {
   });
 
   // Test assigning a system to a license
-  it('should assign a system to a license', async function() {
+  it('should assign a system to a license', async function () {
     // Update license with assigned system
     const updateData = {
-      assignedSystems: [testSystem._id]
+      assignedSystems: [testSystem._id],
     };
-    
-    const res = await agent
-      .post(`/licenses/${testLicense._id}?_method=PUT`)
-      .send(updateData);
-    
+
+    const res = await agent.post(`/licenses/${testLicense._id}?_method=PUT`).send(updateData);
+
     expect(res).to.have.status(200);
-    
+
     // Check that license was updated with system reference
     const license = await License.findById(testLicense._id);
     expect(license.assignedSystems).to.have.lengthOf(1);
     expect(license.assignedSystems[0].toString()).to.equal(testSystem._id.toString());
-    
+
     // Check that system has license requirement
     const system = await System.findById(testSystem._id);
     expect(system.licenseRequirements).to.have.lengthOf(1);

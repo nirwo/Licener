@@ -30,20 +30,20 @@ async function connectDB() {
 // Clear all collections
 async function clearDatabase() {
   console.log('Clearing database collections...');
-  
+
   try {
     await User.deleteMany({});
     console.log('Users collection cleared');
-    
+
     await License.deleteMany({});
     console.log('Licenses collection cleared');
-    
+
     await System.deleteMany({});
     console.log('Systems collection cleared');
-    
+
     await Vendor.deleteMany({});
     console.log('Vendors collection cleared');
-    
+
     console.log('All collections cleared successfully');
   } catch (err) {
     console.error('Error clearing database:', err);
@@ -54,12 +54,12 @@ async function clearDatabase() {
 // Create default admin user
 async function createAdminUser() {
   console.log('Creating default admin user...');
-  
+
   try {
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('admin123', salt);
-    
+
     // Create admin user
     const adminUser = new User({
       name: 'Admin User',
@@ -67,12 +67,12 @@ async function createAdminUser() {
       password: hashedPassword,
       role: 'admin',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
-    
+
     await adminUser.save();
     console.log('Admin user created successfully:', adminUser._id);
-    
+
     return adminUser;
   } catch (err) {
     console.error('Error creating admin user:', err);
@@ -83,7 +83,7 @@ async function createAdminUser() {
 // Create default vendors
 async function createDefaultVendors() {
   console.log('Creating default vendors...');
-  
+
   try {
     const vendors = [
       {
@@ -94,7 +94,7 @@ async function createDefaultVendors() {
         contactEmail: 'sales@microsoft.com',
         contactPhone: '1-800-MICROSOFT',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         name: 'Adobe',
@@ -104,23 +104,24 @@ async function createDefaultVendors() {
         contactEmail: 'sales@adobe.com',
         contactPhone: '1-800-ADOBE',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         name: 'Oracle',
-        description: 'Oracle Corporation is an American multinational computer technology corporation.',
+        description:
+          'Oracle Corporation is an American multinational computer technology corporation.',
         website: 'https://www.oracle.com',
         contactName: 'Oracle Sales',
         contactEmail: 'sales@oracle.com',
         contactPhone: '1-800-ORACLE-1',
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
-    
+
     const createdVendors = await Vendor.insertMany(vendors);
     console.log(`${createdVendors.length} vendors created successfully`);
-    
+
     return createdVendors;
   } catch (err) {
     console.error('Error creating vendors:', err);
@@ -131,7 +132,7 @@ async function createDefaultVendors() {
 // Create default systems
 async function createDefaultSystems(adminId) {
   console.log('Creating default systems...');
-  
+
   try {
     const systems = [
       {
@@ -147,7 +148,7 @@ async function createDefaultSystems(adminId) {
         department: 'IT',
         managedBy: adminId,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         name: 'Production Web Server',
@@ -162,7 +163,7 @@ async function createDefaultSystems(adminId) {
         department: 'IT',
         managedBy: adminId,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         name: 'Design Department Workstation',
@@ -177,13 +178,13 @@ async function createDefaultSystems(adminId) {
         department: 'Design',
         managedBy: adminId,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
-    
+
     const createdSystems = await System.insertMany(systems);
     console.log(`${createdSystems.length} systems created successfully`);
-    
+
     return createdSystems;
   } catch (err) {
     console.error('Error creating systems:', err);
@@ -194,10 +195,10 @@ async function createDefaultSystems(adminId) {
 // Create default licenses
 async function createDefaultLicenses(adminId, systems, vendors) {
   console.log('Creating default licenses...');
-  
+
   try {
     const now = new Date();
-    
+
     const licenses = [
       {
         name: 'Microsoft Office 365',
@@ -216,7 +217,7 @@ async function createDefaultLicenses(adminId, systems, vendors) {
         assignedSystems: [systems[2]._id], // Design workstation
         owner: adminId,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         name: 'Adobe Creative Cloud',
@@ -235,7 +236,7 @@ async function createDefaultLicenses(adminId, systems, vendors) {
         assignedSystems: [systems[2]._id], // Design workstation
         owner: adminId,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         name: 'Oracle Database Enterprise',
@@ -254,33 +255,30 @@ async function createDefaultLicenses(adminId, systems, vendors) {
         assignedSystems: [systems[0]._id, systems[1]._id], // Dev and Prod servers
         owner: adminId,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
-    
+
     const createdLicenses = await License.insertMany(licenses);
     console.log(`${createdLicenses.length} licenses created successfully`);
-    
+
     // Update systems with license requirements
     for (const license of createdLicenses) {
       if (license.assignedSystems && license.assignedSystems.length > 0) {
         for (const systemId of license.assignedSystems) {
-          await System.findByIdAndUpdate(
-            systemId,
-            {
-              $push: {
-                licenseRequirements: {
-                  licenseType: license.product,
-                  quantity: 1,
-                  licenseId: license._id
-                }
-              }
-            }
-          );
+          await System.findByIdAndUpdate(systemId, {
+            $push: {
+              licenseRequirements: {
+                licenseType: license.product,
+                quantity: 1,
+                licenseId: license._id,
+              },
+            },
+          });
         }
       }
     }
-    
+
     return createdLicenses;
   } catch (err) {
     console.error('Error creating licenses:', err);
@@ -291,22 +289,22 @@ async function createDefaultLicenses(adminId, systems, vendors) {
 // Main function
 async function resetDatabase() {
   console.log('Starting database reset...');
-  
+
   try {
     // Connect to MongoDB
     await connectDB();
-    
+
     // Clear database
     await clearDatabase();
-    
+
     // Create default data
     const adminUser = await createAdminUser();
     const vendors = await createDefaultVendors();
     const systems = await createDefaultSystems(adminUser._id);
     const licenses = await createDefaultLicenses(adminUser._id, systems, vendors);
-    
+
     console.log('Database reset completed successfully!');
-    
+
     // Disconnect from MongoDB
     await mongoose.disconnect();
     console.log('Disconnected from MongoDB');
@@ -318,4 +316,4 @@ async function resetDatabase() {
 }
 
 // Run the script
-resetDatabase(); 
+resetDatabase();

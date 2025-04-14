@@ -8,41 +8,41 @@ const mongoose = require('mongoose');
 const VendorSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
-    type: String
+    type: String,
   },
   website: {
-    type: String
+    type: String,
   },
   contactName: {
-    type: String
+    type: String,
   },
   contactEmail: {
-    type: String
+    type: String,
   },
   contactPhone: {
-    type: String
+    type: String,
   },
   address: {
-    type: String
+    type: String,
   },
   notes: {
-    type: String
+    type: String,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // Update 'updatedAt' on save
-VendorSchema.pre('save', function(next) {
+VendorSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });

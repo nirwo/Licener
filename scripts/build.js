@@ -18,7 +18,7 @@ const filesToCopy = [
   'routes',
   'controllers',
   'templates',
-  'config'
+  'config',
 ];
 
 console.log('🚀 Starting production build...');
@@ -27,7 +27,7 @@ console.log('🚀 Starting production build...');
 filesToCopy.forEach(file => {
   const source = path.join(__dirname, '..', file);
   const destination = path.join(publicDir, file);
-  
+
   if (fs.existsSync(source)) {
     if (fs.lstatSync(source).isDirectory()) {
       // Copy directory recursively
@@ -54,10 +54,7 @@ execSync('npm install --production', { cwd: publicDir });
 
 // Create .env file from .env.production
 console.log('🔧 Setting up environment...');
-fs.copyFileSync(
-  path.join(publicDir, '.env.production'),
-  path.join(publicDir, '.env')
-);
+fs.copyFileSync(path.join(publicDir, '.env.production'), path.join(publicDir, '.env'));
 
 // Create a simple index.html for Netlify
 const indexHtml = `
@@ -79,4 +76,4 @@ const indexHtml = `
 fs.writeFileSync(path.join(publicDir, 'index.html'), indexHtml);
 
 console.log('✅ Build completed successfully!');
-console.log(`📁 Build directory: ${publicDir}`); 
+console.log(`📁 Build directory: ${publicDir}`);

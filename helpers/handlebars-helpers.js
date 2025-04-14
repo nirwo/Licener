@@ -8,31 +8,31 @@ const moment = require('moment');
 // Helper function to format dates with Moment.js
 function formatDate(date, format) {
   if (!date) return '';
-  
+
   // If format is not provided, return a relative date format
   if (!format) {
     const dateObj = moment(date);
     const now = moment();
-    
+
     // If date is today
     if (dateObj.isSame(now, 'day')) {
       return `Today at ${dateObj.format('h:mm A')}`;
     }
-    
+
     // If date is yesterday
     if (dateObj.isSame(now.clone().subtract(1, 'day'), 'day')) {
       return `Yesterday at ${dateObj.format('h:mm A')}`;
     }
-    
+
     // If date is within the last week
     if (dateObj.isAfter(now.clone().subtract(7, 'days'))) {
       return dateObj.format('dddd [at] h:mm A'); // e.g., "Monday at 2:30 PM"
     }
-    
+
     // Otherwise use full date format
     return dateObj.format('MMMM Do YYYY, h:mm A');
   }
-  
+
   return moment(date).format(format);
 }
 
@@ -85,13 +85,18 @@ function daysRemainingClass(days) {
 // Helper function to get a CSS class based on subscription status
 function subscriptionStatusClass(status) {
   if (!status) return 'secondary';
-  
-  switch(status.toLowerCase()) {
-    case 'active': return 'success';
-    case 'pending': return 'warning';
-    case 'expired': return 'danger';
-    case 'renewed': return 'info';
-    default: return 'secondary';
+
+  switch (status.toLowerCase()) {
+    case 'active':
+    return 'success';
+    case 'pending':
+    return 'warning';
+    case 'expired':
+    return 'danger';
+    case 'renewed':
+    return 'info';
+    default:
+    return 'secondary';
   }
 }
 
@@ -111,18 +116,21 @@ function percentageClass(value) {
 // Helper function to convert a number to a currency format
 function formatCurrency(amount, currency = 'USD') {
   if (amount === undefined || amount === null) return '';
-  
+
   const currencySymbol = currency === 'EUR' ? '€' : '$';
-  return currencySymbol + parseFloat(amount).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  return (
+    currencySymbol +
+    parseFloat(amount).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  );
 }
 
 // Helper function to check if an array or object contains a value
 function contains(collection, value) {
   if (!collection) return false;
-  
+
   if (Array.isArray(collection)) {
     return collection.some(item => {
       // Handle ObjectId comparison
@@ -132,11 +140,11 @@ function contains(collection, value) {
       return item === value;
     });
   }
-  
+
   if (typeof collection === 'object') {
     return Object.values(collection).some(item => item === value);
   }
-  
+
   return false;
 }
 
@@ -183,5 +191,5 @@ module.exports = {
   isArray,
   nl2br,
   truncate,
-  join
-}; 
+  join,
+};

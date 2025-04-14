@@ -5,10 +5,10 @@ const License = require('../models/License');
 exports.list = async (req, res) => {
   try {
     const vendors = await Vendor.find({}).sort({ name: 1 });
-    
+
     res.render('vendors/index', {
       title: 'Vendors',
-      vendors
+      vendors,
     });
   } catch (err) {
     console.error('Error fetching vendors:', err);
@@ -20,29 +20,32 @@ exports.list = async (req, res) => {
 // View add vendor form
 exports.addForm = (req, res) => {
   res.render('vendors/add', {
-    title: 'Add Vendor'
+    title: 'Add Vendor',
   });
 };
 
 // Process add vendor form
 exports.create = async (req, res) => {
   try {
-    const { name, description, website, contactName, contactEmail, contactPhone, address, notes } = req.body;
-    
+    const { name, description, website, contactName, contactEmail, contactPhone, address, notes } =
+      req.body;
+
     // Validate input
     if (!name) {
       req.flash('error_msg', 'Vendor name is required');
       return res.redirect('/vendors/add');
     }
-    
+
     // Check if vendor already exists
-    const existingVendor = await Vendor.findOne({ name: { $regex: new RegExp('^' + name + '$', 'i') } });
-    
+    const existingVendor = await Vendor.findOne({
+      name: { $regex: new RegExp('^' + name + '$', 'i') },
+    });
+
     if (existingVendor) {
       req.flash('error_msg', 'A vendor with this name already exists');
       return res.redirect('/vendors/add');
     }
-    
+
     // Create new vendor
     const newVendor = new Vendor({
       name,
@@ -52,11 +55,11 @@ exports.create = async (req, res) => {
       contactEmail,
       contactPhone,
       address,
-      notes
+      notes,
     });
-    
+
     await newVendor.save();
-    
+
     req.flash('success_msg', 'Vendor added successfully');
     res.redirect('/vendors');
   } catch (err) {
@@ -70,15 +73,15 @@ exports.create = async (req, res) => {
 exports.editForm = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
-    
+
     if (!vendor) {
       req.flash('error_msg', 'Vendor not found');
       return res.redirect('/vendors');
     }
-    
+
     res.render('vendors/edit', {
       title: 'Edit Vendor',
-      vendor
+      vendor,
     });
   } catch (err) {
     console.error('Error fetching vendor for edit:', err);
@@ -90,14 +93,15 @@ exports.editForm = async (req, res) => {
 // Process edit vendor form
 exports.update = async (req, res) => {
   try {
-    const { name, description, website, contactName, contactEmail, contactPhone, address, notes } = req.body;
-    
+    const { name, description, website, contactName, contactEmail, contactPhone, address, notes } =
+      req.body;
+
     // Validate input
     if (!name) {
       req.flash('error_msg', 'Vendor name is required');
       return res.redirect(`/vendors/edit/${req.params.id}`);
     }
-    
+
     // Update vendor
     await Vendor.findByIdAndUpdate(req.params.id, {
       name,
@@ -108,9 +112,9 @@ exports.update = async (req, res) => {
       contactPhone,
       address,
       notes,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
-    
+
     req.flash('success_msg', 'Vendor updated successfully');
     res.redirect('/vendors');
   } catch (err) {
@@ -124,7 +128,7 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     await Vendor.findByIdAndDelete(req.params.id);
-    
+
     req.flash('success_msg', 'Vendor deleted successfully');
     res.redirect('/vendors');
   } catch (err) {
@@ -138,23 +142,23 @@ exports.delete = async (req, res) => {
 exports.view = async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
-    
+
     if (!vendor) {
       req.flash('error_msg', 'Vendor not found');
       return res.redirect('/vendors');
     }
-    
+
     // Get all licenses for this vendor
     const licenses = await License.find({ vendor: vendor.name });
-    
+
     res.render('vendors/view', {
       title: vendor.name,
       vendor,
-      licenses
+      licenses,
     });
   } catch (err) {
     console.error('Error loading vendor:', err);
     req.flash('error_msg', 'Error loading vendor details');
     res.redirect('/vendors');
   }
-}; 
+};

@@ -33,7 +33,7 @@ router.get('/delete/:id', ensureAuthenticated, vendorController.delete);
 // Show web researcher form
 router.get('/research', ensureAuthenticated, ensureAdmin, (req, res) => {
   res.render('vendors/research', {
-    title: 'Research Vendors'
+    title: 'Research Vendors',
   });
 });
 
@@ -41,27 +41,27 @@ router.get('/research', ensureAuthenticated, ensureAdmin, (req, res) => {
 router.post('/research', ensureAuthenticated, ensureAdmin, async (req, res) => {
   try {
     const { vendorName } = req.body;
-    
+
     if (!vendorName) {
       req.flash('error_msg', 'Vendor name is required');
       return res.redirect('/vendors/research');
     }
-    
+
     // Start the research process - this runs asynchronously
     const result = await webResearcher.researchAndUpdateVendor(vendorName);
-    
+
     if (result.success) {
       req.flash('success_msg', `Research completed for ${vendorName}`);
-      
+
       // If license types were found, show them
       if (result.licenseTypes && result.licenseTypes.length > 0) {
         req.session.researchResults = {
           vendor: result.vendor,
-          licenseTypes: result.licenseTypes
+          licenseTypes: result.licenseTypes,
         };
         return res.redirect('/vendors/research/results');
       }
-      
+
       res.redirect('/vendors');
     } else {
       req.flash('error_msg', `Error researching vendor: ${result.error}`);
@@ -78,11 +78,11 @@ router.post('/research', ensureAuthenticated, ensureAdmin, async (req, res) => {
 router.get('/research/results', ensureAuthenticated, (req, res) => {
   // Get results from session
   const results = req.session.researchResults || {};
-  
+
   res.render('vendors/research-results', {
     title: 'Research Results',
     vendor: results.vendor || {},
-    licenseTypes: results.licenseTypes || []
+    licenseTypes: results.licenseTypes || [],
   });
 });
 
@@ -90,27 +90,27 @@ router.get('/research/results', ensureAuthenticated, (req, res) => {
 router.post('/research/save', ensureAuthenticated, async (req, res) => {
   try {
     const { vendorId, selectedTypes } = req.body;
-    
+
     if (!vendorId || !selectedTypes) {
       req.flash('error_msg', 'Vendor ID and selected license types are required');
       return res.redirect('/vendors/research/results');
     }
-    
+
     const vendor = await Vendor.findById(vendorId);
     if (!vendor) {
       req.flash('error_msg', 'Vendor not found');
       return res.redirect('/vendors/research/results');
     }
-    
+
     // Update vendor with selected license types
     if (Array.isArray(selectedTypes)) {
-      vendor.licenseTypes = [...new Set([...vendor.licenseTypes || [], ...selectedTypes])];
+      vendor.licenseTypes = [...new Set([...(vendor.licenseTypes || []), ...selectedTypes])];
     } else {
-      vendor.licenseTypes = [...new Set([...vendor.licenseTypes || [], selectedTypes])];
+      vendor.licenseTypes = [...new Set([...(vendor.licenseTypes || []), selectedTypes])];
     }
-    
+
     await vendor.save();
-    
+
     req.flash('success_msg', 'License types saved successfully');
     res.redirect(`/vendors/${vendorId}`);
   } catch (err) {
@@ -123,7 +123,7 @@ router.post('/research/save', ensureAuthenticated, async (req, res) => {
 // Batch research form
 router.get('/research/batch', ensureAuthenticated, ensureAdmin, (req, res) => {
   res.render('vendors/batch-research', {
-    title: 'Batch Research Vendors'
+    title: 'Batch Research Vendors',
   });
 });
 
@@ -131,29 +131,32 @@ router.get('/research/batch', ensureAuthenticated, ensureAdmin, (req, res) => {
 router.post('/research/batch', ensureAuthenticated, ensureAdmin, async (req, res) => {
   try {
     const { vendorNames } = req.body;
-    
+
     if (!vendorNames) {
       req.flash('error_msg', 'Vendor names are required');
       return res.redirect('/vendors/research/batch');
     }
-    
+
     // Split the vendor names by newline or comma
-    const vendors = vendorNames.split(/[\n,]+/).map(name => name.trim()).filter(name => name.length > 0);
-    
+    const vendors = vendorNames
+      .split(/[\n,]+/)
+      .map(name => name.trim())
+      .filter(name => name.length > 0);
+
     if (vendors.length === 0) {
       req.flash('error_msg', 'No valid vendor names provided');
       return res.redirect('/vendors/research/batch');
     }
-    
+
     // Store the vendor list in session to process in the background
     req.session.batchVendors = vendors;
     req.session.batchResults = [];
     req.session.batchInProgress = true;
     req.session.batchStarted = new Date().toISOString();
-    
+
     req.flash('success_msg', `Started batch research for ${vendors.length} vendors`);
     res.redirect('/vendors/research/batch/status');
-    
+
     // Process vendors in the background
     processBatchVendors(req);
   } catch (err) {
@@ -169,14 +172,15 @@ router.get('/research/batch/status', ensureAuthenticated, ensureAdmin, (req, res
   const batchResults = req.session.batchResults || [];
   const batchVendors = req.session.batchVendors || [];
   const batchStarted = req.session.batchStarted || null;
-  
+
   res.render('vendors/batch-status', {
     title: 'Batch Research Status',
     batchInProgress,
     batchResults,
     batchVendors,
     batchStarted,
-    progress: batchVendors.length > 0 ? Math.round((batchResults.length / batchVendors.length) * 100) : 0
+    progress:
+      batchVendors.length > 0 ? Math.round((batchResults.length / batchVendors.length) * 100) : 0,
   });
 });
 
@@ -184,26 +188,26 @@ router.get('/research/batch/status', ensureAuthenticated, ensureAdmin, (req, res
 async function processBatchVendors(req) {
   try {
     const vendors = req.session.batchVendors || [];
-    
+
     if (vendors.length === 0) {
       req.session.batchInProgress = false;
       return;
     }
-    
+
     // Process vendors one by one
     for (const vendorName of vendors) {
       try {
         const result = await webResearcher.researchAndUpdateVendor(vendorName);
-        
+
         req.session.batchResults = req.session.batchResults || [];
         req.session.batchResults.push({
           vendorName,
           success: result.success,
           error: result.error,
           licenseTypesCount: result.licenseTypes ? result.licenseTypes.length : 0,
-          completedAt: new Date().toISOString()
+          completedAt: new Date().toISOString(),
         });
-        
+
         // Add a delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (err) {
@@ -213,11 +217,11 @@ async function processBatchVendors(req) {
           vendorName,
           success: false,
           error: err.message,
-          completedAt: new Date().toISOString()
+          completedAt: new Date().toISOString(),
         });
       }
     }
-    
+
     // Mark batch as completed
     req.session.batchInProgress = false;
   } catch (err) {

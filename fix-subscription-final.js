@@ -1,6 +1,6 @@
 /**
  * Final Subscription Fix Script
- * 
+ *
  * This script replaces the problematic Subscription.js file with a fixed version
  * that avoids circular dependencies and provides a more robust implementation.
  */
@@ -49,7 +49,7 @@ if (!fs.existsSync(dbFile)) {
     subscriptions: [],
     users: [],
     systems: [],
-    vendors: []
+    vendors: [],
   };
   fs.writeFileSync(dbFile, JSON.stringify(dbData, null, 2));
   console.log('✅ Created db.json with empty collections');
@@ -58,7 +58,7 @@ if (!fs.existsSync(dbFile)) {
   try {
     console.log('📄 Reading existing db.json...');
     dbData = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
-    
+
     // Ensure all collections exist
     ['subscriptions', 'users', 'systems', 'vendors'].forEach(collection => {
       if (!dbData[collection]) {
@@ -66,7 +66,7 @@ if (!fs.existsSync(dbFile)) {
         dbData[collection] = [];
       }
     });
-    
+
     // Write updated data back if changes were made
     fs.writeFileSync(dbFile, JSON.stringify(dbData, null, 2));
     console.log('✅ Verified db.json structure');
@@ -77,7 +77,7 @@ if (!fs.existsSync(dbFile)) {
       subscriptions: [],
       users: [],
       systems: [],
-      vendors: []
+      vendors: [],
     };
     fs.writeFileSync(dbFile, JSON.stringify(dbData, null, 2));
     console.log('✅ Created new db.json with empty collections');
@@ -101,9 +101,9 @@ if (!dbData.subscriptions || dbData.subscriptions.length === 0) {
     user: 'demo-user',
     status: 'active',
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
-  
+
   dbData.subscriptions.push(demoSubscription);
   fs.writeFileSync(dbFile, JSON.stringify(dbData, null, 2));
   console.log('✅ Added demo subscription to db.json');
@@ -112,4 +112,4 @@ if (!dbData.subscriptions || dbData.subscriptions.length === 0) {
 console.log('\n🎉 Subscription Fix Completed! 🎉');
 console.log('Please restart your application for the changes to take effect.');
 console.log('\nIf you still experience issues, please check the application logs');
-console.log('and ensure that the db.json file in the data directory is properly structured.'); 
+console.log('and ensure that the db.json file in the data directory is properly structured.');

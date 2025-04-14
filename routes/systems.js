@@ -4,74 +4,37 @@ const { ensureAuthenticated, ensureManager } = require('../middleware/auth');
 const System = require('../models/System');
 const License = require('../models/License');
 
-// Get all systems
+// List all systems
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
     console.log('User ID for systems query:', req.user._id);
-    
-    // Use enhanced System model methods
-    let systems = [];
-    if (req.user.role === 'admin') {
-      systems = await System.find({});
-    } else {
-      systems = await System.findByManager(req.user._id);
-    }
-    
-    // Filter by type if provided
-    if (req.query.type && req.query.type !== 'all') {
-      systems = systems.filter(system => system.type === req.query.type);
-    }
-    
-    // Apply manual filtering for text search (OS)
-    if (req.query.os) {
-      const osRegex = new RegExp(req.query.os, 'i');
-      systems = systems.filter(system => osRegex.test(system.os));
-    }
-    
-    // Filter by status if provided
-    if (req.query.status && req.query.status !== 'all') {
-      systems = systems.filter(system => system.status === req.query.status);
-    }
-    
-    // Sort by name
-    systems.sort((a, b) => a.name.localeCompare(b.name));
-    
-    // Populate references
-    systems = await System.populate(systems, 'managedBy');
-    systems = await System.populate(systems, 'licenseRequirements.licenseId');
-    
-    // Get unique OS values for filter dropdown
-    const osValues = System.distinct('os', { managedBy: req.user._id });
-
-    // Fixing potential variable usage before definition
-    const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-    let expiringLicenses = [];
-    try {
-      expiringLicenses = await License.find({
-        owner: req.user._id,
-        expiryDate: { $gte: now, $lte: thirtyDaysFromNow }
-      });
-    } catch (err) {
-      console.error('Error loading expiring licenses:', err);
-    }
-
-    console.log('Sending to systems page:', {
-      systemCount: systems.length,
-      expiringSoon: expiringLicenses.length
-    });
+    const systems = await System.find({ user: req.user._id })
+      .populate('user', 'name email')
+      .populate('manager', 'name email')
+      .lean();
 
     res.render('systems/index', {
       title: 'Systems',
-      systems,
-      osValues,
-      filters: req.query
+      systems: systems.map(system => ({
+        ...system,
+        _id: system._id.toString(),
+        user: system.user
+          ? {
+              ...system.user,
+              _id: system.user._id.toString(),
+            }
+          : null,
+        manager: system.manager
+          ? {
+              ...system.manager,
+              _id: system.manager._id.toString(),
+            }
+          : null,
+      })),
     });
   } catch (err) {
     console.error('Error in systems listing:', err);
-    req.flash('error_msg', 'Error loading systems');
+    req.flash('error', 'Error loading systems');
     res.redirect('/dashboard');
   }
 });
@@ -80,20 +43,20 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 router.get('/add', ensureAuthenticated, async (req, res) => {
   try {
     console.log('Getting licenses for user ID:', req.user._id);
-    
+
     // Find licenses owned by user
-    let licenses = await License.find({ owner: req.user._id }).lean();
-    
+    const licenses = await License.find({ owner: req.user._id }).lean();
+
     // Sort licenses after fetching the data
     licenses.sort((a, b) => {
       const nameA = a.name || '';
       const nameB = b.name || '';
       return nameA.localeCompare(nameB);
     });
-    
+
     res.render('systems/add', {
       title: 'Add System',
-      licenses
+      licenses,
     });
   } catch (err) {
     console.error(err);
@@ -103,412 +66,171 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
 });
 
 // Add system
-router.post('/', ensureAuthenticated, async (req, res) => {
+router.post('/add', ensureAuthenticated, async (req, res) => {
   try {
-    const {
-      name,
-      type,
-      os,
-      osVersion,
-      location,
-      ip,
-      department,
-      installedSoftware,
-      notes,
-      status,
-      licenses
-    } = req.body;
-    
-    // Process installed software data
-    let softwareArray = [];
-    if (installedSoftware) {
-      const softwareNames = Array.isArray(installedSoftware.name) ? installedSoftware.name : [installedSoftware.name];
-      const softwareVersions = Array.isArray(installedSoftware.version) ? installedSoftware.version : [installedSoftware.version];
-      const softwareInstallDates = Array.isArray(installedSoftware.installDate) ? installedSoftware.installDate : [installedSoftware.installDate];
-      
-      for (let i = 0; i < softwareNames.length; i++) {
-        if (softwareNames[i]) {
-          softwareArray.push({
-            name: softwareNames[i],
-            version: softwareVersions[i] || '',
-            installDate: softwareInstallDates[i] || new Date()
-          });
-        }
-      }
-    }
-    
-    // Process license requirements
-    let licenseRequirements = [];
-    if (licenses) {
-      const licenseIds = Array.isArray(licenses.id) ? licenses.id : [licenses.id];
-      const licenseQuantities = Array.isArray(licenses.quantity) ? licenses.quantity : [licenses.quantity];
-      
-      for (let i = 0; i < licenseIds.length; i++) {
-        if (licenseIds[i]) {
-          // Get the license to determine the license type
-          const license = await License.findById(licenseIds[i]);
-          
-          if (license) {
-            licenseRequirements.push({
-              licenseType: license.product,
-              quantity: parseInt(licenseQuantities[i]) || 1,
-              licenseId: licenseIds[i]
-            });
-          }
-        }
-      }
-    }
-    
-    // Create system using file-db method
     console.log('Creating system with user ID:', req.user._id);
-    
-    const systemData = {
-      name,
-      type,
-      os,
-      osVersion,
-      location,
-      ip,
-      department,
-      managedBy: req.user._id,
-      installedSoftware: softwareArray,
-      licenseRequirements,
-      notes,
-      status: status || 'active'
-    };
-    
-    console.log('Creating system with data:', systemData);
-    const newSystem = await System.create(systemData);
-    
-    // Update license used seats for each assigned license
-    if (licenseRequirements.length > 0) {
-      for (const requirement of licenseRequirements) {
-        const license = await License.findById(requirement.licenseId);
-        
-        if (license) {
-          // Need to modify for file-db approach
-          if (!license.assignedSystems) {
-            license.assignedSystems = [];
-          }
-          license.assignedSystems.push(newSystem._id);
-          
-          await License.findByIdAndUpdate(requirement.licenseId, {
-            assignedSystems: license.assignedSystems,
-            usedSeats: license.assignedSystems.length
-          });
-        }
-      }
-    }
-    
-    req.flash('success_msg', 'System added successfully');
+    console.log('Creating system with data:', {
+      ...req.body,
+      user: req.user._id,
+    });
+
+    const system = new System({
+      ...req.body,
+      user: req.user._id,
+    });
+
+    await system.save();
+    req.flash('success', 'System added successfully');
     res.redirect('/systems');
   } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error adding system');
+    console.error('Error creating system:', err);
+    req.flash('error', 'Error creating system');
     res.redirect('/systems/add');
   }
 });
 
-// View system details
-router.get('/:id', ensureAuthenticated, async (req, res) => {
+// View single system
+router.get('/:id/view', ensureAuthenticated, async (req, res) => {
   try {
     const system = await System.findById(req.params.id)
-      .populate('managedBy', 'name email')
-      .populate('licenseRequirements.licenseId');
-    
-    if (!system) {
-      req.flash('error_msg', 'System not found');
-      return res.redirect('/systems');
-    }
-    
-    // Check if user is manager or admin with better error handling
-    const systemManagerId = system.managedBy && system.managedBy._id ? system.managedBy._id.toString() : '';
-    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
-    console.log(`Checking authorization - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
-    
-    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
-      req.flash('error_msg', 'Not authorized');
-      return res.redirect('/systems');
-    }
-    
-    res.render('systems/view', {
-      title: system.name,
-      system
-    });
-  } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error loading system');
-    res.redirect('/systems');
-  }
-});
+      .populate('user', 'name email')
+      .populate('manager', 'name email')
+      .lean();
 
-// View system details
-router.get('/view/:id', ensureAuthenticated, async (req, res) => {
-  try {
-    console.log(`Loading system details for ID: ${req.params.id}`);
-    
-    // Get system by ID
-    const system = await System.findById(req.params.id);
-    
     if (!system) {
-      req.flash('error_msg', 'System not found');
+      req.flash('error', 'System not found');
       return res.redirect('/systems');
     }
-    
-    // Check if user is authorized to view this system
-    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
-    const currentUserId = req.user._id ? req.user._id.toString() : '';
-    
-    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
-      req.flash('error_msg', 'Not authorized to view this system');
+
+    // Check if user has permission to view this system
+    if (system.user._id.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      req.flash('error', 'You do not have permission to view this system');
       return res.redirect('/systems');
     }
-    
-    // Get licenses associated with this system
-    let associatedLicenses = [];
-    if (system.licenseRequirements && system.licenseRequirements.length > 0) {
-      // Get license IDs from requirements
-      const licenseIds = system.licenseRequirements
-        .filter(req => req.licenseId)
-        .map(req => req.licenseId);
-      
-      // Find all those licenses
-      if (licenseIds.length > 0) {
-        const allLicenses = await License.find({});
-        associatedLicenses = allLicenses.filter(license => 
-          licenseIds.includes(license._id)
-        );
-      }
-    }
-    
-    // Format installed software dates if present
-    if (system.installedSoftware && system.installedSoftware.length > 0) {
-      system.installedSoftware.forEach(software => {
-        if (software.installDate) {
-          software.formattedInstallDate = new Date(software.installDate).toLocaleDateString();
-        }
-      });
-    }
-    
-    // Render the system details page
+
     res.render('systems/view', {
-      title: system.name,
-      system,
-      associatedLicenses
+      title: 'View System',
+      system: {
+        ...system,
+        _id: system._id.toString(),
+        user: {
+          ...system.user,
+          _id: system.user._id.toString(),
+        },
+        manager: system.manager
+          ? {
+              ...system.manager,
+              _id: system.manager._id.toString(),
+            }
+          : null,
+      },
     });
   } catch (err) {
-    console.error('Error loading system details:', err);
-    req.flash('error_msg', 'Error loading system details');
+    console.error('Error viewing system:', err);
+    req.flash('error', 'Error viewing system');
     res.redirect('/systems');
   }
 });
 
 // Edit system form
-router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
+router.get('/:id/edit', ensureAuthenticated, async (req, res) => {
   try {
-    const system = await System.findById(req.params.id);
-    
+    const system = await System.findById(req.params.id).lean();
+
     if (!system) {
-      req.flash('error_msg', 'System not found');
+      req.flash('error', 'System not found');
       return res.redirect('/systems');
     }
-    
-    // Check if user is manager or admin with better error handling
-    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
-    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
-    console.log(`Checking authorization - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
-    
-    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
-      req.flash('error_msg', 'Not authorized');
+
+    // Check if user has permission to edit this system
+    if (system.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      req.flash('error', 'You do not have permission to edit this system');
       return res.redirect('/systems');
     }
-    
-    const licenses = await License.find({ owner: req.user._id.toString() }).sort({ name: 1 });
-    
+
     res.render('systems/edit', {
       title: 'Edit System',
-      system,
-      licenses
+      system: {
+        ...system,
+        _id: system._id.toString(),
+      },
     });
   } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error loading system');
+    console.error('Error loading edit form:', err);
+    req.flash('error', 'Error loading edit form');
     res.redirect('/systems');
   }
 });
 
 // Update system
-router.put('/:id', ensureAuthenticated, async (req, res) => {
+router.post('/:id/edit', ensureAuthenticated, async (req, res) => {
   try {
     const system = await System.findById(req.params.id);
-    
+
     if (!system) {
-      req.flash('error_msg', 'System not found');
+      req.flash('error', 'System not found');
       return res.redirect('/systems');
     }
-    
-    // Check if user is manager or admin
-    if (system.managedBy.toString() !== req.user.id && req.user.role !== 'admin') {
-      req.flash('error_msg', 'Not authorized');
+
+    // Check if user has permission to edit this system
+    if (system.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      req.flash('error', 'You do not have permission to edit this system');
       return res.redirect('/systems');
     }
-    
+
+    // Update system data
     const {
       name,
-      type,
-      os,
-      osVersion,
+      systemType,
+      operatingSystem,
+      ipAddress,
+      macAddress,
       location,
-      ip,
       department,
-      installedSoftware,
       notes,
-      status,
-      licenses
     } = req.body;
-    
-    // Process installed software data
-    let softwareArray = [];
-    if (installedSoftware) {
-      const softwareNames = Array.isArray(installedSoftware.name) ? installedSoftware.name : [installedSoftware.name];
-      const softwareVersions = Array.isArray(installedSoftware.version) ? installedSoftware.version : [installedSoftware.version];
-      const softwareInstallDates = Array.isArray(installedSoftware.installDate) ? installedSoftware.installDate : [installedSoftware.installDate];
-      
-      for (let i = 0; i < softwareNames.length; i++) {
-        if (softwareNames[i]) {
-          softwareArray.push({
-            name: softwareNames[i],
-            version: softwareVersions[i] || '',
-            installDate: softwareInstallDates[i] || new Date()
-          });
-        }
-      }
-    }
-    
-    // Process license requirements
-    let licenseRequirements = [];
-    if (licenses) {
-      const licenseIds = Array.isArray(licenses.id) ? licenses.id : [licenses.id];
-      const licenseQuantities = Array.isArray(licenses.quantity) ? licenses.quantity : [licenses.quantity];
-      
-      for (let i = 0; i < licenseIds.length; i++) {
-        if (licenseIds[i]) {
-          // Get the license to determine the license type
-          const license = await License.findById(licenseIds[i]);
-          
-          if (license) {
-            licenseRequirements.push({
-              licenseType: license.product,
-              quantity: parseInt(licenseQuantities[i]) || 1,
-              licenseId: licenseIds[i]
-            });
-          }
-        }
-      }
-    }
-    
-    // Get old license requirements for comparison
-    const oldLicenseIds = system.licenseRequirements.map(req => req.licenseId.toString());
-    const newLicenseIds = licenseRequirements.map(req => req.licenseId.toString());
-    
-    // Licenses to remove
-    const licensesToRemove = oldLicenseIds.filter(id => !newLicenseIds.includes(id));
-    
-    // Licenses to add
-    const licensesToAdd = newLicenseIds.filter(id => !oldLicenseIds.includes(id));
-    
-    // Update system fields
+
     system.name = name;
-    system.type = type;
-    system.os = os;
-    system.osVersion = osVersion;
+    system.systemType = systemType;
+    system.operatingSystem = operatingSystem;
+    system.ipAddress = ipAddress;
+    system.macAddress = macAddress;
     system.location = location;
-    system.ip = ip;
     system.department = department;
-    system.installedSoftware = softwareArray;
-    system.licenseRequirements = licenseRequirements;
     system.notes = notes;
-    system.status = status || 'active';
-    system.lastSeen = new Date();
-    
+
     await system.save();
-    
-    // Update licenses
-    // Remove system from licenses that are no longer assigned
-    if (licensesToRemove.length > 0) {
-      for (const licenseId of licensesToRemove) {
-        const license = await License.findById(licenseId);
-        
-        if (license) {
-          license.assignedSystems = license.assignedSystems.filter(sys => sys.toString() !== system._id.toString());
-          license.usedSeats = license.assignedSystems.length;
-          await license.save();
-        }
-      }
-    }
-    
-    // Add system to newly assigned licenses
-    if (licensesToAdd.length > 0) {
-      for (const licenseId of licensesToAdd) {
-        const license = await License.findById(licenseId);
-        
-        if (license) {
-          license.assignedSystems.push(system._id);
-          license.usedSeats = license.assignedSystems.length;
-          await license.save();
-        }
-      }
-    }
-    
-    req.flash('success_msg', 'System updated successfully');
-    res.redirect(`/systems/${system._id}`);
+    req.flash('success', 'System updated successfully');
+    res.redirect(`/systems/${system._id}/view`);
   } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error updating system');
-    res.redirect(`/systems/edit/${req.params.id}`);
+    console.error('Error updating system:', err);
+    req.flash('error', 'Error updating system');
+    res.redirect(`/systems/${req.params.id}/edit`);
   }
 });
 
 // Delete system
-router.delete('/:id', ensureAuthenticated, async (req, res) => {
+router.post('/:id/delete', ensureAuthenticated, async (req, res) => {
   try {
     const system = await System.findById(req.params.id);
-    
+
     if (!system) {
-      req.flash('error_msg', 'System not found');
+      req.flash('error', 'System not found');
       return res.redirect('/systems');
     }
-    
-    // Check if user is manager or admin with better error handling
-    const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
-    const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
-    console.log(`Checking authorization - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
-    
-    if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
-      req.flash('error_msg', 'Not authorized');
+
+    // Check if user has permission to delete this system
+    if (system.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      req.flash('error', 'You do not have permission to delete this system');
       return res.redirect('/systems');
     }
-    
-    // Update licenses to remove this system
-    const licenseIds = system.licenseRequirements.map(req => req.licenseId);
-    
-    for (const licenseId of licenseIds) {
-      const license = await License.findById(licenseId);
-      
-      if (license) {
-        license.assignedSystems = license.assignedSystems.filter(sys => sys.toString() !== system._id.toString());
-        license.usedSeats = license.assignedSystems.length;
-        await license.save();
-      }
-    }
-    
-    await System.findByIdAndDelete(req.params.id);
-    
-    req.flash('success_msg', 'System deleted successfully');
+
+    await system.remove();
+    req.flash('success', 'System deleted successfully');
     res.redirect('/systems');
   } catch (err) {
-    console.error(err);
-    req.flash('error_msg', 'Error deleting system');
+    console.error('Error deleting system:', err);
+    req.flash('error', 'Error deleting system');
     res.redirect('/systems');
   }
 });
@@ -516,7 +238,7 @@ router.delete('/:id', ensureAuthenticated, async (req, res) => {
 // Bulk import systems form
 router.get('/import', ensureAuthenticated, (req, res) => {
   res.render('systems/import', {
-    title: 'Import Systems'
+    title: 'Import Systems',
   });
 });
 
@@ -524,15 +246,15 @@ router.get('/import', ensureAuthenticated, (req, res) => {
 router.post('/import', ensureAuthenticated, async (req, res) => {
   try {
     const { systems } = req.body;
-    
+
     if (!systems || systems.trim() === '') {
       req.flash('error_msg', 'Please provide system data');
       return res.redirect('/systems/import');
     }
-    
+
     const systemsData = JSON.parse(systems);
     const systemsToCreate = [];
-    
+
     for (const systemData of systemsData) {
       systemsToCreate.push({
         name: systemData.name,
@@ -544,12 +266,12 @@ router.post('/import', ensureAuthenticated, async (req, res) => {
         department: systemData.department,
         managedBy: req.user._id.toString(),
         notes: systemData.notes || `Imported on ${new Date().toLocaleDateString()}`,
-        status: systemData.status || 'active'
+        status: systemData.status || 'active',
       });
     }
-    
+
     const createdSystems = await System.insertMany(systemsToCreate);
-    
+
     req.flash('success_msg', `Successfully imported ${createdSystems.length} systems`);
     res.redirect('/systems');
   } catch (err) {
@@ -562,25 +284,26 @@ router.post('/import', ensureAuthenticated, async (req, res) => {
 // Get system license requirements
 router.get('/:id/licenses', ensureAuthenticated, async (req, res) => {
   try {
-    const system = await System.findById(req.params.id)
-      .populate('licenseRequirements.licenseId');
-    
+    const system = await System.findById(req.params.id).populate('licenseRequirements.licenseId');
+
     if (!system) {
       return res.status(404).json({ success: false, error: 'System not found' });
     }
-    
+
     // Check if user is manager or admin with better error handling
     const systemManagerId = system.managedBy ? system.managedBy.toString() : '';
     const currentUserId = req.user && req.user._id ? req.user._id.toString() : '';
-    console.log(`API Check - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`);
-    
+    console.log(
+      `API Check - System Manager ID: ${systemManagerId}, Current User ID: ${currentUserId}, User Role: ${req.user.role}`
+    );
+
     if (systemManagerId !== currentUserId && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized' });
     }
-    
+
     res.json({
       success: true,
-      licenseRequirements: system.licenseRequirements
+      licenseRequirements: system.licenseRequirements,
     });
   } catch (err) {
     console.error(err);
@@ -591,7 +314,7 @@ router.get('/:id/licenses', ensureAuthenticated, async (req, res) => {
 // Network scan form
 router.get('/scan', ensureAuthenticated, (req, res) => {
   res.render('systems/scan', {
-    title: 'Network Scan'
+    title: 'Network Scan',
   });
 });
 
@@ -599,34 +322,35 @@ router.get('/scan', ensureAuthenticated, (req, res) => {
 router.post('/scan', ensureAuthenticated, async (req, res) => {
   try {
     const { ipAddress, hostname, username, password, scanType } = req.body;
-    
+
     if (!ipAddress) {
       req.flash('error_msg', 'IP address is required');
       return res.redirect('/systems/scan');
     }
-    
+
     console.log(`Initiating scan for IP: ${ipAddress}`);
-    
+
     // This is where you would implement the actual scanning logic
     // For this example, we'll create a placeholder system with the provided IP
     const systemData = {
       name: hostname || `System-${ipAddress.replace(/\./g, '-')}`,
-      systemType: 'unknown',
-      environment: 'production',
-      status: 'active',
+      systemType: 'Other', // Use a valid enum value
+      environment: 'production', // Use a valid enum value or default
+      status: 'Active', // Use a valid enum value or default
       os: 'Unknown', // Would be detected by scan
       ip: ipAddress,
       hostname: hostname || '',
       location: '',
       department: '',
+      user: req.user._id, // Fix: set user as required by schema
       managedBy: req.user._id,
       notes: `Auto-discovered on ${new Date().toLocaleDateString()}`,
-      licenseRequirements: []
+      licenseRequirements: [],
     };
-    
+
     // Create the system
     const newSystem = await System.create(systemData);
-    
+
     req.flash('success_msg', `System ${systemData.name} added successfully from IP ${ipAddress}`);
     res.redirect(`/systems/view/${newSystem._id}`);
   } catch (err) {

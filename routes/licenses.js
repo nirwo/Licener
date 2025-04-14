@@ -16,18 +16,18 @@ const { v4: uuidv4 } = require('uuid');
 
 // Set up storage for file uploads with better security
 const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
+  destination: function (req, file, cb) {
     const dir = './data/uploads';
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
     }
     cb(null, dir);
   },
-  filename: function(req, file, cb) {
+  filename: function (req, file, cb) {
     const uniqueId = uuidv4();
     const sanitizedFilename = sanitizeFilename(file.originalname);
     cb(null, `${uniqueId}-${sanitizedFilename}`);
-  }
+  },
 });
 
 // Improved file filter with better security
@@ -39,17 +39,21 @@ const fileFilter = (req, file, cb) => {
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only CSV, XLSX, PDF, JPG, JPEG, PNG, DOC, DOCX files are allowed.'));
+    cb(
+      new Error(
+        'Invalid file type. Only CSV, XLSX, PDF, JPG, JPEG, PNG, DOC, DOCX files are allowed.'
+      )
+    );
   }
 };
 
 const upload = multer({
   storage: storage,
-  limits: { 
+  limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
-    files: 5 // Maximum 5 files
+    files: 5, // Maximum 5 files
   },
-  fileFilter: fileFilter
+  fileFilter: fileFilter,
 });
 
 // Helper function to sanitize filenames
@@ -67,54 +71,51 @@ function safeIdToString(id) {
 function logObject(label, obj, level = 'info') {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] === ${label} ===\n${
-    typeof obj === 'undefined' ? 'UNDEFINED' :
-    obj === null ? 'NULL' :
-    JSON.stringify(obj, (key, value) => 
-      typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 20
-        ? '[Object with many properties]'
-        : value
-    , 2)
+    typeof obj === 'undefined'
+      ? 'UNDEFINED'
+      obj === null ? 'NULL' :
+        JSON.stringify(obj, (key, value) =>
+          typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 20
+            ? '[Object with many properties]'
+            : value
+        , 2)
   }\n=== END ${label} ===`;
-  
+
   console.log(logMessage);
-  
+
   // Write to log file
   const logDir = './logs';
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true, mode: 0o755 });
   }
-  
-  fs.appendFileSync(
-    path.join(logDir, 'app.log'),
-    logMessage + '\n',
-    { encoding: 'utf8' }
-  );
+
+  fs.appendFileSync(path.join(logDir, 'app.log'), logMessage + '\n', { encoding: 'utf8' });
 }
 
 // Helper function to validate license data
 function validateLicenseData(data) {
   const errors = [];
-  
+
   if (!data.product) errors.push('Product name is required');
   if (!data.vendor) errors.push('Vendor is required');
   if (!data.licenseKey) errors.push('License key is required');
-  
+
   if (data.totalSeats && isNaN(parseInt(data.totalSeats))) {
     errors.push('Total seats must be a number');
   }
-  
+
   if (data.cost && isNaN(parseFloat(data.cost))) {
     errors.push('Cost must be a number');
   }
-  
+
   if (data.purchaseDate && isNaN(Date.parse(data.purchaseDate))) {
     errors.push('Invalid purchase date format');
   }
-  
+
   if (data.expiryDate && isNaN(Date.parse(data.expiryDate))) {
     errors.push('Invalid expiry date format');
   }
-  
+
   return errors;
 }
 
@@ -128,7 +129,7 @@ function sanitizeLicenseData(data) {
     licenseKey: sanitizeHtml(data.licenseKey || ''),
     notes: sanitizeHtml(data.notes || ''),
     status: sanitizeHtml(data.status || 'active'),
-    currency: sanitizeHtml(data.currency || 'USD')
+    currency: sanitizeHtml(data.currency || 'USD'),
   };
 }
 
@@ -138,23 +139,23 @@ async function readExcelFile(filePath) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
     const worksheet = workbook.getWorksheet(1);
-    
+
     if (!worksheet) {
       throw new Error('No worksheet found in the Excel file');
     }
-    
+
     const data = [];
     const headers = [];
-    
+
     // Get headers from first row
     worksheet.getRow(1).eachCell((cell, colNumber) => {
       headers[colNumber] = cell.value;
     });
-    
+
     // Process data rows
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
-      
+
       const rowData = {};
       row.eachCell((cell, colNumber) => {
         const header = headers[colNumber];
@@ -162,12 +163,12 @@ async function readExcelFile(filePath) {
           rowData[header] = cell.value;
         }
       });
-      
+
       if (Object.keys(rowData).length > 0) {
         data.push(rowData);
       }
     });
-    
+
     return data;
   } catch (error) {
     logObject('Excel Read Error', error, 'error');
@@ -181,40 +182,37 @@ router.get('/', ensureAuthenticated, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    
+
     // Create base query
-    let baseQuery = { owner: req.user._id };
-    
+    const baseQuery = { owner: req.user._id };
+
     // Apply filters
     if (req.query.status && req.query.status !== 'all') {
       baseQuery.status = req.query.status;
     }
-    
+
     if (req.query.product) {
       baseQuery.product = new RegExp(req.query.product, 'i');
     }
-    
+
     if (req.query.vendor) {
       baseQuery.vendor = new RegExp(req.query.vendor, 'i');
     }
-    
+
     // Get total count for pagination
     const total = await License.countDocuments(baseQuery);
-    
+
     // Find licenses with pagination
-    let licenses = await License.find(baseQuery)
-      .skip(skip)
-      .limit(limit)
-      .sort({ expiryDate: 1 });
-    
+    let licenses = await License.find(baseQuery).skip(skip).limit(limit).sort({ expiryDate: 1 });
+
     // Populate assigned systems
     licenses = await License.populate(licenses, 'assignedSystems');
-    
+
     // Get unique products and vendors for filter dropdowns
     const allUserLicenses = await License.find({ owner: req.user._id });
     const products = [...new Set(allUserLicenses.map(lic => lic.product).filter(Boolean))].sort();
     const vendors = [...new Set(allUserLicenses.map(lic => lic.vendor).filter(Boolean))].sort();
-    
+
     res.render('licenses/index', {
       title: 'Licenses',
       licenses,
@@ -225,8 +223,8 @@ router.get('/', ensureAuthenticated, async (req, res) => {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (err) {
     logObject('License List Error', err, 'error');
@@ -238,13 +236,15 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 // Add license form
 router.get('/add', ensureAuthenticated, async (req, res) => {
   try {
-    console.log('Loading systems for license form, user:', JSON.stringify({
-      _id: req.user._id,
-      id: req.user.id, 
-      role: req.user.role,
-      name: req.user.name
-    }));
-    
+    console.log(
+      'Loading systems for license form, user:',
+      JSON.stringify({
+        _id: req.user._id,
+        id: req.user.id,
+        role: req.user.role,
+        name: req.user.name,
+      })
+
     // Use the new findByManager method for regular users or find all for admins
     let systems = [];
     if (req.user.role === 'admin') {
@@ -252,25 +252,25 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
     } else {
       systems = await System.findByManager(req.user._id);
     }
-    
+
     // Get all vendors
     const vendors = await Vendor.find({});
-    
+
     // Sort systems by name
     systems.sort((a, b) => {
       const nameA = a.name || '';
       const nameB = b.name || '';
       return nameA.localeCompare(nameB);
     });
-    
+
     console.log(`Found ${systems.length} systems for user ${req.user._id}`);
     console.log(`Found ${vendors.length} vendors`);
-    
+
     res.render('licenses/add', {
       title: 'Add License',
       systems,
       vendors,
-      selectedVendor: req.query.vendor || ''
+      selectedVendor: req.query.vendor || '',
     });
   } catch (err) {
     console.error('Error in /licenses/add route:', err);
@@ -285,10 +285,10 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
   console.log('Request body:', JSON.stringify(req.body, null, 2));
   console.log('Files:', req.files ? req.files.length : 'none');
   console.log('User:', req.user._id);
-  
+
   try {
     console.log('License form submitted:', req.body);
-    
+
     // Get form data
     const {
       name,
@@ -303,18 +303,20 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       currency,
       notes,
       assignedSystems,
-      status
+      status,
     } = req.body;
-    
+
     console.log('Current user:', req.user);
-    
+
     // Create attachments array if files were uploaded
-    const attachments = req.files ? req.files.map(file => ({
-      filename: file.originalname,
-      path: file.path,
-      uploadDate: Date.now()
-    })) : [];
-    
+    const attachments = req.files
+      ? req.files.map(file => ({
+          filename: file.originalname,
+          path: file.path,
+          uploadDate: Date.now(),
+        }))
+      : [];
+
     // Define license data
     const licenseData = {
       name: name || product, // Use product name as fallback
@@ -329,15 +331,15 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       currency: currency || 'USD',
       notes,
       attachments,
-      owner: req.user._id
+      owner: req.user._id,
     };
-    
+
     // VERBOSE: Log assigned systems data
     console.log('Raw assignedSystems from form:', req.body.assignedSystems);
-    
+
     // Handle assignedSystems properly - extract from form data
     let systemsToAssign = [];
-    
+
     if (req.body.assignedSystems) {
       // Convert to array if needed
       if (Array.isArray(req.body.assignedSystems)) {
@@ -347,88 +349,91 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
       } else if (typeof req.body.assignedSystems === 'object') {
         systemsToAssign = Object.values(req.body.assignedSystems);
       }
-      
+
       // Filter out empty values
       systemsToAssign = systemsToAssign.filter(id => id && String(id).trim() !== '');
-      
+
       console.log('Parsed systemsToAssign:', systemsToAssign);
     }
-    
+
     // Calculate utilization metrics
     const usedSeats = systemsToAssign.length;
     const parsedTotalSeats = parseInt(totalSeats) || 1;
     const utilization = Math.min(100, (usedSeats / parsedTotalSeats) * 100);
-    
-    console.log(`License utilization: ${usedSeats}/${parsedTotalSeats} seats (${utilization.toFixed(2)}%)`);
-    
+
+    console.log(
+      `License utilization: ${usedSeats}/${parsedTotalSeats} seats (${utilization.toFixed(2)}%)`
+
     // Add utilization to license data
     licenseData.assignedSystems = systemsToAssign;
     licenseData.usedSeats = usedSeats;
     licenseData.totalSeats = parsedTotalSeats;
     licenseData.utilization = parseFloat(utilization.toFixed(2));
-    
+
     // Create license
     console.log('Creating license with data:', {
       ...licenseData,
       attachments: licenseData.attachments ? `${licenseData.attachments.length} files` : 'None',
-      assignedSystems: `${systemsToAssign.length} systems`
+      assignedSystems: `${systemsToAssign.length} systems`,
     });
-    
+
     const newLicense = await License.create(licenseData);
     console.log('License created with ID:', newLicense._id);
-    
+
     // Store license ID in session for debugging purposes
     req.session.lastCreatedLicenseId = newLicense._id;
-    
+
     // Update systems with license requirements
     if (systemsToAssign.length > 0) {
       console.log(`Updating ${systemsToAssign.length} systems with license requirement`);
-      
+
       for (const systemId of systemsToAssign) {
         try {
           console.log(`Processing system ID: ${systemId}`);
           const system = await System.findById(systemId);
-          
+
           if (system) {
             console.log(`Found system: ${system.name || system._id}`);
             logObject('System Object Before Update', system);
-            
+
             // Ensure licenseRequirements exists
             if (!system.licenseRequirements) {
               system.licenseRequirements = [];
               console.log('Initialized empty licenseRequirements array');
             }
-            
+
             // Check if license already exists in requirements
             const licenseExists = system.licenseRequirements.some(req => {
               const reqLicenseId = req.licenseId ? req.licenseId.toString() : '';
               const newLicenseId = newLicense._id ? newLicense._id.toString() : '';
               const match = reqLicenseId === newLicenseId;
-              console.log(`License comparison: ${reqLicenseId} vs ${newLicenseId}, match: ${match}`);
+              console.log(
+                `License comparison: ${reqLicenseId} vs ${newLicenseId}, match: ${match}`
+              );
               return match;
             });
-            
+
             if (!licenseExists) {
               console.log(`Adding license ${newLicense._id} to system ${system._id}`);
-              
+
               // Create new requirement
               const newRequirement = {
                 licenseType: product || 'Unknown Product',
                 quantity: 1,
-                licenseId: newLicense._id
+                licenseId: newLicense._id,
               };
               console.log('New requirement:', newRequirement);
-              
+
               // Push to array
               system.licenseRequirements.push(newRequirement);
-              
+
               // Save updated system
               const updatedSystem = await System.findByIdAndUpdate(
-                systemId, 
+                systemId,
                 { licenseRequirements: system.licenseRequirements },
                 { new: true }
               );
-              
+
               console.log(`System ${system._id} updated successfully`);
               logObject('System Object After Update', updatedSystem);
             } else {
@@ -443,7 +448,7 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
         }
       }
     }
-    
+
     console.log('============ LICENSE ADD - COMPLETE ============');
     req.flash('success_msg', `License added successfully with ID: ${newLicense._id}`);
     res.redirect('/licenses');
@@ -458,26 +463,26 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
 router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
   try {
     console.log(`Attempting to edit license with ID: ${req.params.id}`);
-    
+
     const license = await License.findById(req.params.id);
-    
+
     if (!license) {
       console.error(`License not found with ID: ${req.params.id}`);
       console.log('Last created license ID:', req.session.lastCreatedLicenseId);
       console.log('All available license IDs:');
-      
+
       // Get all licenses to debug ID issue
       const allLicenses = await License.find({});
       allLicenses.forEach((lic, index) => {
-        console.log(`${index+1}. License ID: ${lic._id}, Name: ${lic.name || lic.product}`);
+        console.log(`${index + 1}. License ID: ${lic._id}, Name: ${lic.name || lic.product}`);
       });
-      
+
       req.flash('error_msg', `License not found with ID: ${req.params.id}`);
       return res.redirect('/licenses');
     }
-    
+
     console.log(`Found license to edit: ${license.name || license.product} (ID: ${license._id})`);
-    
+
     // Use the new findByManager method for regular users or find all for admins
     let systems = [];
     if (req.user.role === 'admin') {
@@ -485,22 +490,22 @@ router.get('/edit/:id', ensureAuthenticated, async (req, res) => {
     } else {
       systems = await System.findByManager(req.user._id);
     }
-    
+
     // Get all vendors
     const vendors = await Vendor.find({});
-    
+
     // Sort systems by name
     systems.sort((a, b) => {
       const nameA = a.name || '';
       const nameB = b.name || '';
       return nameA.localeCompare(nameB);
     });
-    
+
     res.render('licenses/edit', {
       title: 'Edit License',
       license,
       systems,
-      vendors
+      vendors,
     });
   } catch (err) {
     console.error('Error in edit license route:', err);
@@ -514,21 +519,21 @@ router.get('/view/:id', ensureAuthenticated, async (req, res) => {
   try {
     console.log(`Viewing license with ID: ${req.params.id}`);
     let license = await License.findById(req.params.id);
-    
+
     if (!license) {
       console.error(`License not found with ID: ${req.params.id}`);
       req.flash('error_msg', 'License not found');
       return res.redirect('/licenses');
     }
-    
+
     // Populate assigned systems
     console.log('Populating license data for ID:', license._id);
     license = await License.populate(license, 'assignedSystems');
     license = await License.populate(license, 'owner');
-    
+
     res.render('licenses/view', {
       title: license.name || license.product,
-      license
+      license,
     });
   } catch (err) {
     console.error('Error viewing license:', err);
@@ -542,7 +547,7 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
   try {
     console.log('License update request received for ID:', req.params.id);
     console.log('Request body:', JSON.stringify(req.body, null, 2));
-    
+
     // Ensure License is properly defined
     if (!License || typeof License.findById !== 'function') {
       console.error('License model is not properly defined or imported');
@@ -550,30 +555,29 @@ router.put('/:id', ensureAuthenticated, upload.array('attachments', 5), async (r
       req.flash('error_msg', 'System error: License model not available');
       return res.redirect('/licenses');
     }
-    
+
     // Get original license first
     const license = await License.findById(req.params.id);
-    
+
     if (!license) {
       console.error(`License not found with ID: ${req.params.id}`);
-      
+
       // Debug: List all available licenses
       try {
         const allLicenses = await License.find({});
         console.log(`Found ${allLicenses.length} total licenses`);
         allLicenses.forEach((lic, i) => {
-          console.log(`${i+1}. ID: ${lic._id}, Name: ${lic.name || lic.product}`);
+          console.log(`${i + 1}. ID: ${lic._id}, Name: ${lic.name || lic.product}`);
         });
       } catch (err) {
         console.error('Error listing licenses:', err);
       }
-      
+
       req.flash('error_msg', 'License not found');
       return res.redirect('/licenses');
     }
-    
+
     // ...existing code for updating license...
-    
   } catch (err) {
     console.error('Error in license update route:', err);
     req.flash('error_msg', 'Error updating license: ' + err.message);
@@ -593,7 +597,7 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
     const fileExt = path.extname(req.file.originalname).toLowerCase();
 
     let licenses = [];
-    
+
     if (fileExt === '.xlsx') {
       licenses = await readExcelFile(filePath);
     } else if (fileExt === '.csv') {
@@ -601,7 +605,7 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
         const results = [];
         fs.createReadStream(filePath)
           .pipe(csv())
-          .on('data', (data) => results.push(data))
+          .on('data', data => results.push(data))
           .on('end', () => resolve(results))
           .on('error', reject);
       });
@@ -611,7 +615,7 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
     const results = {
       success: 0,
       failed: 0,
-      errors: []
+      errors: [],
     };
 
     for (const licenseData of licenses) {
@@ -629,7 +633,7 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
           currency: licenseData.currency || 'USD',
           notes: licenseData.notes,
           status: licenseData.status || 'active',
-          owner: req.user._id
+          owner: req.user._id,
         };
 
         // Create the license
@@ -639,7 +643,7 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
         results.failed++;
         results.errors.push({
           row: licenseData,
-          error: err.message
+          error: err.message,
         });
       }
     }
@@ -647,9 +651,15 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
     // Clean up the uploaded file
     fs.unlinkSync(filePath);
 
-    req.flash('success_msg', `Successfully imported ${results.success} licenses. ${results.failed} failed.`);
+    req.flash(
+      'success_msg',
+      `Successfully imported ${results.success} licenses. ${results.failed} failed.`
+    );
     if (results.failed > 0) {
-      req.flash('error_msg', `Failed to import ${results.failed} licenses. Check the logs for details.`);
+      req.flash(
+        'error_msg',
+        `Failed to import ${results.failed} licenses. Check the logs for details.`
+      );
     }
     res.redirect('/licenses');
   } catch (err) {
@@ -663,10 +673,10 @@ router.post('/import', ensureAuthenticated, upload.single('file'), async (req, r
 router.get('/export', ensureAuthenticated, async (req, res) => {
   try {
     const licenses = await License.find({ owner: req.user._id });
-    
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Licenses');
-    
+
     // Define columns with improved formatting
     worksheet.columns = [
       { header: 'Name', key: 'name', width: 30 },
@@ -681,18 +691,18 @@ router.get('/export', ensureAuthenticated, async (req, res) => {
       { header: 'Cost', key: 'cost', width: 12 },
       { header: 'Currency', key: 'currency', width: 10 },
       { header: 'Status', key: 'status', width: 12 },
-      { header: 'Notes', key: 'notes', width: 40 }
+      { header: 'Notes', key: 'notes', width: 40 },
     ];
-    
+
     // Style the header row
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true };
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFD3D3D3' }
+      fgColor: { argb: 'FFD3D3D3' },
     };
-    
+
     // Add data with conditional formatting
     licenses.forEach(license => {
       const row = worksheet.addRow({
@@ -700,42 +710,49 @@ router.get('/export', ensureAuthenticated, async (req, res) => {
         product: license.product,
         vendor: license.vendor,
         licenseKey: license.licenseKey,
-        purchaseDate: license.purchaseDate ? new Date(license.purchaseDate).toISOString().split('T')[0] : '',
-        expiryDate: license.expiryDate ? new Date(license.expiryDate).toISOString().split('T')[0] : '',
+        purchaseDate: license.purchaseDate
+          ? new Date(license.purchaseDate).toISOString().split('T')[0]
+          : '',
+        expiryDate: license.expiryDate
+          ? new Date(license.expiryDate).toISOString().split('T')[0]
+          : '',
         totalSeats: license.totalSeats,
         usedSeats: license.usedSeats,
         utilization: license.utilization ? `${license.utilization}%` : '',
         cost: license.cost,
         currency: license.currency,
         status: license.status,
-        notes: license.notes
+        notes: license.notes,
       });
-      
+
       // Add conditional formatting for expiry dates
       if (license.expiryDate) {
         const expiryDate = new Date(license.expiryDate);
         const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
-        
+
         if (daysUntilExpiry <= 30) {
           row.getCell('expiryDate').fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFFF0000' }
+            fgColor: { argb: 'FFFF0000' },
           };
         } else if (daysUntilExpiry <= 90) {
           row.getCell('expiryDate').fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFFFFF00' }
+            fgColor: { argb: 'FFFFFF00' },
           };
         }
       }
     });
-    
+
     // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
     res.setHeader('Content-Disposition', 'attachment; filename=licenses.xlsx');
-    
+
     // Write to response
     await workbook.xlsx.write(res);
     res.end();
@@ -750,7 +767,7 @@ router.get('/export', ensureAuthenticated, async (req, res) => {
 router.get('/demo1', ensureAuthenticated, async (req, res) => {
   try {
     console.log('Accessing demo license route for user:', req.user._id);
-    
+
     // Ensure License model is properly loaded
     if (!License || typeof License.createDemo !== 'function') {
       console.error('License model is not properly configured or createDemo method is missing');
@@ -758,11 +775,11 @@ router.get('/demo1', ensureAuthenticated, async (req, res) => {
       req.flash('error_msg', 'System error: License model not properly configured');
       return res.redirect('/licenses');
     }
-    
+
     // Convert user._id to string for consistent comparison
     const userId = req.user._id.toString();
     console.log(`Using user ID for demo license: ${userId}`);
-    
+
     // Use the createDemo method to create or retrieve a demo license
     let demoLicense = null;
     try {
@@ -772,21 +789,21 @@ router.get('/demo1', ensureAuthenticated, async (req, res) => {
       console.error('Error calling License.createDemo:', createErr);
       throw new Error(`Failed to create demo license: ${createErr.message}`);
     }
-    
+
     if (!demoLicense) {
       console.error('Demo license was not created/found');
       req.flash('error_msg', 'Unable to create or find demo license');
       return res.redirect('/licenses');
     }
-    
+
     // Populate related data
     const populatedLicense = await License.populate(demoLicense, 'assignedSystems');
-    
+
     console.log('Demo license created/retrieved successfully:', demoLicense._id);
-    
+
     res.render('licenses/view', {
       title: 'Demo License 1',
-      license: populatedLicense
+      license: populatedLicense,
     });
   } catch (err) {
     console.error('Error in demo license route:', err);

@@ -14,4 +14,4 @@ app.use((req, res) => {
 });
 
 // Export the serverless function
-module.exports.handler = serverless(app); 
+module.exports.handler = serverless(app);

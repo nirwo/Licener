@@ -14,7 +14,7 @@ function displayBanner(demoMode = false, dbMode = 'MONGO') {
   console.log('│                   LICENER                                 │');
   console.log('│           License Management System                       │');
   console.log('│                                                           │');
-  
+
   if (demoMode) {
     console.log('│                                                           │');
     console.log('│  ███████ DEMO MODE ███████                                │');
@@ -28,7 +28,7 @@ function displayBanner(demoMode = false, dbMode = 'MONGO') {
     console.log('│  Data stored in ./data directory                          │');
     console.log('│                                                           │');
   }
-  
+
   console.log('└───────────────────────────────────────────────────────────┘');
   console.log('\n');
 }
