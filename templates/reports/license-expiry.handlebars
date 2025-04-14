@@ -137,7 +137,7 @@
   </div>
   <div class="card-body">
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover" id="license-table">
         <thead>
           <tr>
             <th>Product</th>
@@ -220,7 +220,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Initialize DataTable
-    const table = document.querySelector('table');
+    const table = document.getElementById('license-table');
     if (table) {
       new DataTable(table, {
         responsive: true,
