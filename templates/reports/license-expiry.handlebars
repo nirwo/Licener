@@ -219,17 +219,28 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Initialize DataTable
+    // Defensive: Only initialize DataTable if tbody/tr count matches header count
     const table = document.getElementById('license-table');
     if (table) {
-      new DataTable(table, {
-        responsive: true,
-        pageLength: 25,
-        lengthMenu: [10, 25, 50, 100],
-        language: {
-          search: "Filter records:"
+      const headerCount = table.querySelectorAll('thead th').length;
+      let valid = true;
+      table.querySelectorAll('tbody tr').forEach(row => {
+        if (row.children.length !== headerCount) {
+          valid = false;
         }
       });
+      if (valid) {
+        new DataTable(table, {
+          responsive: true,
+          pageLength: 25,
+          lengthMenu: [10, 25, 50, 100],
+          language: {
+            search: "Filter records:"
+          }
+        });
+      } else {
+        console.warn('Table column count mismatch detected, DataTable not initialized.');
+      }
     }
     
     {{#if chartData}}
