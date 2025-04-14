@@ -18,7 +18,6 @@ const filesToCopy = [
   'routes',
   'controllers',
   'templates',
-  'public',
   'config'
 ];
 
@@ -41,6 +40,14 @@ filesToCopy.forEach(file => {
   }
 });
 
+// Copy static files from public to public/static
+const staticSource = path.join(__dirname, '../static');
+const staticDest = path.join(publicDir, 'static');
+if (fs.existsSync(staticSource)) {
+  execSync(`cp -r ${staticSource} ${staticDest}`);
+  console.log('📦 Copied: static files');
+}
+
 // Install production dependencies
 console.log('📦 Installing production dependencies...');
 execSync('npm install --production', { cwd: publicDir });
@@ -60,11 +67,11 @@ const indexHtml = `
     <title>Licener - License Management System</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div id="app"></div>
-    <script src="/public/js/app.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
 `;
