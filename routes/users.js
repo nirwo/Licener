@@ -161,12 +161,45 @@ router.get('/logout', ensureAuthenticated, (req, res, next) => {
   });
 });
 
-// User Profile
-router.get('/profile', ensureAuthenticated, (req, res) => {
-  res.render('users/profile', {
-    title: 'My Profile',
-    user: req.user,
-  });
+// Profile Page
+router.get('/profile', ensureAuthenticated, async (req, res) => {
+  try {
+    const Subscription = require('../models/Subscription');
+    const userId = req.user._id;
+    const user = req.user;
+    // Fetch all subscriptions for this user
+    const subscriptions = await Subscription.find({ user: userId }).sort({ renewalDate: 1 });
+
+    // Insights
+    const totalSubscriptions = subscriptions.length;
+    const activeSubscriptions = subscriptions.filter(sub => sub.status === 'Active').length;
+    const expiredSubscriptions = subscriptions.filter(sub => sub.status === 'Expired').length;
+    const pendingSubscriptions = subscriptions.filter(sub => sub.status === 'Pending').length;
+    const totalCost = subscriptions.reduce((acc, sub) => acc + (sub.cost || 0), 0);
+    const nextRenewal = subscriptions
+      .filter(sub => sub.renewalDate && sub.status === 'Active')
+      .sort((a, b) => new Date(a.renewalDate) - new Date(b.renewalDate))[0];
+
+    const insights = {
+      totalSubscriptions,
+      activeSubscriptions,
+      expiredSubscriptions,
+      pendingSubscriptions,
+      totalCost,
+      nextRenewal: nextRenewal ? nextRenewal.renewalDate : null,
+    };
+
+    res.render('users/profile', {
+      title: 'Profile',
+      user,
+      subscriptions,
+      insights,
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash('error_msg', 'Error loading profile');
+    res.redirect('/dashboard');
+  }
 });
 
 // Update Profile

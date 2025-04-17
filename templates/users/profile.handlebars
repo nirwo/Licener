@@ -1,0 +1,58 @@
+{{! Profile Page }}
+{{> layouts/header title=title }}
+<div class="container profile-page">
+  <h1>Profile</h1>
+  <section class="profile-info">
+    <h2>User Information</h2>
+    <ul>
+      <li><strong>Name:</strong> {{user.name}}</li>
+      <li><strong>Email:</strong> {{user.email}}</li>
+      <li><strong>Role:</strong> {{user.role}}</li>
+      <li><strong>Account Created:</strong> {{user.createdAt}}</li>
+      <li><strong>Last Login:</strong> {{user.lastLogin}}</li>
+    </ul>
+  </section>
+  <section class="profile-insights">
+    <h2>Personal Insights</h2>
+    <ul>
+      <li><strong>Total Subscriptions:</strong> {{insights.totalSubscriptions}}</li>
+      <li><strong>Active:</strong> {{insights.activeSubscriptions}}</li>
+      <li><strong>Expired:</strong> {{insights.expiredSubscriptions}}</li>
+      <li><strong>Pending:</strong> {{insights.pendingSubscriptions}}</li>
+      <li><strong>Total Cost:</strong> ${{insights.totalCost}}</li>
+      <li><strong>Next Renewal:</strong> {{insights.nextRenewal}}</li>
+    </ul>
+  </section>
+  <section class="profile-subscriptions">
+    <h2>Your Subscriptions</h2>
+    {{#if subscriptions.length}}
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Vendor</th>
+            <th>Product</th>
+            <th>Status</th>
+            <th>Renewal Date</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each subscriptions}}
+            <tr>
+              <td>{{this.name}}</td>
+              <td>{{this.vendor}}</td>
+              <td>{{this.product}}</td>
+              <td>{{this.status}}</td>
+              <td>{{this.renewalDate}}</td>
+              <td>${{this.cost}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{else}}
+      <p>You have no subscriptions yet.</p>
+    {{/if}}
+  </section>
+</div>
+{{> layouts/footer }}
