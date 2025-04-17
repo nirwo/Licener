@@ -1,0 +1,109 @@
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f8fafd;
+  color: #23272f;
+}
+.saas-main-content {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 16px 0 rgba(30,34,90,0.07), 0 1.5px 5px 0 rgba(30,34,90,0.03);
+  min-height: 90vh;
+}
+.sidebar {
+  background: #222b45;
+  color: #fff;
+  min-width: 220px;
+  max-width: 220px;
+  box-shadow: 2px 0 12px 0 rgba(30,34,90,0.04);
+}
+.sidebar .nav-link {
+  color: #bfc6e0;
+  border-radius: .5rem;
+  margin-bottom: .25rem;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+}
+.sidebar .nav-link.active, .sidebar .nav-link:hover {
+  background: #4e73df;
+  color: #fff;
+}
+.sidebar .nav-link i {
+  width: 1.5rem;
+  text-align: center;
+}
+.sidebar .sidebar-footer {
+  border-top: 1px solid #2e3657;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  font-size: .95rem;
+}
+.navbar {
+  border-bottom: 1px solid #e3e6f0;
+}
+.navbar .navbar-brand {
+  letter-spacing: 1px;
+}
+.dropdown-menu {
+  border-radius: .75rem;
+  box-shadow: 0 8px 24px 0 rgba(30,34,90,0.08);
+}
+.card {
+  border-radius: 1rem;
+  box-shadow: 0 1.5px 8px 0 rgba(30,34,90,0.06);
+  border: none;
+}
+.btn-primary {
+  background: #4e73df;
+  border: none;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: #2e59d9;
+}
+.table thead th {
+  background: #f8fafd;
+  font-weight: 600;
+  color: #23272f;
+}
+.badge {
+  border-radius: .5rem;
+  font-size: .95em;
+}
+/* Onboarding Wizard Enhancements */
+.onboarding-wizard .progress {
+  margin-bottom: 2rem;
+  height: 8px;
+}
+.onboarding-wizard .card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.onboarding-wizard h3 {
+  font-weight: 600;
+  color: #3a3a3a;
+}
+.onboarding-wizard .btn-primary {
+  background: #3b82f6;
+  border: none;
+  font-weight: 500;
+}
+.onboarding-wizard .btn-success {
+  background: #10b981;
+  border: none;
+  font-weight: 500;
+}
+.onboarding-wizard .card-body {
+  padding: 2rem 2rem 1rem 2rem;
+}
+.onboarding-wizard input, .onboarding-wizard select {
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+.onboarding-wizard .form-label {
+  font-weight: 500;
+  color: #374151;
+}
+@media (max-width: 991px) {
+  .sidebar { min-width: 64px; max-width: 64px; }
+  .sidebar .sidebar-label { display: none !important; }
+}

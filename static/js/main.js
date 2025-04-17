@@ -356,10 +356,10 @@ function loadExpiringLicenses() {
       { id: 'lic101', name: 'Windows Server 2022', daysLeft: 8, product: 'Windows Server' },
     ];
 
-    // Update the badge count
+    // Update the badge count (only if element exists)
     const count = mockLicenses.length;
-    expiryBadge.textContent = count;
-    expiryBadgeLg.textContent = count;
+    if (expiryBadge) expiryBadge.textContent = count;
+    if (expiryBadgeLg) expiryBadgeLg.textContent = count;
 
     // Clear loading placeholder
     expiringLicensesList.innerHTML = '';

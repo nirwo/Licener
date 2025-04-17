@@ -1,14 +1,15 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">Subscriptions</h1>
   <div>
-    <a href="/subscriptions/add" class="btn btn-primary">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#subscriptionWizardModal">
       <i class="fas fa-plus me-1"></i> Add Subscription
-    </a>
+    </button>
     <a href="/subscriptions/demo1" class="btn btn-info ms-2">
       <i class="fas fa-vial me-1"></i> View Demo Subscription
     </a>
   </div>
 </div>
+{{> subscriptions/_wizard systems=systems editMode=false }}
 
 <div class="card">
   <div class="card-header bg-white">
@@ -94,9 +95,9 @@
         <h5>No subscriptions found</h5>
         <p class="text-muted">Get started by adding your first subscription or use the demo</p>
         <div class="mt-3">
-          <a href="/subscriptions/add" class="btn btn-primary me-2">
+          <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#subscriptionWizardModal">
             <i class="fas fa-plus me-2"></i>Add Subscription
-          </a>
+          </button>
           <a href="/subscriptions/demo1" class="btn btn-info">
             <i class="fas fa-vial me-2"></i>View Demo
           </a>
@@ -119,4 +120,5 @@ $(document).ready(function() {
     });
   }
 });
-</script> 
+</script>
+<script src="/static/js/subscription-wizard.js"></script>

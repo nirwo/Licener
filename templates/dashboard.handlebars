@@ -1,209 +1,122 @@
-{{!-- No duplicate navbar here, it should be in the main layout --}}
-<div class="dashboard-container">
-  <!-- Welcome Section -->
-  <div class="welcome-section mb-4 pt-4">
-    <h2>Welcome back, {{user.name}}!</h2>
-    <p class="text-muted">Here's a summary of your subscription management system.</p>
-  </div>
-
-  <!-- Stats Cards Section -->
+{{!-- SaaS Pro Dashboard --}}
+<div class="container-fluid">
   <div class="row mb-4">
-    <div class="col-md-3 mb-4 mb-md-0">
-      <div class="card stats-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Total Subscriptions</h5>
-          <p class="card-text stats-number">{{stats.totalLicenses}}</p>
-          <p class="stats-trend {{#if stats.licenseTrend.positive}}positive{{else}}negative{{/if}}">
+    <div class="col-12 text-center">
+      <h2 class="fw-bold mb-1">Welcome, {{user.name}}!</h2>
+      <p class="text-muted mb-0">Your SaaS license management overview.</p>
+    </div>
+  </div>
+  <div class="row g-4 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-4">
+          <div class="fs-4 fw-bold mb-2">{{stats.totalLicenses}}</div>
+          <div class="text-uppercase text-secondary small mb-1">Total Licenses</div>
+          <div class="small {{#if stats.licenseTrend.positive}}text-success{{else}}text-danger{{/if}}">
             <i class="fas fa-arrow-{{#if stats.licenseTrend.positive}}up{{else}}down{{/if}}"></i>
             {{stats.licenseTrend.percentage}}% from last month
-          </p>
+          </div>
         </div>
       </div>
     </div>
-    
-    <div class="col-md-3 mb-4 mb-md-0">
-      <div class="card stats-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Expiring Soon</h5>
-          <p class="card-text stats-number">{{stats.expiringSoon}}</p>
-          <p class="stats-info">Subscriptions expiring in 30 days</p>
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-4">
+          <div class="fs-4 fw-bold mb-2">{{stats.expiringSoon}}</div>
+          <div class="text-uppercase text-secondary small mb-1">Expiring Soon</div>
+          <div class="small text-muted">Licenses expiring in 30 days</div>
         </div>
       </div>
     </div>
-    
-    <div class="col-md-3 mb-4 mb-md-0">
-      <div class="card stats-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Annual Spend</h5>
-          <p class="card-text stats-number">${{stats.annualSpend}}</p>
-          <p class="stats-info">Total annual subscription cost</p>
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-4">
+          <div class="fs-4 fw-bold mb-2">${{stats.annualSpend}}</div>
+          <div class="text-uppercase text-secondary small mb-1">Annual Spend</div>
+          <div class="small text-muted">Total annual license cost</div>
         </div>
       </div>
     </div>
-    
-    <div class="col-md-3">
-      <div class="card stats-card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Active Systems</h5>
-          <p class="card-text stats-number">{{stats.activeSystems}}</p>
-          <p class="stats-info">Systems with active subscriptions</p>
+    <div class="col-6 col-md-3">
+      <div class="card text-center h-100">
+        <div class="card-body py-4">
+          <div class="fs-4 fw-bold mb-2">{{stats.activeSystems}}</div>
+          <div class="text-uppercase text-secondary small mb-1">Active Systems</div>
+          <div class="small text-muted">Systems with active licenses</div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Recent Licenses Section -->
-  <div class="row mb-4">
-    <div class="col-md-8 mb-4 mb-md-0">
+  <div class="row g-4 mb-4">
+    <div class="col-md-4 mb-3 mb-md-0">
       <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Recent Subscriptions</h5>
-          <a href="/subscriptions" class="btn btn-sm btn-outline-primary">View All</a>
+        <div class="card-header bg-white border-bottom-0 pb-0">
+          <span class="fw-semibold">Quick Actions</span>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body d-grid gap-2 pt-2">
+          <a href="/licenses/add" class="btn btn-primary w-100"><i class="fas fa-plus me-1"></i> Add License</a>
+          <a href="/systems/add" class="btn btn-outline-primary w-100"><i class="fas fa-plus me-1"></i> Add System</a>
+          <a href="/reports" class="btn btn-outline-secondary w-100"><i class="fas fa-chart-bar me-1"></i> View Reports</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="card h-100">
+        <div class="card-header bg-white border-bottom-0 pb-0">
+          <span class="fw-semibold">Recent Licenses</span>
+        </div>
+        <div class="card-body px-0 pt-2">
+          {{#if recentLicenses.length}}
           <div class="table-responsive">
-            <table class="table table-striped table-hover">
+            <table class="table align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th>Subscription</th>
-                  <th>Product</th>
-                  <th>Status</th>
-                  <th>Expiry</th>
+                  <th scope="col">Product</th>
+                  <th scope="col">Vendor</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Expiry</th>
                 </tr>
               </thead>
               <tbody>
                 {{#each recentLicenses}}
                 <tr>
-                  <td><a href="/subscriptions/view/{{this._id}}">{{this.name}}</a></td>
                   <td>{{this.product}}</td>
-                  <td><span class="badge bg-{{subscriptionStatusClass this.status}}">{{this.status}}</span></td>
-                  <td>{{formatDate this.expiryDate "MMM DD, YYYY"}}</td>
-                </tr>
-                {{else}}
-                <tr>
-                  <td colspan="4" class="text-center text-muted">No subscriptions found</td>
+                  <td>{{this.vendor}}</td>
+                  <td><span class="badge bg-{{#if (eq this.status 'active')}}success{{else if (eq this.status 'expired')}}danger{{else}}warning{{/if}}">{{this.status}}</span></td>
+                  <td>{{this.expiry}}</td>
                 </tr>
                 {{/each}}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">Quick Actions</h5>
-        </div>
-        <div class="card-body">
-          <div class="d-grid gap-2">
-            <a href="/licenses/add" class="btn btn-primary">
-              <i class="fas fa-plus-circle me-2"></i> Add Subscription
-            </a>
-            <a href="/systems/add" class="btn btn-outline-primary">
-              <i class="fas fa-server me-2"></i> Add System
-            </a>
-            <a href="/reports/license-expiry" class="btn btn-outline-primary">
-              <i class="fas fa-calendar-alt me-2"></i> Check Expirations
-            </a>
-            <a href="/web-researcher" class="btn btn-outline-primary">
-              <i class="fas fa-search me-2"></i> Research Licenses
-            </a>
-          </div>
+          {{else}}
+          <div class="text-muted py-4 text-center">No recent licenses found.</div>
+          {{/if}}
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Activity Log -->
-  <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Recent Activity</h5>
-    </div>
-    <div class="card-body p-0">
-      <div class="list-group list-group-flush">
-        {{#each recentActivity}}
-        <div class="list-group-item">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <i class="fas {{this.icon}} me-2 text-primary"></i>
-              <span>{{this.action}}</span>
-              <small class="text-muted">{{this.details}}</small>
-            </div>
-            <small class="text-muted">{{formatDate this.date "MMM DD, h:mm a"}}</small>
-          </div>
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-white border-bottom-0 pb-0">
+          <span class="fw-semibold">Recent Activity</span>
         </div>
-        {{else}}
-        <div class="list-group-item text-center text-muted">No recent activity</div>
-        {{/each}}
+        <div class="card-body px-0 pt-2">
+          {{#if recentActivity.length}}
+          <ul class="list-group list-group-flush">
+            {{#each recentActivity}}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span><span class="fw-bold">{{this.user}}</span> {{this.action}} <span class="text-muted">{{this.target}}</span></span>
+              <span class="text-muted small">{{this.time}}</span>
+            </li>
+            {{/each}}
+          </ul>
+          {{else}}
+          <div class="text-muted py-4 text-center">No recent activity found.</div>
+          {{/if}}
+        </div>
       </div>
     </div>
   </div>
 </div>
-
-<style>
-.dashboard-container {
-  padding: 1rem;
-}
-
-.welcome-section {
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
-}
-
-.stats-card {
-  border-radius: 10px;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  transition: transform 0.2s ease-in-out;
-}
-
-.stats-card:hover {
-  transform: translateY(-5px);
-}
-
-.stats-number {
-  font-size: 1.8rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.stats-trend {
-  font-size: 0.85rem;
-}
-
-.stats-trend.positive {
-  color: #28a745;
-}
-
-.stats-trend.negative {
-  color: #dc3545;
-}
-
-.stats-info {
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
-@media (max-width: 767.98px) {
-  .dashboard-container {
-    padding: 0.5rem;
-  }
-  
-  .welcome-section {
-    padding-top: 1rem !important;
-  }
-  
-  .stats-number {
-    font-size: 1.4rem;
-  }
-  
-  .card-header {
-    padding: 0.75rem;
-  }
-  
-  .card-body {
-    padding: 0.75rem;
-  }
-}
-</style>

@@ -18,7 +18,7 @@
           <h5 class="card-title mb-0">Subscription Details</h5>
         </div>
         <div class="card-body">
-          <form action="/subscriptions/{{subscription._id}}/edit" method="POST">
+          <form id="subscriptionForm" action="/subscriptions/{{subscription._id}}/edit" method="POST">
             <div class="row mb-3">
               <div class="col-md-6">
                 <label for="product" class="form-label">Product Name</label>
@@ -29,11 +29,13 @@
                 <select class="form-select" id="vendor" name="vendor" required>
                   <option value="">Select a vendor</option>
                   {{#each vendors}}
-                    <option value="{{this._id}}" {{#if (eq this._id ../subscription.vendor._id)}}selected{{/if}}>
-                      {{this.name}}
-                    </option>
+                    <option value="{{this._id}}" {{#if (eq this._id ../subscription.vendor._id)}}selected{{/if}}>{{this.name}}</option>
                   {{/each}}
+                  <option value="other">Other</option>
                 </select>
+                <div id="otherVendorWrapper" class="mt-2 d-none">
+                  <input type="text" class="form-control" id="otherVendor" placeholder="Enter new vendor name">
+                </div>
               </div>
             </div>
 
@@ -169,7 +171,6 @@
         hiddenVendorInput.type = 'hidden';
         hiddenVendorInput.name = 'vendor';
         hiddenVendorInput.value = otherVendorInput.value.trim();
-        
         // Replace the original vendor select
         vendorSelect.name = 'vendor_original';
         form.appendChild(hiddenVendorInput);
@@ -190,4 +191,4 @@
     button.closest('.list-group-item').style.textDecoration = 'line-through';
     button.disabled = true;
   }
-</script> 
+</script>

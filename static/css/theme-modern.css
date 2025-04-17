@@ -1,0 +1,86 @@
+/* theme-modern.css */
+:root {
+  --primary: #5b8def;
+  --primary-dark: #23408e;
+  --secondary: #232526;
+  --accent: #f6c23e;
+  --bg-main: #191b1f;
+  --bg-card: #23272f;
+  --text-main: #f4f7fa;
+  --text-muted: #b0b4ba;
+  --border-radius: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.12);
+  --transition: all 0.2s cubic-bezier(.4,0,.2,1);
+}
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.04rem;
+  line-height: 1.6;
+}
+.card, .onboarding-card {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: none;
+  transition: var(--transition);
+}
+.navbar, .sidebar {
+  background: var(--secondary) !important;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  box-shadow: var(--shadow);
+}
+.btn-primary {
+  background: var(--primary);
+  border: none;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: var(--primary-dark);
+}
+.table {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+.table th, .table td {
+  border-color: #2c313a;
+}
+input, select, textarea {
+  background: #23272f;
+  color: var(--text-main);
+  border-radius: var(--border-radius);
+  border: 1px solid #2c313a;
+  transition: var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  background: #22242a;
+}
+::-webkit-scrollbar-thumb {
+  background: #31343c;
+  border-radius: 8px;
+}
+hr {
+  border-color: #353a44;
+}
+.text-accent {
+  color: var(--accent) !important;
+}
+.text-muted {
+  color: var(--text-muted) !important;
+}
+.shadow {
+  box-shadow: var(--shadow) !important;
+}
+.transition {
+  transition: var(--transition) !important;
+}

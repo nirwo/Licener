@@ -1,0 +1,77 @@
+{{!-- Subscription Wizard Modal --}}
+<div class="modal fade" id="subscriptionWizardModal" tabindex="-1" aria-labelledby="subscriptionWizardLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content onboarding-wizard">
+      <div class="modal-header">
+        <h5 class="modal-title" id="subscriptionWizardLabel">{{#if editMode}}Edit Subscription{{else}}Add Subscription{{/if}}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="subscriptionWizardForm">
+          <div id="wizardStep1" class="wizard-step">
+            <h6>Step 1: Product & Vendor</h6>
+            <div class="mb-3">
+              <label for="product" class="form-label">Product</label>
+              <input type="text" class="form-control" id="product" name="product" required>
+            </div>
+            <div class="mb-3">
+              <label for="vendor" class="form-label">Vendor</label>
+              <input type="text" class="form-control" id="vendor" name="vendor" required>
+            </div>
+          </div>
+          <div id="wizardStep2" class="wizard-step d-none">
+            <h6>Step 2: Seats & Cost</h6>
+            <div class="mb-3">
+              <label for="seats" class="form-label">Seats</label>
+              <input type="number" class="form-control" id="seats" name="seats" min="0">
+            </div>
+            <div class="mb-3">
+              <label for="cost" class="form-label">Annual Cost</label>
+              <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01">
+            </div>
+          </div>
+          <div id="wizardStep3" class="wizard-step d-none">
+            <h6>Step 3: Dates</h6>
+            <div class="mb-3">
+              <label for="purchaseDate" class="form-label">Purchase Date</label>
+              <input type="date" class="form-control" id="purchaseDate" name="purchaseDate">
+            </div>
+            <div class="mb-3">
+              <label for="renewalDate" class="form-label">Renewal Date</label>
+              <input type="date" class="form-control" id="renewalDate" name="renewalDate">
+            </div>
+          </div>
+          <div id="wizardStep4" class="wizard-step d-none">
+            <h6>Step 4: System & Notes</h6>
+            <div class="mb-3">
+              <label for="system" class="form-label">Assign to System</label>
+              <select class="form-select" id="system" name="system">
+                <option value="">No system assigned</option>
+                {{#each systems}}
+                  <option value="{{this._id}}">{{this.name}} ({{this.systemType}})</option>
+                {{/each}}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="notes" class="form-label">Notes</label>
+              <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+            </div>
+          </div>
+          <div id="wizardStep5" class="wizard-step d-none">
+            <h6>Step 5: Review & Save</h6>
+            <div id="wizardReview"></div>
+          </div>
+          <!-- Wizard Navigation -->
+          <div class="d-flex justify-content-between mt-4">
+            <button type="button" class="btn btn-outline-secondary" id="wizardPrev" disabled>Back</button>
+            <button type="button" class="btn btn-primary" id="wizardNext">Next</button>
+            <button type="submit" class="btn btn-success d-none" id="wizardSave">Save</button>
+          </div>
+        </form>
+        <div class="progress mt-3" style="height: 6px;">
+          <div class="progress-bar bg-primary" id="wizardProgress" role="progressbar" style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

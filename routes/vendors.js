@@ -230,4 +230,20 @@ async function processBatchVendors(req) {
   }
 }
 
+// Vendor AJAX search for autocomplete
+router.get('/search', ensureAuthenticated, async (req, res) => {
+  try {
+    const term = req.query.term || '';
+    const vendors = await Vendor.find({ name: new RegExp(term, 'i') })
+      .limit(10)
+      .select('name')
+      .lean();
+    const names = vendors.map(v => v.name);
+    res.json(names);
+  } catch (err) {
+    console.error('Error in vendor search', err);
+    res.status(500).json([]);
+  }
+});
+
 module.exports = router;

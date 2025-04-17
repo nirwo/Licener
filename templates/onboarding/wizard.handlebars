@@ -1,0 +1,112 @@
+<div class="onboarding-wizard">
+{{!-- Onboarding Wizard --}}
+{{#if (eq step 1)}}
+  <div class="container mt-5">
+    <div class="card mx-auto" style="max-width: 500px;">
+      <div class="card-body">
+        <h3 class="mb-4">Welcome! Set Up Your Profile</h3>
+        <form action="/onboarding/profile" method="POST">
+          <div class="mb-3">
+            <label for="name" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{user.name}}" required>
+          </div>
+          <div class="mb-3">
+            <label for="company" class="form-label">Company</label>
+            <input type="text" class="form-control" id="company" name="company" value="{{user.company}}">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Next</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{{/if}}
+
+{{#if (eq step 2)}}
+  <div class="container mt-5">
+    <div class="card mx-auto" style="max-width: 500px;">
+      <div class="card-body">
+        <h3 class="mb-4">Add Your First System</h3>
+        <form action="/onboarding/system" method="POST">
+          <div class="mb-3">
+            <label for="systemName" class="form-label">System Name</label>
+            <input type="text" class="form-control" id="systemName" name="systemName" required>
+          </div>
+          <div class="mb-3">
+            <label for="systemType" class="form-label">System Type</label>
+            <input type="text" class="form-control" id="systemType" name="systemType" placeholder="e.g. CRM, ERP, Cloud" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Next</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{{/if}}
+
+{{#if (eq step 3)}}
+  <div class="container mt-5">
+    <div class="card mx-auto" style="max-width: 500px;">
+      <div class="card-body">
+        <h3 class="mb-4">Add Your First Subscription</h3>
+        <form action="/onboarding/subscription" method="POST">
+          <div class="mb-3">
+            <label for="product" class="form-label">Product</label>
+            <input type="text" class="form-control" id="product" name="product" required>
+          </div>
+          <div class="mb-3">
+            <label for="vendor" class="form-label">Vendor</label>
+            <input type="text" class="form-control" id="vendor" name="vendor" required>
+          </div>
+          <div class="mb-3">
+            <label for="cost" class="form-label">Annual Cost</label>
+            <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label for="renewalDate" class="form-label">Renewal Date</label>
+            <input type="date" class="form-control" id="renewalDate" name="renewalDate">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Next</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{{/if}}
+
+{{#if (eq step 4)}}
+  <div class="container mt-5">
+    <div class="card mx-auto" style="max-width: 600px;">
+      <div class="card-body">
+        <h3 class="mb-4">You're All Set!</h3>
+        <div class="mb-4">
+          <h5>Profile</h5>
+          <div><strong>Name:</strong> {{user.name}}</div>
+          <div><strong>Company:</strong> {{user.company}}</div>
+        </div>
+        <div class="mb-4">
+          <h5>Systems</h5>
+          <ul>
+            {{#each systems}}
+              <li>{{this.name}} ({{this.systemType}})</li>
+            {{/each}}
+          </ul>
+        </div>
+        <div class="mb-4">
+          <h5>Subscriptions</h5>
+          <ul>
+            {{#each subscriptions}}
+              <li>{{this.product}} ({{this.vendor}}) - ${{this.cost}} /yr</li>
+            {{/each}}
+          </ul>
+        </div>
+        <a href="/dashboard" class="btn btn-success w-100">Go to Dashboard</a>
+      </div>
+    </div>
+  </div>
+{{/if}}
+
+<!-- Progress Bar -->
+<div class="container mt-3" style="max-width: 500px;">
+  <div class="progress" style="height: 8px;">
+    <div class="progress-bar bg-primary" role="progressbar" style="width: {{multiply step 25}}%;" aria-valuenow="{{multiply step 25}}" aria-valuemin="0" aria-valuemax="100"></div>
+  </div>
+</div>
+</div>

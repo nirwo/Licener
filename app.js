@@ -291,6 +291,8 @@ const apiRoutes = require('./routes/api');
 const vendorRoutes = require('./routes/vendors');
 const dashboardRoutes = require('./routes/dashboard');
 const webResearcherRoutes = require('./routes/web-researcher');
+const onboardingRouter = require('./routes/onboarding');
+const licenseRoutes = require('./routes/licenses');
 
 // Add redirects for common auth paths
 app.get('/users/login', (req, res) => {
@@ -305,26 +307,8 @@ app.get('/users/logout', (req, res) => {
   res.redirect('/auth/logout');
 });
 
-// Redirect old license routes to subscription routes for backward compatibility
-app.get('/licenses', (req, res) => {
-  res.redirect('/subscriptions');
-});
-
-app.get('/licenses/add', (req, res) => {
-  res.redirect('/subscriptions/add');
-});
-
-app.get('/licenses/view/:id', (req, res) => {
-  res.redirect(`/subscriptions/view/${req.params.id}`);
-});
-
-app.get('/licenses/edit/:id', (req, res) => {
-  res.redirect(`/subscriptions/edit/${req.params.id}`);
-});
-
-app.get('/licenses/demo1', (req, res) => {
-  res.redirect('/subscriptions/demo1');
-});
+// License routes
+app.use('/licenses', licenseRoutes);
 
 // Use routes
 app.use('/', indexRoutes);
@@ -335,6 +319,7 @@ app.use('/reports', reportRoutes);
 app.use('/api', apiRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/web-researcher', webResearcherRoutes);
+app.use('/onboarding', onboardingRouter);
 // Fix the vendors route if it exists
 if (typeof vendorRoutes === 'function') {
   app.use('/vendors', vendorRoutes);

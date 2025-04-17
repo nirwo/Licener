@@ -1,0 +1,26 @@
+{{!-- onboarding-wizard.handlebars --}}
+<div id="onboarding-wizard" class="container-fluid d-flex flex-column align-items-center justify-content-center min-vh-100 bg-light">
+  <div class="wizard-step animated fadeIn" id="wizard-step-1">
+    <div class="card shadow-lg p-4 text-center onboarding-card">
+      <img src="/static/img/welcome.svg" alt="Welcome" class="mb-3 animated bounceIn" style="max-width:120px;">
+      <h1 class="display-5 mb-3 fw-bold">Welcome to Licener!</h1>
+      <p class="lead mb-4 text-muted">Let's get started. Please check your email for any subscription information.<br>Click Next when you're ready to continue.</p>
+      <button class="btn btn-primary btn-lg next-step">Next</button>
+    </div>
+  </div>
+  <!-- Steps 2+ will be injected dynamically by JS -->
+</div>
+
+<style>
+.onboarding-card {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: none;
+  transition: var(--transition);
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="/static/js/onboarding-wizard.js"></script>

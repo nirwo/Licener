@@ -1,69 +1,5 @@
-/* Emergency Override Stylesheet for Navbar */
-html body nav.navbar,
-html body div.navbar,
-html body nav.navbar.navbar-expand-lg.navbar-dark.bg-dark,
-html body .navbar.navbar-expand-lg.navbar-dark.bg-dark,
-body nav.navbar.navbar-dark.bg-dark,
-body .navbar.navbar-dark.bg-dark,
-nav.navbar,
-.navbar.bg-dark,
-.navbar.navbar-dark.bg-dark {
-  background-color: #343a40 !important;
-  border: none !important;
-  color: white !important;
-}
-
-html body nav.navbar .container-fluid,
-html body .navbar .container-fluid {
-  background-color: #343a40 !important;
-}
-
-html body nav.navbar .navbar-brand,
-html body .navbar .navbar-brand,
-html body nav.navbar.navbar-dark .navbar-brand,
-.navbar .navbar-brand,
-.navbar-dark .navbar-brand {
-  color: white !important;
-}
-
-html body nav.navbar .nav-link,
-html body .navbar .nav-link,
-.navbar .nav-link,
-.navbar-dark .nav-link,
-.bg-dark .nav-link {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-html body nav.navbar .nav-link:hover,
-html body .navbar .nav-link:hover,
-.navbar .nav-link:hover,
-.navbar-dark .nav-link:hover,
-.bg-dark .nav-link:hover {
-  color: white !important;
-}
-
-/* Apply to all icons within the navbar */
-html body nav.navbar i,
-html body .navbar i,
-.navbar i,
-.navbar-dark i {
-  color: white !important;
-}
-
-/* Fix navbar-toggler icon */
-.navbar-toggler-icon {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
-}
-
-/* Force Bootstrap 5's bg-dark to be actually dark */
-.bg-dark {
-  background-color: #343a40 !important;
-}
-
-/* Target offcanvas headers */
-.offcanvas-header.bg-dark {
-  background-color: #343a40 !important;
-}
+/* --- NAVBAR: Remove all emergency/override navbar color/background rules --- */
+/* All .navbar, .navbar-dark, .navbar * color/background overrides removed so custom.css rules apply. */
 
 /* Dropdown menu styling - IMPORTANT */
 .navbar .dropdown-menu,
@@ -103,4 +39,104 @@ html body .navbar .dropdown-menu .dropdown-item:focus,
 .dropdown-menu .dropdown-item:focus {
   background-color: #f8f9fc !important;
   color: #2e59d9 !important;
+}
+
+/* --- Dashboard Auth Style Overrides --- */
+.dashboard-auth-bg {
+  background: #f8f9fc;
+}
+.dashboard-auth-card {
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.15rem 1.75rem rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.dashboard-auth-card .auth-header {
+  background-color: #4e73df;
+  color: #fff;
+  padding: 1.5rem;
+  text-align: center;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+.dashboard-auth-card .auth-body {
+  padding: 2rem 2rem 1.5rem 2rem;
+}
+.dashboard-auth-card .card {
+  border-radius: 0.5rem;
+  box-shadow: 0 0.1rem 0.6rem rgba(0,0,0,0.06);
+  border: none;
+  background: #f8f9fc;
+}
+.dashboard-auth-card .card-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #e3e6f0;
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+.dashboard-auth-card .btn-auth {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  border-radius: 0.4rem;
+  font-size: 1rem;
+  max-width: 260px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+.dashboard-auth-card .card-body .btn-auth + .btn-auth {
+  margin-top: 0.5rem;
+}
+.dashboard-auth-card .btn-auth.btn-primary {
+  background: #4e73df;
+  border: none;
+}
+.dashboard-auth-card .btn-auth.btn-primary:hover,
+.dashboard-auth-card .btn-auth.btn-primary:focus {
+  background: #2e59d9;
+}
+.dashboard-auth-card .btn-auth.btn-secondary {
+  background: #858796;
+  border: none;
+}
+.dashboard-auth-card .btn-auth.btn-outline-info {
+  color: #36b9cc;
+  border-color: #36b9cc;
+}
+.dashboard-auth-card .btn-auth.btn-outline-info:hover,
+.dashboard-auth-card .btn-auth.btn-outline-info:focus {
+  background: #36b9cc;
+  color: #fff;
+}
+.dashboard-auth-card .stats-card {
+  background: #f8f9fa;
+  color: #5a5c69;
+  box-shadow: none;
+  border-radius: 0.5rem;
+  border: 1px solid #e3e6f0;
+}
+.dashboard-auth-card .stats-number {
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+.dashboard-auth-card .stats-trend.positive {
+  color: #2ecc71;
+}
+.dashboard-auth-card .stats-trend.negative {
+  color: #e74c3c;
+}
+.dashboard-auth-card .stats-info {
+  color: #858796;
+  font-size: 0.95rem;
+}
+.dashboard-auth-card .list-group-item {
+  background: transparent;
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+.dashboard-auth-card .badge {
+  font-size: 0.85rem;
+  border-radius: 0.4rem;
+  padding: 0.35em 0.7em;
 }

@@ -1,9 +1,9 @@
-<h1 class="h3 mb-4">Systems</h1>
+<h1 class="h3 mb-4 fw-bold">Systems</h1>
 
-<div class="card mb-4">
+<div class="card mb-4 shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0">Manage Systems</h5>
-    <div>
+    <div class="d-flex gap-2">
       <a href="/systems/add" class="btn btn-sm btn-primary">
         <i class="fas fa-plus-circle me-1"></i> Add New
       </a>
@@ -15,10 +15,10 @@
       </a>
     </div>
   </div>
-  <div class="card-body">
+  <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover datatable">
-        <thead>
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-dark">
           <tr>
             <th>Name</th>
             <th>Type</th>
@@ -32,11 +32,11 @@
           {{#if systems}}
             {{#each systems}}
               <tr>
-                <td>{{name}}</td>
+                <td class="fw-semibold">{{name}}</td>
                 <td>{{systemType}}</td>
                 <td>{{environment}}</td>
                 <td>
-                  <span class="badge bg-{{#if (eq status "Active")}}success{{else if (eq status "Inactive")}}secondary{{else if (eq status "Expired")}}danger{{else if (eq status "Pending")}}warning{{else if (eq status "Suspended")}}info{{else}}secondary{{/if}}">
+                  <span class="badge bg-{{#if (eq status 'Active')}}success{{else if (eq status 'Inactive')}}secondary{{else if (eq status 'Expired')}}danger{{else if (eq status 'Pending')}}warning{{else if (eq status 'Suspended')}}info{{else}}secondary{{/if}}">
                     {{status}}
                   </span>
                 </td>
@@ -45,37 +45,30 @@
                 </td>
                 <td>
                   <div class="btn-group btn-group-sm">
-                    <a href="/systems/view/{{_id}}" class="btn btn-info">
+                    <a href="/systems/view/{{_id}}" class="btn btn-info" title="View">
                       <i class="fas fa-eye"></i>
                     </a>
-                    <a href="/systems/edit/{{_id}}" class="btn btn-warning">
+                    <a href="/systems/edit/{{_id}}" class="btn btn-warning" title="Edit">
                       <i class="fas fa-edit"></i>
                     </a>
-                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{_id}}">
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{_id}}" title="Delete">
                       <i class="fas fa-trash-alt"></i>
                     </button>
                   </div>
-
                   <!-- Delete Modal -->
                   <div class="modal fade" id="deleteModal{{_id}}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
                     <div class="modal-dialog">
-                      <div class="modal-content">
+                      <div class="modal-content bg-card text-main">
                         <div class="modal-header">
-                          <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                          <h5 class="modal-title" id="deleteModalLabel">Delete System</h5>
                           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                          <p>Are you sure you want to delete <strong>{{name}}</strong>?</p>
-                          {{#if licenseCount}}
-                            <div class="alert alert-warning">
-                              <i class="fas fa-exclamation-triangle me-2"></i>
-                              This system has {{licenseCount}} associated licenses that will be unassigned.
-                            </div>
-                          {{/if}}
+                          Are you sure you want to delete <strong>{{name}}</strong>?
                         </div>
                         <div class="modal-footer">
                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                          <form action="/systems/{{_id}}?_method=DELETE" method="POST">
+                          <form action="/systems/delete/{{_id}}" method="POST" class="d-inline">
                             <button type="submit" class="btn btn-danger">Delete</button>
                           </form>
                         </div>
@@ -84,22 +77,40 @@
                   </div>
                 </td>
               </tr>
-            {{else}}
-              <tr>
-                <td colspan="6" class="text-center">
-                  <p class="my-3">No systems found</p>
-                  <a href="/systems/add" class="btn btn-primary">
-                    <i class="fas fa-plus-circle me-1"></i> Add Your First System
-                  </a>
-                </td>
-              </tr>
             {{/each}}
+          {{else}}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No systems found.</td>
+            </tr>
           {{/if}}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+
+<style>
+.card {
+  border-radius: var(--border-radius);
+  background: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: var(--shadow);
+  border: none;
+  transition: var(--transition);
+}
+.table {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+.table th, .table td {
+  border-color: #2c313a;
+}
+.btn-group .btn {
+  border-radius: var(--border-radius);
+}
+</style>
 
 <script>
 $(document).ready(function() {

@@ -20,6 +20,7 @@ const SystemSchema = new Schema({
     required: true,
     enum: ['Server', 'Workstation', 'Laptop', 'Mobile', 'Other'],
     default: 'Other',
+    alias: 'type',
   },
   environment: {
     type: String,
@@ -32,6 +33,11 @@ const SystemSchema = new Schema({
     default: 'active',
   },
   operatingSystem: {
+    type: String,
+    trim: true,
+    alias: 'os',
+  },
+  osVersion: {
     type: String,
     trim: true,
   },
@@ -54,12 +60,18 @@ const SystemSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
   },
   manager: {
     type: Schema.Types.ObjectId,
     ref: 'User',
   },
+  installedSoftware: [
+    {
+      name: { type: String },
+      version: { type: String },
+      installDate: { type: Date },
+    },
+  ],
   licenseRequirements: [
     {
       licenseType: String,

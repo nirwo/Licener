@@ -13,12 +13,9 @@ const getUserId = req => req.user._id.toString();
 // Reports Dashboard
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
-    // For the dashboard, we'll redirect to license expiry report as default
     const userId = getUserId(req);
-
-    // Get some basic stats for the dashboard
-    const allLicenses = License.find({ owner: userId });
-
+    // Get all licenses for user
+    const allLicenses = await License.find({ owner: userId });
     const currentDate = new Date();
     const thirtyDaysLater = new Date(currentDate);
     thirtyDaysLater.setDate(currentDate.getDate() + 30);
@@ -30,14 +27,15 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       const expiryDate = new Date(license.expiryDate);
       return expiryDate >= currentDate && expiryDate <= thirtyDaysLater;
     });
-
     const expiredLicenses = allLicenses.filter(license => {
       return new Date(license.expiryDate) < currentDate;
     });
 
-    // Sort by expiry date
-    expiringLicenses.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-    expiredLicenses.sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
+    // Calculate annual cost for active licenses only
+    const annualCost = allLicenses
+      .filter(lic => lic.status === 'active')
+      .reduce((sum, lic) => sum + (lic.cost || 0), 0)
+      .toFixed(2);
 
     res.render('reports/license-expiry', {
       title: 'License Expiry Report',
@@ -48,13 +46,21 @@ router.get('/', ensureAuthenticated, async (req, res) => {
         critical: expiringLicenses.length,
         warning: 0, // We could calculate this if needed
         ok: allLicenses.length - expiringLicenses.length - expiredLicenses.length,
+        totalLicenses: allLicenses.length,
+        annualCost
       },
       licenses: [...expiringLicenses, ...expiredLicenses],
     });
   } catch (err) {
-    console.error('Error loading reports dashboard:', err);
-    req.flash('error_msg', 'Error loading reports dashboard');
-    res.redirect('/dashboard');
+    res.render('reports/license-expiry', {
+      title: 'License Expiry Report',
+      error: 'Failed to load report',
+      stats: { totalLicenses: 0, annualCost: 0, critical: 0, warning: 0, ok: 0 },
+      expiringLicenses: [],
+      expiredLicenses: [],
+      licenses: [],
+      timeframe: 30,
+    });
   }
 });
 
@@ -295,7 +301,7 @@ router.get('/cost-analysis', ensureAuthenticated, async (req, res) => {
     const groupBy = req.query.groupBy || 'vendor';
 
     // Get all licenses for the user
-    const licenses = License.find({ owner: userId });
+    const licenses = await License.find({ owner: userId });
 
     // Group costs by vendor, product
     const vendorCosts = {};
@@ -451,7 +457,7 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
     const forecastEndDate = moment().add(months, 'months').endOf('month').toDate();
 
     // Fetch all licenses and filter manually
-    const allLicenses = License.find({ owner: userId });
+    const allLicenses = await License.find({ owner: userId });
 
     // Filter for licenses within the forecast period
     const relevantLicenses = allLicenses.filter(license => {
@@ -466,6 +472,7 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
     for (let i = 0; i < months; i++) {
       const monthStart = moment().add(i, 'months').startOf('month');
       const monthEnd = moment().add(i, 'months').endOf('month');
+      const monthLabel = monthStart.format('MMM YYYY');
 
       // Filter licenses for the current month from the pre-fetched list
       const expiringThisMonth = relevantLicenses.filter(license => {
@@ -487,7 +494,7 @@ router.get('/renewal-forecast', ensureAuthenticated, async (req, res) => {
       totalForecastCost += monthCost;
 
       renewalData.push({
-        month: monthStart.format('MMMM YYYY'),
+        month: monthLabel,
         licenses: expiringThisMonth,
         cost: monthCost.toFixed(2),
         count: expiringThisMonth.length,
@@ -626,7 +633,7 @@ router.get('/custom', ensureAuthenticated, async (req, res) => {
 
     if (fields.length > 0) {
       // Get all licenses for the user
-      let licenses = License.find({ owner: userId });
+      let licenses = await License.find({ owner: userId });
 
       // Project only selected fields
       licenses = licenses.map(license => {
@@ -733,7 +740,7 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
       const futureDate = moment().add(days, 'days').toDate();
 
       // Get all licenses and filter manually
-      const allLicenses = License.find({ owner: userId });
+      const allLicenses = await License.find({ owner: userId });
 
       // Filter for expiring and expired licenses
       const expiring = allLicenses.filter(license => {
@@ -760,7 +767,7 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
       ];
       filename = `expiry_report_${timeframe}days_${moment().format('YYYYMMDD_HHmmss')}.csv`;
     } else if (reportType === 'utilization') {
-      const licenses = License.find({ owner: userId });
+      const licenses = await License.find({ owner: userId });
       for (const license of licenses) {
         license.usedSeats = (license.assignedSystems || []).length;
       }
@@ -778,7 +785,7 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
         'expiryDate',
       ];
     } else if (reportType === 'cost') {
-      const licenses = License.find({ owner: userId });
+      const licenses = await License.find({ owner: userId });
       reportData = licenses.filter(l => !isNaN(parseFloat(l.cost)) && parseFloat(l.cost) > 0);
       csvHeaders = ['vendor', 'product', 'name', 'cost', 'currency', 'purchaseDate', 'expiryDate'];
     } else if (reportType === 'compliance') {
@@ -813,7 +820,7 @@ router.get('/export/:report', ensureAuthenticated, async (req, res) => {
       const forecastEndDate = moment().add(months, 'months').endOf('month').toDate();
 
       // Get all licenses and filter manually
-      const allLicenses = License.find({ owner: userId });
+      const allLicenses = await License.find({ owner: userId });
 
       // Filter licenses for the forecast period
       reportData = allLicenses.filter(license => {

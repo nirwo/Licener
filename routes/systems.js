@@ -89,6 +89,24 @@ router.post('/add', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// RESTful API: Create new system
+router.post('/', ensureAuthenticated, async (req, res) => {
+  try {
+    const { name, description, ...rest } = req.body;
+    // You may want to add more fields and validation here
+    const newSystem = await System.create({
+      name,
+      description,
+      ...rest,
+      user: req.user._id
+    });
+    res.status(201).json({ success: true, message: 'System created.', system: newSystem });
+  } catch (err) {
+    console.error('Error creating system:', err);
+    res.status(500).json({ success: false, message: 'Failed to create system.' });
+  }
+});
+
 // View single system
 router.get('/:id/view', ensureAuthenticated, async (req, res) => {
   try {

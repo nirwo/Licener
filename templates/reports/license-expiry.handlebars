@@ -1,6 +1,120 @@
 <h1 class="h3 mb-4">License Expiry Report</h1>
 
 <div class="row mb-4">
+  <div class="col-md-4 mb-3">
+    <div class="card text-center h-100">
+      <div class="card-body py-3">
+        <div class="fs-4 fw-bold mb-2">{{stats.totalLicenses}}</div>
+        <div class="text-uppercase text-secondary small mb-1">Total Licenses</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card text-center h-100">
+      <div class="card-body py-3">
+        <div class="fs-4 fw-bold mb-2">{{#if stats.annualCost}}${{stats.annualCost}}{{else}}0{{/if}}</div>
+        <div class="text-uppercase text-secondary small mb-1">Annual Cost (Active)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4 mb-3">
+    <div class="card text-center h-100">
+      <div class="card-body py-3">
+        <div class="fs-4 fw-bold mb-2">{{stats.critical}}</div>
+        <div class="text-uppercase text-secondary small mb-1">Expiring Soon</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-danger h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+              Critical (0-30 days)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.critical}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-exclamation-circle fa-2x text-danger"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-warning h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+              Warning (31-90 days)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.warning}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4 mb-4">
+    <div class="card border-left-success h-100">
+      <div class="card-body">
+        <div class="row no-gutters align-items-center">
+          <div class="col mr-2">
+            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+              OK (>90 days)
+            </div>
+            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.ok}}</div>
+          </div>
+          <div class="col-auto">
+            <i class="fas fa-check-circle fa-2x text-success"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<table class="table table-striped table-hover align-middle mt-3">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>Vendor</th>
+      <th>Status</th>
+      <th>Expiry</th>
+      <th>Cost</th>
+      <th>System</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each licenses}}
+      <tr>
+        <td>{{this.product}}</td>
+        <td>{{this.vendor}}</td>
+        <td>
+          {{#if (eq this.status 'active')}}
+            <span class="badge bg-success">Active</span>
+          {{else if (eq this.status 'expired')}}
+            <span class="badge bg-danger">Expired</span>
+          {{else}}
+            <span class="badge bg-secondary">{{this.status}}</span>
+          {{/if}}
+        </td>
+        <td>{{this.expiryDate}}</td>
+        <td>{{#if this.cost}}${{this.cost}}{{else}}—{{/if}}</td>
+        <td>{{this.system}}</td>
+      </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="row mb-4">
   <div class="col-md-12">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -63,60 +177,6 @@
               </a>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row mb-4">
-  <div class="col-lg-4 mb-4">
-    <div class="card border-left-danger h-100">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-              Critical (0-30 days)
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.critical}}</div>
-          </div>
-          <div class="col-auto">
-            <i class="fas fa-exclamation-circle fa-2x text-danger"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-4 mb-4">
-    <div class="card border-left-warning h-100">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-              Warning (31-90 days)
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.warning}}</div>
-          </div>
-          <div class="col-auto">
-            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-4 mb-4">
-    <div class="card border-left-success h-100">
-      <div class="card-body">
-        <div class="row no-gutters align-items-center">
-          <div class="col mr-2">
-            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-              OK (>90 days)
-            </div>
-            <div class="h5 mb-0 font-weight-bold text-gray-800">{{stats.ok}}</div>
-          </div>
-          <div class="col-auto">
-            <i class="fas fa-check-circle fa-2x text-success"></i>
-          </div>
         </div>
       </div>
     </div>

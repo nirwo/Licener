@@ -1,98 +1,41 @@
-<aside class="sidebar d-md-block">
-  <div class="sidebar-sticky">
-    <ul class="nav flex-column">
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'dashboard')}}active{{/if}}" href="/dashboard">
-          <i class="fas fa-tachometer-alt me-2"></i>
-          Dashboard
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'licenses')}}active{{/if}}" href="/licenses">
-          <i class="fas fa-file-contract me-2"></i>
-          Licenses
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'add-license')}}active{{/if}}" href="/licenses/add">
-          <i class="fas fa-plus-circle me-2"></i>
-          Add License
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'import-licenses')}}active{{/if}}" href="/licenses/import">
-          <i class="fas fa-file-import me-2"></i>
-          Import Licenses
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'systems')}}active{{/if}}" href="/systems">
-          <i class="fas fa-server me-2"></i>
-          Systems
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'add-system')}}active{{/if}}" href="/systems/add">
-          <i class="fas fa-plus-circle me-2"></i>
-          Add System
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'import-systems')}}active{{/if}}" href="/systems/import">
-          <i class="fas fa-file-import me-2"></i>
-          Import Systems
-        </a>
-      </li>
-    </ul>
-
-    <h6 class="sidebar-heading mt-4">Reports</h6>
-    <ul class="nav flex-column mb-2">
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'license-expiry')}}active{{/if}}" href="/reports/license-expiry">
-          <i class="fas fa-calendar-times me-2"></i>
-          License Expiry
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'license-utilization')}}active{{/if}}" href="/reports/license-utilization">
-          <i class="fas fa-chart-pie me-2"></i>
-          License Utilization
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'cost-analysis')}}active{{/if}}" href="/reports/cost-analysis">
-          <i class="fas fa-dollar-sign me-2"></i>
-          Cost Analysis
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'compliance')}}active{{/if}}" href="/reports/compliance">
-          <i class="fas fa-check-circle me-2"></i>
-          Compliance
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'renewal-forecast')}}active{{/if}}" href="/reports/renewal-forecast">
-          <i class="fas fa-business-time me-2"></i>
-          Renewal Forecast
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'custom-report')}}active{{/if}}" href="/reports/custom">
-          <i class="fas fa-tools me-2"></i>
-          Custom Report
-        </a>
-      </li>
-    </ul>
-
-    <h6 class="sidebar-heading mt-4">Tools</h6>
-    <ul class="nav flex-column mb-2">
-      <li class="nav-item">
-        <a class="nav-link {{#if (eq active 'web-researcher')}}active{{/if}}" href="/web-researcher">
-          <i class="fas fa-search me-2"></i>
-          Web Researcher
-        </a>
-      </li>
-    </ul>
+<aside class="sidebar d-flex flex-column shadow-sm" id="mainSidebar">
+  <div class="d-flex align-items-center justify-content-center py-4 mb-3">
+    <a href="/dashboard" class="d-flex align-items-center text-decoration-none">
+      <img src="/static/img/logo.svg" alt="Licener Logo" style="height:36px;">
+    </a>
+  </div>
+  <ul class="nav flex-column gap-1 px-2 flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link d-flex align-items-center gap-2 {{#if (eq active 'dashboard')}}active{{/if}}" href="/dashboard">
+        <i class="fas fa-home"></i> <span class="sidebar-label">Dashboard</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link d-flex align-items-center gap-2 {{#if (eq active 'licenses')}}active{{/if}}" href="/licenses">
+        <i class="fas fa-id-card"></i> <span class="sidebar-label">Licenses</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link d-flex align-items-center gap-2 {{#if (eq active 'systems')}}active{{/if}}" href="/systems">
+        <i class="fas fa-server"></i> <span class="sidebar-label">Systems</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link d-flex align-items-center gap-2 {{#if (eq active 'reports')}}active{{/if}}" href="/reports">
+        <i class="fas fa-chart-bar"></i> <span class="sidebar-label">Reports</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link d-flex align-items-center gap-2 {{#if (eq active 'web-researcher')}}active{{/if}}" href="/web-researcher">
+        <i class="fas fa-search"></i> <span class="sidebar-label">Web Researcher</span>
+      </a>
+    </li>
+  </ul>
+  <div class="sidebar-footer px-3 py-3 mt-auto d-flex flex-column align-items-center">
+    <div class="user-info d-flex align-items-center gap-2 mb-2">
+      <i class="fas fa-user-circle fs-4"></i>
+      <span class="sidebar-label">{{user.name}}</span>
+    </div>
+    <a href="/auth/logout" class="btn btn-sm btn-outline-danger w-100"><i class="fas fa-sign-out-alt me-1"></i> Logout</a>
   </div>
 </aside>

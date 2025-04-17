@@ -73,8 +73,9 @@ function logObject(label, obj, level = 'info') {
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] === ${label} ===\n${
     typeof obj === 'undefined'
       ? 'UNDEFINED'
-      obj === null ? 'NULL' :
-        JSON.stringify(obj, (key, value) =>
+      : obj === null
+        ? 'NULL'
+        : JSON.stringify(obj, (key, value) =>
           typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 20
             ? '[Object with many properties]'
             : value
@@ -244,7 +245,8 @@ router.get('/add', ensureAuthenticated, async (req, res) => {
         role: req.user.role,
         name: req.user.name,
       })
-
+    );
+    
     // Use the new findByManager method for regular users or find all for admins
     let systems = [];
     if (req.user.role === 'admin') {
@@ -363,6 +365,7 @@ router.post('/', ensureAuthenticated, upload.array('attachments', 5), async (req
 
     console.log(
       `License utilization: ${usedSeats}/${parsedTotalSeats} seats (${utilization.toFixed(2)}%)`
+    );
 
     // Add utilization to license data
     licenseData.assignedSystems = systemsToAssign;
@@ -809,6 +812,19 @@ router.get('/demo1', ensureAuthenticated, async (req, res) => {
     console.error('Error in demo license route:', err);
     req.flash('error_msg', 'Error loading demo license: ' + err.message);
     res.redirect('/licenses');
+  }
+});
+
+/**
+ * API route for deleting a license via POST (integration tests)
+ */
+router.post('/:id/delete', ensureAuthenticated, async (req, res) => {
+  try {
+    await License.findByIdAndDelete(req.params.id);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Error deleting license via API:', err);
+    res.status(500).send(err.message);
   }
 });
 

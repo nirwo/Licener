@@ -4,8 +4,18 @@
   <div class="card-header">
     <h5 class="mb-0">License Details</h5>
   </div>
+      </div> <!-- end Step 2 -->
+
+      <div class="form-step" data-step="3">
   <div class="card-body">
     <form action="/licenses" method="POST" enctype="multipart/form-data" id="licenseForm">
+      <!-- Wizard steps -->
+      <ul class="nav nav-pills mb-4 wizard-steps">
+        <li class="nav-item"><button type="button" class="nav-link active" data-step="1">1. Basic Info</button></li>
+        <li class="nav-item"><button type="button" class="nav-link" data-step="2">2. Details</button></li>
+        <li class="nav-item"><button type="button" class="nav-link" data-step="3">3. Assignment</button></li>
+      </ul>
+      <div class="form-step active" data-step="1">
       <div class="row mb-3">
         <div class="col-md-6">
           <div class="mb-3">
@@ -20,22 +30,23 @@
           </div>
         </div>
       </div>
+      </div> <!-- end Step 1 -->
+
+      <div class="form-step" data-step="2">
       
       <div class="row mb-3">
         <div class="col-md-6">
           <div class="mb-3">
             <label for="vendor" class="form-label">Vendor</label>
             <div class="input-group">
-              <select class="form-select" id="vendor" name="vendor">
-                <option value="">Select a vendor</option>
-                {{#each vendors}}
-                  <option value="{{name}}" {{#if (eq ../selectedVendor name)}}selected{{/if}}>{{name}}</option>
-                {{/each}}
-              </select>
+              <input type="text" class="form-control" id="vendor" name="vendor"
+                list="vendor-list" autocomplete="off"
+                placeholder="Start typing to search..." value="{{selectedVendor}}">
               <a href="/vendors/add" class="btn btn-primary" target="_blank">
                 <i class="fas fa-plus"></i>
               </a>
             </div>
+            <datalist id="vendor-list"></datalist>
             <small class="text-muted">Or <a href="/vendors/add" target="_blank">create a new vendor</a></small>
           </div>
         </div>
@@ -147,49 +158,107 @@
         <input class="form-control" type="file" id="attachments" name="attachments" multiple>
         <small class="text-muted">Upload related documents</small>
       </div>
+      </div> <!-- end Step 3 -->
 
-      <div class="d-flex justify-content-between">
-        <a href="/licenses" class="btn btn-secondary">Cancel</a>
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save me-2"></i> Save License
-        </button>
+      <div class="form-navigation d-flex justify-content-between">
+        <button type="button" class="btn btn-secondary prev-step">Previous</button>
+        <div>
+          <button type="button" class="btn btn-primary next-step">Next</button>
+          <button type="submit" class="btn btn-success save-step">Save</button>
+        </div>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Show/hide expiry date based on license status
-    const statusSelect = document.getElementById('status');
-    const expiryDateField = document.getElementById('expiryDate').parentNode;
-    
-    statusSelect.addEventListener('change', function() {
-      if (this.value === 'perpetual') {
-        expiryDateField.style.display = 'none';
-      } else {
-        expiryDateField.style.display = 'block';
-      }
-    });
-    
-    // Set default product name as license name when product is entered
-    const productInput = document.getElementById('product');
-    const nameInput = document.getElementById('name');
-    
-    productInput.addEventListener('input', function() {
-      if (!nameInput.value) {
-        nameInput.value = this.value;
-      }
-    });
-    
-    // Set today's date as default for purchase date
-    const purchaseDateInput = document.getElementById('purchaseDate');
-    if (!purchaseDateInput.value) {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      purchaseDateInput.value = `${year}-${month}-${day}`;
+document.addEventListener('DOMContentLoaded', function() {
+  // Wizard setup
+  const steps = Array.from(document.querySelectorAll('.form-step'));
+  const nextBtn = document.querySelector('.next-step');
+  const prevBtn = document.querySelector('.prev-step');
+  const saveBtn = document.querySelector('.save-step');
+  const stepTabs = Array.from(document.querySelectorAll('.wizard-steps .nav-link'));
+  let currentStep = 1;
+  const totalSteps = steps.length;
+
+  function showStep(step) {
+    steps.forEach(s => s.classList.toggle('active', parseInt(s.getAttribute('data-step')) === step));
+    stepTabs.forEach(tab => tab.classList.toggle('active', parseInt(tab.getAttribute('data-step')) === step));
+    prevBtn.style.display = step === 1 ? 'none' : '';
+    nextBtn.style.display = step === totalSteps ? 'none' : '';
+    saveBtn.style.display = step === totalSteps ? '' : 'none';
+  }
+
+  // Tab click
+  stepTabs.forEach(tab => tab.addEventListener('click', () => {
+    currentStep = parseInt(tab.getAttribute('data-step'));
+    showStep(currentStep);
+  }));
+
+  // Next/Prev click
+  nextBtn.addEventListener('click', () => {
+    if (currentStep < totalSteps) {
+      currentStep++;
+      showStep(currentStep);
     }
   });
+  prevBtn.addEventListener('click', () => {
+    if (currentStep > 1) {
+      currentStep--;
+      showStep(currentStep);
+    }
+  });
+
+  // Initialize wizard
+  showStep(currentStep);
+
+  // Vendor autocomplete using datalist
+  const vendorInput = document.getElementById('vendor');
+  const vendorList = document.getElementById('vendor-list');
+  vendorInput.addEventListener('input', function() {
+    const term = this.value;
+    if (term.length < 2) return;
+    fetch(`/vendors/search?term=${encodeURIComponent(term)}`)
+      .then(res => res.json())
+      .then(data => {
+        vendorList.innerHTML = '';
+        data.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          vendorList.appendChild(option);
+        });
+      })
+      .catch(err => console.error('Vendor autocomplete error:', err));
+  });
+
+  // Existing behaviors
+  // Show/hide expiry date based on license status
+  const statusSelect = document.getElementById('status');
+  const expiryDateField = document.getElementById('expiryDate').parentNode;
+  statusSelect.addEventListener('change', () => {
+    expiryDateField.style.display = statusSelect.value === 'perpetual' ? 'none' : '';
+  });
+  // Default hide expiry if needed
+  if (statusSelect.value === 'perpetual') {
+    expiryDateField.style.display = 'none';
+  }
+
+  // Default product name as license name when product is entered
+  const productInput = document.getElementById('product');
+  const nameInput = document.getElementById('name');
+  productInput.addEventListener('input', () => {
+    if (!nameInput.value) nameInput.value = productInput.value;
+  });
+
+  // Set today's date as default for purchase date
+  const purchaseDateInput = document.getElementById('purchaseDate');
+  if (!purchaseDateInput.value) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    purchaseDateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
+});
 </script>

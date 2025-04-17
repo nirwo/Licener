@@ -587,8 +587,17 @@ router.post('/:id/edit', ensureAuthenticated, async (req, res) => {
     }
 
     // Update subscription data
-    const { product, vendor, type, seats, cost, renewalDate, purchaseDate, notes, status, system } =
-      req.body;
+    let { product, vendor, type, seats, cost, renewalDate, purchaseDate, notes, status, system } = req.body;
+
+    // Handle vendor: if vendor is not an ObjectId (likely a new vendor name), create/find Vendor
+    if (vendor && vendor.length && vendor.length < 24) {
+      // Vendor is a name, not an ObjectId
+      let vendorDoc = await Vendor.findOne({ name: vendor });
+      if (!vendorDoc) {
+        vendorDoc = await Vendor.create({ name: vendor });
+      }
+      vendor = vendorDoc._id;
+    }
 
     subscription.product = product;
     subscription.vendor = vendor;

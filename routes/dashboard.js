@@ -7,22 +7,15 @@ const System = require('../models/System');
 // Dashboard route - main view after login
 router.get('/', ensureAuthenticated, async (req, res) => {
   try {
-    console.log(`Loading dashboard for user: ${req.user.name || req.user.email}`);
-
-    // Get user's subscriptions
-    const subscriptions = await Subscription.find({ user: req.user._id })
-      .sort({ created: -1 })
-      .limit(5);
-    console.log(`Found ${subscriptions.length} subscriptions for dashboard`);
+    // Get user's subscriptions (all for stats, recent 5 for table)
+    const allSubscriptions = await Subscription.find({ user: req.user._id });
 
     // If user has no subscriptions, create a demo subscription
-    if (subscriptions.length === 0) {
-      console.log('No subscriptions found, creating a demo subscription for the user');
+    if (allSubscriptions.length === 0) {
       try {
         await Subscription.createDemo(req.user._id);
-        console.log('Demo subscription created successfully');
       } catch (err) {
-        console.error('Error creating demo subscription:', err);
+        // Optionally log error
       }
     }
 
@@ -36,13 +29,13 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 
     // Calculate statistics
     const stats = {
-      totalLicenses: await Subscription.countDocuments({ user: req.user._id }),
+      totalLicenses: allSubscriptions.length,
       expiringSoon: await Subscription.countDocuments({
         user: req.user._id,
         renewalDate: { $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
       }),
       activeSystems: systems.length,
-      annualSpend: calculateAnnualSpend(subscriptions),
+      annualSpend: calculateAnnualSpend(allSubscriptions),
     };
 
     // Mock activity data - replace with real data in production
@@ -78,7 +71,6 @@ router.get('/', ensureAuthenticated, async (req, res) => {
       recentActivity,
     });
   } catch (err) {
-    console.error('Dashboard error:', err);
     req.flash('error_msg', 'Error loading dashboard');
     res.render('dashboard', {
       title: 'Dashboard',
@@ -87,12 +79,11 @@ router.get('/', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Helper function to calculate annual spend
+// Helper function to calculate annual spend for active subscriptions only
 function calculateAnnualSpend(subscriptions) {
   return subscriptions
-    .reduce((total, sub) => {
-      return total + (sub.cost || 0);
-    }, 0)
+    .filter(sub => sub.status === 'active')
+    .reduce((total, sub) => total + (sub.cost || 0), 0)
     .toFixed(2);
 }
 
